@@ -1,0 +1,481 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== AUTHENTICATION & RBAC ====================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  firstName     String
+  lastName      String
+  phone         String?
+  isActive      Boolean   @default(true)
+  roleId        String
+  role          Role      @relation(fields: [roleId], references: [id])
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id])
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  batchOperators BatchOperator[]
+  qcResults     QCResult[]
+  batchReleases BatchRelease[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  description String?
+  permissions Permission[]
+  users       User[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  roles       Role[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// ==================== CUSTOMER & COMPLIANCE ====================
+
+model Customer {
+  id                  String    @id @default(uuid())
+  name                String
+  code                String    @unique
+  address             String
+  city                String
+  state               String?
+  postalCode          String
+  country             String
+  phone               String
+  email               String
+  licenseNumber       String?
+  licenseExpiryDate   DateTime?
+  deliveryWindowStart String?
+  deliveryWindowEnd   String?
+  preferredDeliveryTime String?
+  travelTimeMinutes   Int       @default(60)
+  region              String?
+  category            String?
+  isActive            Boolean   @default(true)
+  permittedProducts   CustomerProduct[]
+  contacts            CustomerContact[]
+  orders              Order[]
+  users               User[]
+  shipments           Shipment[]
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model CustomerContact {
+  id         String   @id @default(uuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  name       String
+  title      String?
+  email      String
+  phone      String?
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model CustomerProduct {
+  id         String   @id @default(uuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([customerId, productId])
+}
+
+// ==================== PRODUCT CATALOG ====================
+
+enum ProductType {
+  PET
+  SPECT
+  THERAPY
+}
+
+enum ProductionMethod {
+  CYCLOTRON
+  GENERATOR
+  KIT
+}
+
+model Product {
+  id                    String           @id @default(uuid())
+  name                  String
+  code                  String           @unique
+  productType           ProductType
+  radionuclide          String
+  halfLifeMinutes       Float
+  shelfLifeMinutes      Float
+  minConcentration      Float?
+  maxConcentration      Float?
+  standardDose          Float?
+  doseUnit              String           @default("mCi")
+  productionMethod      ProductionMethod
+  synthesisTimeMinutes  Int              @default(60)
+  qcTimeMinutes         Int              @default(30)
+  packagingTimeMinutes  Int              @default(15)
+  packagingType         String?
+  transportConstraints  String?
+  calibrationTimeOffset Int              @default(0)
+  overagePercent        Float            @default(10)
+  isActive              Boolean          @default(true)
+  qcTemplates           QCTemplate[]
+  customerProducts      CustomerProduct[]
+  orders                Order[]
+  batches               Batch[]
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+}
+
+model QCTemplate {
+  id                String     @id @default(uuid())
+  productId         String
+  product           Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  testName          String
+  testMethod        String?
+  acceptanceCriteria String
+  minValue          Float?
+  maxValue          Float?
+  unit              String?
+  isRequired        Boolean    @default(true)
+  sortOrder         Int        @default(0)
+  qcResults         QCResult[]
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
+// ==================== ORDERING ====================
+
+enum OrderStatus {
+  DRAFT
+  SUBMITTED
+  VALIDATED
+  SCHEDULED
+  IN_PRODUCTION
+  QC_PENDING
+  RELEASED
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+  REJECTED
+  FAILED_QC
+  REWORK
+}
+
+model Order {
+  id                    String      @id @default(uuid())
+  orderNumber           String      @unique
+  customerId            String
+  customer              Customer    @relation(fields: [customerId], references: [id])
+  productId             String
+  product               Product     @relation(fields: [productId], references: [id])
+  deliveryDate          DateTime
+  deliveryTimeStart     DateTime
+  deliveryTimeEnd       DateTime
+  requestedActivity     Float
+  activityUnit          String      @default("mCi")
+  numberOfDoses         Int?
+  injectionTime         DateTime?
+  patientCount          Int?
+  specialNotes          String?
+  calculatedProductionActivity Float?
+  calculatedCalibrationTime    DateTime?
+  status                OrderStatus @default(DRAFT)
+  version               Int         @default(1)
+  batchId               String?
+  batch                 Batch?      @relation(fields: [batchId], references: [id])
+  shipmentId            String?
+  shipment              Shipment?   @relation(fields: [shipmentId], references: [id])
+  orderHistory          OrderHistory[]
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+}
+
+model OrderHistory {
+  id          String      @id @default(uuid())
+  orderId     String
+  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus  OrderStatus?
+  toStatus    OrderStatus
+  changedBy   String?
+  changeNotes String?
+  snapshot    Json?
+  createdAt   DateTime    @default(now())
+}
+
+// ==================== BATCH & LOT MANAGEMENT ====================
+
+enum BatchStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  QC_PENDING
+  QC_IN_PROGRESS
+  QC_PASSED
+  QC_FAILED
+  RELEASED
+  CANCELLED
+}
+
+model Batch {
+  id                  String        @id @default(uuid())
+  batchNumber         String        @unique
+  productId           String
+  product             Product       @relation(fields: [productId], references: [id])
+  plannedStartTime    DateTime
+  plannedEndTime      DateTime
+  actualStartTime     DateTime?
+  actualEndTime       DateTime?
+  targetActivity      Float
+  actualActivity      Float?
+  activityUnit        String        @default("mCi")
+  calibrationTime     DateTime?
+  synthesisModuleId   String?
+  synthesisModule     Equipment?    @relation("SynthesisModule", fields: [synthesisModuleId], references: [id])
+  hotCellId           String?
+  hotCell             Equipment?    @relation("HotCell", fields: [hotCellId], references: [id])
+  status              BatchStatus   @default(PLANNED)
+  notes               String?
+  orders              Order[]
+  operators           BatchOperator[]
+  materialLots        BatchMaterialLot[]
+  qcResults           QCResult[]
+  batchReleases       BatchRelease[]
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+}
+
+model BatchOperator {
+  id        String   @id @default(uuid())
+  batchId   String
+  batch     Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  role      String?
+  startTime DateTime?
+  endTime   DateTime?
+  createdAt DateTime @default(now())
+
+  @@unique([batchId, userId])
+}
+
+model Equipment {
+  id                String   @id @default(uuid())
+  name              String
+  code              String   @unique
+  type              String
+  location          String?
+  isAvailable       Boolean  @default(true)
+  maintenanceNotes  String?
+  synthesisBatches  Batch[]  @relation("SynthesisModule")
+  hotCellBatches    Batch[]  @relation("HotCell")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model MaterialLot {
+  id            String   @id @default(uuid())
+  materialName  String
+  materialCode  String
+  lotNumber     String
+  expiryDate    DateTime
+  quantity      Float
+  unit          String
+  supplierId    String?
+  isActive      Boolean  @default(true)
+  batchMaterialLots BatchMaterialLot[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([materialCode, lotNumber])
+}
+
+model BatchMaterialLot {
+  id            String      @id @default(uuid())
+  batchId       String
+  batch         Batch       @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  materialLotId String
+  materialLot   MaterialLot @relation(fields: [materialLotId], references: [id])
+  quantityUsed  Float
+  createdAt     DateTime    @default(now())
+
+  @@unique([batchId, materialLotId])
+}
+
+// ==================== QC MODULE ====================
+
+enum QCResultStatus {
+  PENDING
+  IN_PROGRESS
+  PASSED
+  FAILED
+}
+
+model QCResult {
+  id            String         @id @default(uuid())
+  batchId       String
+  batch         Batch          @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  templateId    String
+  template      QCTemplate     @relation(fields: [templateId], references: [id])
+  numericResult Float?
+  textResult    String?
+  passed        Boolean?
+  status        QCResultStatus @default(PENDING)
+  testedById    String?
+  testedBy      User?          @relation(fields: [testedById], references: [id])
+  testedAt      DateTime?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model BatchRelease {
+  id               String   @id @default(uuid())
+  batchId          String
+  batch            Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  releasedById     String
+  releasedBy       User     @relation(fields: [releasedById], references: [id])
+  releaseType      String   @default("FULL")
+  electronicSignature String
+  signatureTimestamp DateTime
+  reason           String?
+  coaFilePath      String?
+  createdAt        DateTime @default(now())
+}
+
+// ==================== LOGISTICS ====================
+
+enum ShipmentStatus {
+  CREATED
+  ASSIGNED
+  IN_TRANSIT
+  DELIVERED
+  DELAYED
+  RETURNED
+  CANCELLED
+}
+
+model Shipment {
+  id                  String         @id @default(uuid())
+  shipmentNumber      String         @unique
+  customerId          String
+  customer            Customer       @relation(fields: [customerId], references: [id])
+  courierId           String?
+  courierName         String?
+  vehicleInfo         String?
+  routeInfo           String?
+  scheduledDepartureTime DateTime?
+  actualDepartureTime DateTime?
+  expectedArrivalTime DateTime?
+  actualArrivalTime   DateTime?
+  activityAtDispatch  Float?
+  activityAtDelivery  Float?
+  receiverName        String?
+  receiverSignature   String?
+  status              ShipmentStatus @default(CREATED)
+  notes               String?
+  orders              Order[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+}
+
+// ==================== NOTIFICATIONS ====================
+
+enum NotificationType {
+  ORDER_SUBMITTED
+  ORDER_VALIDATED
+  SCHEDULE_CHANGED
+  QC_PASSED
+  QC_FAILED
+  BATCH_RELEASED
+  DISPATCH_UPDATE
+  DELIVERY_UPDATE
+  SYSTEM
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  message     String
+  isRead      Boolean          @default(false)
+  relatedId   String?
+  relatedType String?
+  createdAt   DateTime         @default(now())
+}
+
+// ==================== AUDIT LOG ====================
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String
+  entityType  String
+  entityId    String?
+  oldValues   Json?
+  newValues   Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+}
+
+// ==================== CONFIGURATION ====================
+
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  dataType  String   @default("string")
+  category  String?
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductionSlot {
+  id            String   @id @default(uuid())
+  slotDate      DateTime
+  slotStartTime DateTime
+  slotEndTime   DateTime
+  equipmentId   String?
+  equipmentType String
+  isAvailable   Boolean  @default(true)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

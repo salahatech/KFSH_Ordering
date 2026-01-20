@@ -1,0 +1,163 @@
+You are Replit AI acting as a senior full-stack architect and developer.
+
+Build a web application called “RadioPharma OMS” (Ordering + Manufacturing Planning + QC Release + Delivery) for a radiopharmaceutical manufacturer. The system must be designed for time-critical, decay-based products (PET and SPECT), and support GMP-style traceability.
+
+TECH STACK
+- Frontend: ReactJS (TypeScript) + Vite, responsive UI, clean admin theme
+- Backend: Node.js (NestJS or Express) with TypeScript
+- Database: PostgreSQL
+- Auth: JWT + refresh tokens + RBAC
+- Optional: Redis for queues + caching
+- Use Prisma ORM (preferred) with migrations and seed data
+- Provide API docs (OpenAPI/Swagger)
+- Provide Docker compose for local run
+
+CORE MODULES
+1) Authentication & RBAC
+Roles:
+- Admin
+- Sales/Order Desk
+- Production Planner
+- QC Analyst
+- Qualified Person (QP) / Batch Releaser
+- Courier/Logistics
+- Customer (hospital user) (portal access)
+Permissions:
+- Fine-grained (create order, approve, schedule batch, enter QC results, release batch, dispatch shipment, view reports)
+
+2) Customer & Compliance
+- Customer profile: name, address, contacts, license numbers, license expiry date, permitted products list, delivery windows, preferred delivery times
+- Validation rules: block orders if license expired or product not permitted
+- Audit log for all changes (who/what/when)
+
+3) Product Catalog (Radiopharmaceutical)
+Each product has:
+- Product type: PET / SPECT / Therapy
+- Radionuclide (e.g., F-18, Tc-99m) and half-life minutes
+- Shelf life (minutes/hours)
+- Standard concentration range
+- Production method: cyclotron / generator / kit
+- QC tests required list + acceptance criteria
+- Packaging type and transport constraints
+- Default “calibration time” rules (activity stated at calibration time)
+
+4) Ordering (Customer Portal + Internal Order Desk)
+Order must capture:
+- Customer
+- Product
+- Delivery date + EXACT delivery time window
+- Requested activity at injection time (mCi/GBq) OR number of doses
+- Injection time (if different from delivery time)
+- Patient count (optional)
+- Special notes
+System behavior:
+- Calculate required production activity backward from injection/delivery using decay formula
+- Add configurable overage % for decay loss + QC loss
+- Validate that requested time is feasible given product shelf life
+- Order statuses:
+  Draft → Submitted → Validated → Scheduled → In Production → QC Pending → Released → Dispatched → Delivered
+  + Cancelled, Rejected, Failed QC, Rework (if allowed)
+- Support order modifications with versioning and audit log
+
+5) Decay-Based Planning & Scheduling (Key Feature)
+- Provide a Planner screen (Gantt/Timeline) showing production slots (cyclotron runs / synthesis modules / hot cells)
+- “Backward scheduling”: schedule batch start time based on delivery/injection time, synthesis duration, QC time, packaging time, travel time, and decay
+- Allow multiple orders to be grouped into a single batch if same product/day
+- Capacity constraints:
+  - Cyclotron run windows
+  - Hot cell availability
+  - Staff shift windows
+- Output:
+  - Production Plan per day
+  - Batch Work Order generated with batch number
+
+6) Batch & Lot Management (GMP Traceability)
+- Batch record includes: batch number, product, planned start/end, actual times, operator(s), equipment used, materials lots, synthesis module used
+- Material/consumables inventory lots:
+  - cold kits, reagents, sterile vials, generators (for Tc-99m) with lot/expiry
+- Full genealogy: which orders fulfilled by which batch, and which material lots used
+
+7) QC Module
+- QC template per product (tests required)
+- QC entry screen with pass/fail and numeric results
+- Rules engine to determine overall QC status
+- Rapid release option (configurable) vs full release workflow
+- Attach COA/Reports PDF to batch
+- QC statuses:
+  QC Pending → QC In Progress → QC Passed / QC Failed
+If QC failed:
+  - Mark impacted orders as Failed QC
+  - Allow re-run/rework only if product shelf-life allows; otherwise cancel
+
+8) QP Release (Final Batch Release)
+- QP screen: review batch details + QC results + audit trail
+- Button: “Release Batch” (records electronic signature fields: name, timestamp, reason)
+- After release, orders can be dispatched
+
+9) Logistics / Dispatch
+- Shipment creation: assign courier, vehicle, route, expected arrival
+- For each shipment, list the orders and their activity at dispatch time + expected activity at delivery time
+- Delivery confirmation: timestamp, receiver name, optional signature upload
+- Exception handling: delayed delivery, returned shipment
+
+10) Notifications
+- Trigger notifications (email + in-app) on:
+  - Order submitted/validated
+  - Scheduled time changed
+  - QC passed/failed
+  - Batch released
+  - Dispatch & delivery updates
+- “Criteria-based notifications”:
+  - Notify customers based on product type, facility, region, or customer category
+
+11) Reports & Dashboards
+- Daily production summary
+- On-time delivery rate
+- QC pass rate
+- Capacity utilization (cyclotron/hot cell)
+- Order turnaround time
+- Audit log viewer with filters
+
+CALCULATIONS (Must Implement)
+- Radioactive decay:
+  A(t) = A0 * exp(-λt)
+  λ = ln(2) / half_life
+Use minutes as base unit.
+- Back-calculate required A0 given required activity at target time.
+- Show these computed values on order and scheduling screens.
+
+NON-FUNCTIONAL REQUIREMENTS
+- Strong audit logging everywhere (orders, batches, QC, release, dispatch)
+- Validation + error messages for infeasible times/shelf life
+- Use transactions for critical state changes
+- Provide seed data: 5 customers, 6 products (FDG PET, NaF PET, Tc-99m MDP, Tc-99m DTPA, I-131, Lu-177), sample orders
+- Write unit tests for decay calculations and status transitions
+- Provide an initial admin user and instructions in README
+
+UI PAGES (Minimum)
+- Login
+- Admin: Users/Roles
+- Customers (CRUD + license validation)
+- Products (CRUD + QC templates)
+- Orders (list, create, edit, status flow, customer portal)
+- Planner (timeline + batch grouping + capacity)
+- Batches (details + genealogy)
+- QC (enter results + attach report)
+- QP Release (final approval)
+- Logistics (shipments + delivery confirmation)
+- Reports dashboard
+- Audit log viewer
+
+DELIVERABLES
+- Working app runnable with docker compose
+- DB migrations
+- Swagger API docs
+- README with setup steps and demo flow
+
+IMPORTANT
+- Generate clean, modular code.
+- Implement status machine to prevent invalid transitions.
+- Ensure timezones supported (store UTC, display local).
+- Do not hardcode values; use config tables for overage %, QC time, travel time per customer/region.
+
+Start by generating the database schema (Prisma), then the backend API routes/controllers, then the frontend pages, then seed data, then tests.
