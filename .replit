@@ -47,3 +47,6 @@ outputType = "webview"
 
 [userenv.shared]
 JWT_SECRET = "radiopharma-oms-secret-key-2026-production-secure"
+
+[agent]
+expertMode = true
