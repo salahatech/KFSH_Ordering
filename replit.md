@@ -66,6 +66,14 @@ Key entities:
 - All operations logged with user, timestamp, and changes
 - Filterable by entity type, action, date range
 
+### 7. Multi-Level Approval Workflows
+- Configurable role-based approval chains for critical processes
+- 5 default workflows: Order Approval, Batch Release, Shipment Dispatch, Customer Onboarding, Product Changes
+- Email notifications via Resend for pending approvals, approvals, and rejections
+- Approval inbox with filtering, expandable details, and action history
+- ApprovalStatus component integrated into Orders and Batches pages
+- Triggered automatically on: order submission (SUBMITTED), batch QC pass (QC_PASSED), shipment dispatch, customer creation
+
 ## Demo Credentials
 - **Admin**: admin@radiopharma.com / admin123
 
@@ -105,6 +113,7 @@ cd server && npx tsx prisma/seed.ts
 - /api/planner - Production planning
 - /api/reports - Analytics
 - /api/audit - Audit logs
+- /api/approvals - Multi-level approval workflows
 
 ## Products (Seeded)
 1. FDG-18 (F-18, half-life: 109.8 min) - PET
@@ -115,6 +124,12 @@ cd server && npx tsx prisma/seed.ts
 6. Lu-177 DOTATATE (Lu-177, half-life: 9500 min) - Therapy
 
 ## Recent Changes
+- 2026-01-21: Multi-level approval workflow system
+  - WorkflowDefinition, WorkflowStep, ApprovalRequest, ApprovalAction database tables
+  - Workflow service with role-based routing and email notifications via Resend
+  - Approval triggers integrated into orders, batches, QC, shipments, customers
+  - Frontend Approvals page with pending inbox, filtering, and action history
+  - ApprovalStatus component for real-time visibility on entity pages
 - 2026-01-20: Initial complete implementation
   - Full backend API with all routes
   - Complete React frontend with 13 pages
