@@ -50,3 +50,11 @@ JWT_SECRET = "radiopharma-oms-secret-key-2026-production-secure"
 
 [agent]
 expertMode = true
+
+[[ports]]
+localPort = 3001
+externalPort = 3001
+
+[[ports]]
+localPort = 5000
+externalPort = 80
