@@ -539,8 +539,245 @@ async function main() {
     }),
   ]);
 
+  // Create sample orders (15 orders across different statuses)
+  // Valid OrderStatus: DRAFT, SUBMITTED, VALIDATED, SCHEDULED, IN_PRODUCTION, QC_PENDING, RELEASED, DISPATCHED, DELIVERED, CANCELLED, REJECTED, FAILED_QC, REWORK
+  const today = new Date();
+  const orderData = [
+    { customer: customers[0], product: products[0], status: 'DELIVERED', daysOffset: -5, activity: 10 },
+    { customer: customers[1], product: products[0], status: 'DELIVERED', daysOffset: -4, activity: 15 },
+    { customer: customers[0], product: products[1], status: 'DELIVERED', daysOffset: -3, activity: 8 },
+    { customer: customers[2], product: products[2], status: 'DELIVERED', daysOffset: -3, activity: 25 },
+    { customer: customers[3], product: products[0], status: 'DELIVERED', daysOffset: -2, activity: 12 },
+    { customer: customers[1], product: products[3], status: 'DISPATCHED', daysOffset: -1, activity: 20 },
+    { customer: customers[0], product: products[0], status: 'DISPATCHED', daysOffset: -1, activity: 10 },
+    { customer: customers[4], product: products[2], status: 'RELEASED', daysOffset: 0, activity: 30 },
+    { customer: customers[2], product: products[1], status: 'QC_PENDING', daysOffset: 0, activity: 15 },
+    { customer: customers[3], product: products[0], status: 'IN_PRODUCTION', daysOffset: 0, activity: 18 },
+    { customer: customers[0], product: products[0], status: 'SCHEDULED', daysOffset: 1, activity: 10 },
+    { customer: customers[1], product: products[2], status: 'SCHEDULED', daysOffset: 1, activity: 25 },
+    { customer: customers[4], product: products[3], status: 'VALIDATED', daysOffset: 2, activity: 15 },
+    { customer: customers[2], product: products[0], status: 'SUBMITTED', daysOffset: 3, activity: 12 },
+    { customer: customers[3], product: products[4], status: 'DRAFT', daysOffset: 3, activity: 100 },
+  ];
+
+  const orders = [];
+  for (let i = 0; i < orderData.length; i++) {
+    const data = orderData[i];
+    const deliveryDate = new Date(today);
+    deliveryDate.setDate(deliveryDate.getDate() + data.daysOffset);
+    deliveryDate.setHours(8, 0, 0, 0);
+    
+    const deliveryTimeStart = new Date(deliveryDate);
+    deliveryTimeStart.setHours(7, 0, 0, 0);
+    const deliveryTimeEnd = new Date(deliveryDate);
+    deliveryTimeEnd.setHours(9, 0, 0, 0);
+    
+    const orderNumber = `ORD-${String(2024001 + i).padStart(7, '0')}`;
+    
+    const order = await prisma.order.upsert({
+      where: { orderNumber },
+      update: {},
+      create: {
+        orderNumber,
+        customerId: data.customer.id,
+        productId: data.product.id,
+        requestedActivity: data.activity,
+        deliveryDate: deliveryDate,
+        deliveryTimeStart: deliveryTimeStart,
+        deliveryTimeEnd: deliveryTimeEnd,
+        status: data.status as OrderStatus,
+        specialNotes: `Sample order for ${data.product.name}`,
+      },
+    });
+    orders.push(order);
+  }
+
+  // Create batches for orders that are in production or beyond (12 batches)
+  const batchOrders = orders.filter(o => 
+    ['IN_PRODUCTION', 'QC_PENDING', 'RELEASED', 'DISPATCHED', 'DELIVERED'].includes(o.status)
+  );
+
+  const batches = [];
+  for (let i = 0; i < batchOrders.length; i++) {
+    const order = batchOrders[i];
+    const product = products.find(p => p.id === order.productId)!;
+    const batchNumber = `BTH-${new Date().getFullYear()}-${String(1001 + i).padStart(4, '0')}`;
+    
+    const batchStatus = order.status === 'IN_PRODUCTION' ? 'IN_PROGRESS' :
+                        order.status === 'QC_PENDING' ? 'QC_PASSED' :
+                        ['RELEASED', 'DISPATCHED', 'DELIVERED'].includes(order.status) ? 'RELEASED' : 'PLANNED';
+    
+    const plannedStartTime = new Date(order.deliveryDate);
+    plannedStartTime.setMinutes(plannedStartTime.getMinutes() - (product.synthesisTimeMinutes + product.qcTimeMinutes + product.packagingTimeMinutes));
+    const plannedEndTime = new Date(order.deliveryDate);
+    plannedEndTime.setMinutes(plannedEndTime.getMinutes() - product.packagingTimeMinutes);
+    
+    const batch = await prisma.batch.upsert({
+      where: { batchNumber },
+      update: {},
+      create: {
+        batchNumber,
+        productId: product.id,
+        status: batchStatus,
+        plannedStartTime,
+        plannedEndTime,
+        targetActivity: order.requestedActivity * 1.1,
+        synthesisModuleId: equipment.find(e => e.type === 'Synthesis')?.id,
+        hotCellId: equipment.find(e => e.type === 'HotCell')?.id,
+        notes: `Production batch for order ${order.orderNumber}`,
+        orders: { connect: { id: order.id } },
+        operators: { create: { userId: adminUser.id, role: 'Lead Operator' } },
+      },
+    });
+    batches.push(batch);
+  }
+
+  // Create QC results for batches that have passed QC (10+ results)
+  const qcBatches = batches.filter((_, i) => i < 10);
+  for (let i = 0; i < qcBatches.length; i++) {
+    const batch = qcBatches[i];
+    const product = products.find(p => p.id === batch.productId)!;
+    const templates = await prisma.qCTemplate.findMany({ where: { productId: product.id } });
+    
+    for (const template of templates) {
+      const passed = Math.random() > 0.05; // 95% pass rate
+      let numericResult = null;
+      if (template.minValue !== null && template.maxValue !== null) {
+        const range = template.maxValue - template.minValue;
+        numericResult = template.minValue + (range * 0.3) + (Math.random() * range * 0.4);
+      }
+      
+      await prisma.qCResult.create({
+        data: {
+          batchId: batch.id,
+          templateId: template.id,
+          numericResult,
+          textResult: passed ? 'Pass' : 'Fail',
+          passed,
+          status: 'PASSED',
+          testedAt: new Date(),
+          testedById: adminUser.id,
+        },
+      });
+    }
+  }
+
+  // Create batch releases for released batches (8 releases)
+  const releasedBatches = batches.filter(b => b.status === 'RELEASED');
+  for (let i = 0; i < releasedBatches.length; i++) {
+    const batch = releasedBatches[i];
+    
+    await prisma.batchRelease.create({
+      data: {
+        batchId: batch.id,
+        releasedById: adminUser.id,
+        releaseType: i % 3 === 0 ? 'RAPID' : 'FULL',
+        electronicSignature: `QP-${adminUser.email}-${Date.now()}`,
+        signatureTimestamp: new Date(),
+        reason: `Batch ${batch.batchNumber} released for distribution`,
+      },
+    });
+  }
+
+  // Create shipments for dispatched/delivered orders (10 shipments)
+  const shippedOrders = orders.filter(o => ['DISPATCHED', 'DELIVERED'].includes(o.status));
+  for (let i = 0; i < shippedOrders.length; i++) {
+    const order = shippedOrders[i];
+    const customer = customers.find(c => c.id === order.customerId)!;
+    
+    const departureTime = new Date(order.deliveryDate);
+    departureTime.setMinutes(departureTime.getMinutes() - customer.travelTimeMinutes);
+    
+    const shipmentNumber = `SHP-${new Date().getFullYear()}-${String(5001 + i).padStart(4, '0')}`;
+    
+    await prisma.shipment.upsert({
+      where: { shipmentNumber },
+      update: {},
+      create: {
+        shipmentNumber,
+        customerId: customer.id,
+        status: order.status === 'DELIVERED' ? 'DELIVERED' : 'IN_TRANSIT',
+        courierName: ['John Driver', 'Mike Transport', 'Sarah Courier', 'Tom Logistics'][i % 4],
+        vehicleInfo: `VAN-${100 + (i % 5)}`,
+        scheduledDepartureTime: departureTime,
+        actualDepartureTime: departureTime,
+        expectedArrivalTime: order.deliveryDate,
+        actualArrivalTime: order.status === 'DELIVERED' ? order.deliveryDate : null,
+        activityAtDispatch: order.requestedActivity * 1.05,
+        activityAtDelivery: order.status === 'DELIVERED' ? order.requestedActivity : null,
+        receiverName: order.status === 'DELIVERED' ? 'Reception Staff' : null,
+        receiverSignature: order.status === 'DELIVERED' ? `SIG-${Date.now()}` : null,
+        notes: order.status === 'DELIVERED' ? 'Delivered successfully' : 'In transit',
+        orders: { connect: { id: order.id } },
+      },
+    });
+  }
+
+  // Create audit logs for activity tracking (10 entries)
+  const auditActions = [
+    { action: 'CREATE', entityType: 'Order' },
+    { action: 'UPDATE', entityType: 'Order' },
+    { action: 'CREATE', entityType: 'Batch' },
+    { action: 'UPDATE', entityType: 'Batch' },
+    { action: 'CREATE', entityType: 'QCResult' },
+    { action: 'CREATE', entityType: 'BatchRelease' },
+    { action: 'CREATE', entityType: 'Shipment' },
+    { action: 'UPDATE', entityType: 'Shipment' },
+    { action: 'UPDATE', entityType: 'Customer' },
+    { action: 'LOGIN', entityType: 'User' },
+  ];
+
+  for (let i = 0; i < auditActions.length; i++) {
+    const logTime = new Date();
+    logTime.setHours(logTime.getHours() - (auditActions.length - i));
+    
+    await prisma.auditLog.create({
+      data: {
+        user: { connect: { id: adminUser.id } },
+        action: auditActions[i].action,
+        entityType: auditActions[i].entityType,
+        entityId: orders[i % orders.length].id,
+        ipAddress: '192.168.1.100',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        createdAt: logTime,
+      },
+    });
+  }
+
+  // Create notifications (10 notifications)
+  // Valid types: ORDER_SUBMITTED, ORDER_VALIDATED, SCHEDULE_CHANGED, QC_PASSED, QC_FAILED, BATCH_RELEASED, DISPATCH_UPDATE, DELIVERY_UPDATE, SYSTEM
+  const notificationTypes = [
+    { type: 'ORDER_SUBMITTED', title: 'New Order Submitted', message: 'A new order has been submitted' },
+    { type: 'ORDER_VALIDATED', title: 'Order Validated', message: 'Order has been validated' },
+    { type: 'SCHEDULE_CHANGED', title: 'Schedule Changed', message: 'Production schedule has been updated' },
+    { type: 'QC_PASSED', title: 'QC Passed', message: 'Quality control testing passed' },
+    { type: 'BATCH_RELEASED', title: 'Batch Released', message: 'Batch has been released by QP' },
+    { type: 'DISPATCH_UPDATE', title: 'Dispatch Update', message: 'Shipment has been dispatched' },
+    { type: 'DELIVERY_UPDATE', title: 'Delivery Update', message: 'Package has been delivered' },
+    { type: 'SYSTEM', title: 'License Expiring Soon', message: 'Customer license expires in 30 days' },
+    { type: 'SYSTEM', title: 'Low Inventory Alert', message: 'Generator running low' },
+    { type: 'SYSTEM', title: 'Maintenance Due', message: 'Equipment maintenance scheduled' },
+  ];
+
+  for (let i = 0; i < notificationTypes.length; i++) {
+    const notifTime = new Date();
+    notifTime.setHours(notifTime.getHours() - i);
+    
+    await prisma.notification.create({
+      data: {
+        user: { connect: { id: adminUser.id } },
+        type: notificationTypes[i].type as any,
+        title: notificationTypes[i].title,
+        message: notificationTypes[i].message,
+        isRead: i > 5,
+        createdAt: notifTime,
+      },
+    });
+  }
+
   console.log('Seed completed successfully!');
   console.log('Admin user: admin@radiopharma.com / admin123');
+  console.log(`Created: ${orders.length} orders, ${batches.length} batches, ${releasedBatches.length} releases, ${shippedOrders.length} shipments`);
 }
 
 main()
