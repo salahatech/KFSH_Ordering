@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { format } from 'date-fns';
 import { Play, Pause, Eye, ArrowRight } from 'lucide-react';
+import ApprovalStatus from '../components/ApprovalStatus';
 
 export default function Batches() {
   const [selectedBatch, setSelectedBatch] = useState<any>(null);
@@ -204,6 +205,11 @@ export default function Batches() {
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Target Activity</div>
                     <div>{batchDetails.targetActivity} {batchDetails.activityUnit}</div>
                   </div>
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <h4 style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Approval Status</h4>
+                  <ApprovalStatus entityType="BATCH" entityId={batchDetails.id} />
                 </div>
 
                 <h4 style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Orders ({batchDetails.orders?.length || 0})</h4>

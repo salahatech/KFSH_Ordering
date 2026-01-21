@@ -16,6 +16,7 @@ import Shipments from './pages/Shipments';
 import Users from './pages/Users';
 import Reports from './pages/Reports';
 import AuditLog from './pages/AuditLog';
+import Approvals from './pages/Approvals';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -73,6 +74,7 @@ export default function App() {
                 <Route path="/users" element={<Users />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/audit" element={<AuditLog />} />
+                <Route path="/approvals" element={<Approvals />} />
               </Routes>
             </Layout>
           </ProtectedRoute>

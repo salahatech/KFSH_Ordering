@@ -23,6 +23,38 @@ router.get('/pending', authenticateToken, async (req: Request, res: Response): P
   }
 });
 
+router.get('/requests', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const status = req.query.status as string | undefined;
+    const entityType = req.query.entityType as string | undefined;
+
+    const where: any = {};
+    if (status) where.status = status;
+    if (entityType) where.entityType = entityType;
+
+    const requests = await prisma.approvalRequest.findMany({
+      where,
+      include: {
+        workflow: { include: { steps: { include: { approverRole: true } } } },
+        requestedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        actions: {
+          include: {
+            actionBy: { select: { id: true, firstName: true, lastName: true } },
+            step: true,
+          },
+          orderBy: { actionAt: 'asc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+
+    res.json(requests);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch approval requests' });
+  }
+});
+
 router.get('/history/:entityType/:entityId', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const entityType = req.params.entityType as string;
@@ -62,6 +94,35 @@ router.post('/trigger', authenticateToken, requireRole('Admin', 'Production Mana
   } catch (error) {
     console.error('Trigger workflow error:', error);
     res.status(500).json({ error: 'Failed to trigger workflow' });
+  }
+});
+
+router.post('/:id/action', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { action, comments, signature } = req.body;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    if (!action || !['APPROVED', 'REJECTED'].includes(action)) {
+      res.status(400).json({ error: 'Invalid action. Must be APPROVED or REJECTED' });
+      return;
+    }
+
+    if (action === 'REJECTED' && !comments) {
+      res.status(400).json({ error: 'Comments are required for rejection' });
+      return;
+    }
+
+    const result = await processApproval(id, userId, action as 'APPROVED' | 'REJECTED', comments, signature);
+    res.json(result);
+  } catch (error: any) {
+    console.error('Process approval action error:', error);
+    res.status(400).json({ error: error.message || 'Failed to process approval action' });
   }
 });
 
@@ -181,38 +242,6 @@ router.put('/workflows/:id', authenticateToken, requireRole('Admin'), async (req
     res.json(workflow);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update workflow' });
-  }
-});
-
-router.get('/requests', authenticateToken, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const status = req.query.status as string | undefined;
-    const entityType = req.query.entityType as string | undefined;
-
-    const where: any = {};
-    if (status) where.status = status;
-    if (entityType) where.entityType = entityType;
-
-    const requests = await prisma.approvalRequest.findMany({
-      where,
-      include: {
-        workflow: { include: { steps: { include: { approverRole: true } } } },
-        requestedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
-        actions: {
-          include: {
-            actionBy: { select: { id: true, firstName: true, lastName: true } },
-            step: true,
-          },
-          orderBy: { actionAt: 'asc' },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    });
-
-    res.json(requests);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch approval requests' });
   }
 });
 

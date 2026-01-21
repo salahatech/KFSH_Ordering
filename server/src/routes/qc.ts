@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient, QCResultStatus, BatchStatus } from '@prisma/client';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { createAuditLog } from '../middleware/audit.js';
+import { triggerWorkflow } from '../services/workflow.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -236,6 +237,20 @@ router.post('/batches/:batchId/complete', authenticateToken, requireRole('Admin'
 
     await createAuditLog(req.user?.userId, 'QC_COMPLETE', 'Batch', batch.id, null,
       { passed: allPassed, status: newStatus }, req);
+
+    if (allPassed && req.user?.userId) {
+      try {
+        await triggerWorkflow({
+          entityType: 'BATCH',
+          entityId: batch.id,
+          triggerStatus: 'QC_PASSED',
+          requestedById: req.user.userId,
+          priority: 'HIGH',
+        });
+      } catch (workflowError) {
+        console.error('Failed to trigger batch release workflow:', workflowError);
+      }
+    }
 
     res.json({
       batch: updatedBatch,

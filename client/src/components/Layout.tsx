@@ -18,10 +18,12 @@ import {
   Menu,
   X,
   Bell,
+  FileCheck,
 } from 'lucide-react';
 
 const menuItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/approvals', label: 'Approvals', icon: FileCheck },
   { path: '/customers', label: 'Customers', icon: Building2 },
   { path: '/products', label: 'Products', icon: Package },
   { path: '/orders', label: 'Orders', icon: ShoppingCart },

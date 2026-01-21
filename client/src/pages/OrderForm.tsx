@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import api from '../lib/api';
 import { format, addHours } from 'date-fns';
 import { ArrowLeft, Calculator, AlertCircle } from 'lucide-react';
+import ApprovalStatus from '../components/ApprovalStatus';
 
 export default function OrderForm() {
   const { id } = useParams();
@@ -124,8 +125,21 @@ export default function OrderForm() {
 
       <div className="card" style={{ maxWidth: '50rem' }}>
         <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-          <h2 style={{ fontWeight: 600 }}>{id ? 'Edit Order' : 'New Order'}</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <h2 style={{ fontWeight: 600, margin: 0 }}>{id ? 'Edit Order' : 'New Order'}</h2>
+            {id && order && (
+              <div style={{ marginLeft: '1rem' }}>
+                <ApprovalStatus entityType="ORDER" entityId={id} compact />
+              </div>
+            )}
+          </div>
         </div>
+
+        {id && order && (
+          <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+            <ApprovalStatus entityType="ORDER" entityId={id} />
+          </div>
+        )}
 
         {error && (
           <div

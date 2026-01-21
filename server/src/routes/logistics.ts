@@ -3,6 +3,7 @@ import { PrismaClient, ShipmentStatus } from '@prisma/client';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { createAuditLog } from '../middleware/audit.js';
 import { calculateActivityAtTime } from '../utils/decay.js';
+import { triggerWorkflow } from '../services/workflow.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -237,6 +238,20 @@ router.post('/:id/dispatch', authenticateToken, requireRole('Admin', 'Production
 
     await createAuditLog(req.user?.userId, 'DISPATCH', 'Shipment', shipment.id, null,
       { activityAtDispatch: totalActivityAtDispatch }, req);
+
+    if (req.user?.userId) {
+      try {
+        await triggerWorkflow({
+          entityType: 'SHIPMENT',
+          entityId: shipment.id,
+          triggerStatus: 'ASSIGNED',
+          requestedById: req.user.userId,
+          priority: 'HIGH',
+        });
+      } catch (workflowError) {
+        console.error('Failed to trigger shipment dispatch workflow:', workflowError);
+      }
+    }
 
     res.json(updatedShipment);
   } catch (error) {

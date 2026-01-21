@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken, requirePermission, requireRole } from '../middleware/auth.js';
 import { createAuditLog } from '../middleware/audit.js';
+import { triggerWorkflow } from '../services/workflow.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -127,6 +128,19 @@ router.post('/', authenticateToken, requireRole('Admin', 'Customer Service'), as
     });
 
     await createAuditLog(req.user?.userId, 'CREATE', 'Customer', customer.id, null, customer, req);
+
+    if (req.user?.userId) {
+      try {
+        await triggerWorkflow({
+          entityType: 'CUSTOMER',
+          entityId: customer.id,
+          requestedById: req.user.userId,
+          priority: 'NORMAL',
+        });
+      } catch (workflowError) {
+        console.error('Failed to trigger customer onboarding workflow:', workflowError);
+      }
+    }
 
     res.status(201).json(customer);
   } catch (error) {

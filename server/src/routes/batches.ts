@@ -3,6 +3,7 @@ import { PrismaClient, BatchStatus, OrderStatus } from '@prisma/client';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { createAuditLog } from '../middleware/audit.js';
 import { canTransitionBatch, getNextBatchStatuses } from '../utils/statusMachine.js';
+import { triggerWorkflow } from '../services/workflow.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -229,6 +230,21 @@ router.patch('/:id/status', authenticateToken, requireRole('Admin', 'Production 
 
     await createAuditLog(req.user?.userId, 'STATUS_CHANGE', 'Batch', batch.id,
       { status: batch.status }, { status }, req);
+
+    if (status === 'QC_PASSED' && req.user?.userId) {
+      try {
+        await triggerWorkflow({
+          entityType: 'BATCH',
+          entityId: batch.id,
+          triggerStatus: 'QC_PASSED',
+          requestedById: req.user.userId,
+          priority: 'HIGH',
+          notes,
+        });
+      } catch (workflowError) {
+        console.error('Failed to trigger batch release workflow:', workflowError);
+      }
+    }
 
     res.json(updatedBatch);
   } catch (error) {

@@ -9,6 +9,7 @@ import {
   isWithinShelfLife,
 } from '../utils/decay.js';
 import { v4 as uuidv4 } from 'uuid';
+import { triggerWorkflow } from '../services/workflow.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -368,6 +369,21 @@ router.patch('/:id/status', authenticateToken, requireRole('Admin', 'Production 
 
     await createAuditLog(req.user?.userId, 'STATUS_CHANGE', 'Order', order.id, 
       { status: order.status }, { status }, req);
+
+    if (status === 'SUBMITTED' && req.user?.userId) {
+      try {
+        await triggerWorkflow({
+          entityType: 'ORDER',
+          entityId: order.id,
+          triggerStatus: 'SUBMITTED',
+          requestedById: req.user.userId,
+          priority: 'NORMAL',
+          notes,
+        });
+      } catch (workflowError) {
+        console.error('Failed to trigger order approval workflow:', workflowError);
+      }
+    }
 
     res.json(updatedOrder);
   } catch (error) {
