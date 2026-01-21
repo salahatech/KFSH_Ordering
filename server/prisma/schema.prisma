@@ -27,18 +27,21 @@ model User {
   batchOperators BatchOperator[]
   qcResults     QCResult[]
   batchReleases BatchRelease[]
+  approvalRequests ApprovalRequest[] @relation("ApprovalRequester")
+  approvalActions  ApprovalAction[]  @relation("ApprovalActor")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
 
 model Role {
-  id          String       @id @default(uuid())
-  name        String       @unique
-  description String?
-  permissions Permission[]
-  users       User[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id            String         @id @default(uuid())
+  name          String         @unique
+  description   String?
+  permissions   Permission[]
+  users         User[]
+  approvalSteps ApprovalStep[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
 model Permission {
@@ -478,4 +481,95 @@ model ProductionSlot {
   notes         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// ==================== WORKFLOW APPROVAL SYSTEM ====================
+
+enum WorkflowEntityType {
+  ORDER
+  BATCH
+  QC_RESULT
+  BATCH_RELEASE
+  SHIPMENT
+  CUSTOMER
+  PRODUCT
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ESCALATED
+  CANCELLED
+}
+
+model WorkflowDefinition {
+  id                String              @id @default(uuid())
+  name              String              @unique
+  entityType        WorkflowEntityType
+  triggerStatus     String?
+  description       String?
+  isActive          Boolean             @default(true)
+  requiresAllSteps  Boolean             @default(true)
+  steps             ApprovalStep[]
+  approvalRequests  ApprovalRequest[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+}
+
+model ApprovalStep {
+  id                  String             @id @default(uuid())
+  workflowId          String
+  workflow            WorkflowDefinition @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  stepOrder           Int
+  stepName            String
+  description         String?
+  approverRoleId      String
+  approverRole        Role               @relation(fields: [approverRoleId], references: [id])
+  timeoutHours        Int?
+  isRequired          Boolean            @default(true)
+  canDelegate         Boolean            @default(false)
+  approvalActions     ApprovalAction[]
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@unique([workflowId, stepOrder])
+}
+
+model ApprovalRequest {
+  id                String             @id @default(uuid())
+  workflowId        String
+  workflow          WorkflowDefinition @relation(fields: [workflowId], references: [id])
+  entityType        WorkflowEntityType
+  entityId          String
+  requestedById     String
+  requestedBy       User               @relation("ApprovalRequester", fields: [requestedById], references: [id])
+  currentStepOrder  Int                @default(1)
+  status            ApprovalStatus     @default(PENDING)
+  priority          String             @default("NORMAL")
+  dueDate           DateTime?
+  completedAt       DateTime?
+  notes             String?
+  actions           ApprovalAction[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([entityType, entityId])
+  @@index([status])
+}
+
+model ApprovalAction {
+  id                String          @id @default(uuid())
+  approvalRequestId String
+  approvalRequest   ApprovalRequest @relation(fields: [approvalRequestId], references: [id], onDelete: Cascade)
+  stepId            String
+  step              ApprovalStep    @relation(fields: [stepId], references: [id])
+  actionById        String
+  actionBy          User            @relation("ApprovalActor", fields: [actionById], references: [id])
+  action            ApprovalStatus
+  comments          String?
+  signature         String?
+  actionAt          DateTime        @default(now())
+
+  @@index([approvalRequestId])
 }

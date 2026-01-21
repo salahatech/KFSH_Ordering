@@ -1,4 +1,4 @@
-import { PrismaClient, ProductType, ProductionMethod, OrderStatus } from '@prisma/client';
+import { PrismaClient, ProductType, ProductionMethod, OrderStatus, WorkflowEntityType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -773,6 +773,98 @@ async function main() {
         createdAt: notifTime,
       },
     });
+  }
+
+  // Create workflow definitions with approval steps
+  const workflowDefinitions = [
+    {
+      name: 'Order Approval',
+      entityType: 'ORDER' as WorkflowEntityType,
+      triggerStatus: 'SUBMITTED',
+      description: 'Approval workflow for new orders',
+      steps: [
+        { stepName: 'Sales Review', roleNames: ['Sales', 'Admin'], description: 'Review order details and customer license' },
+        { stepName: 'Production Planning Approval', roleNames: ['Production Planner', 'Admin'], description: 'Confirm production capacity' },
+      ],
+    },
+    {
+      name: 'Batch Release Approval',
+      entityType: 'BATCH' as WorkflowEntityType,
+      triggerStatus: 'QC_PASSED',
+      description: 'QP release approval for batches',
+      steps: [
+        { stepName: 'QC Manager Review', roleNames: ['QC Analyst', 'Admin'], description: 'Verify all QC results' },
+        { stepName: 'QP Release', roleNames: ['Qualified Person', 'Admin'], description: 'Final release decision' },
+      ],
+    },
+    {
+      name: 'Shipment Dispatch Approval',
+      entityType: 'SHIPMENT' as WorkflowEntityType,
+      triggerStatus: 'ASSIGNED',
+      description: 'Approval for dispatching shipments',
+      steps: [
+        { stepName: 'Logistics Approval', roleNames: ['Logistics', 'Admin'], description: 'Confirm vehicle and route' },
+      ],
+    },
+    {
+      name: 'Customer Onboarding',
+      entityType: 'CUSTOMER' as WorkflowEntityType,
+      description: 'Approval for new customer accounts',
+      steps: [
+        { stepName: 'License Verification', roleNames: ['Sales', 'Admin'], description: 'Verify customer license' },
+        { stepName: 'Admin Approval', roleNames: ['Admin'], description: 'Final approval for new customer' },
+      ],
+    },
+    {
+      name: 'Product Change Approval',
+      entityType: 'PRODUCT' as WorkflowEntityType,
+      description: 'Approval for product modifications',
+      steps: [
+        { stepName: 'QA Review', roleNames: ['QC Analyst', 'Admin'], description: 'Review product changes' },
+        { stepName: 'Regulatory Approval', roleNames: ['Admin'], description: 'Regulatory compliance check' },
+      ],
+    },
+  ];
+
+  for (const wfDef of workflowDefinitions) {
+    const existingWorkflow = await prisma.workflowDefinition.findUnique({
+      where: { name: wfDef.name },
+    });
+
+    if (!existingWorkflow) {
+      const workflow = await prisma.workflowDefinition.create({
+        data: {
+          name: wfDef.name,
+          entityType: wfDef.entityType,
+          triggerStatus: wfDef.triggerStatus || null,
+          description: wfDef.description,
+          isActive: true,
+          requiresAllSteps: true,
+        },
+      });
+
+      for (let i = 0; i < wfDef.steps.length; i++) {
+        const stepDef = wfDef.steps[i];
+        const role = await prisma.role.findFirst({
+          where: { name: { in: stepDef.roleNames } },
+        });
+
+        if (role) {
+          await prisma.approvalStep.create({
+            data: {
+              workflowId: workflow.id,
+              stepOrder: i + 1,
+              stepName: stepDef.stepName,
+              description: stepDef.description,
+              approverRoleId: role.id,
+              isRequired: true,
+            },
+          });
+        }
+      }
+
+      console.log(`Created workflow: ${wfDef.name}`);
+    }
   }
 
   console.log('Seed completed successfully!');

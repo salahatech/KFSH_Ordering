@@ -1,4 +1,4 @@
-modules = ["nodejs-20"]
+modules = ["nodejs-20", "python-3.11"]
 
 [nix]
 channel = "stable-25_05"
@@ -50,6 +50,7 @@ JWT_SECRET = "radiopharma-oms-secret-key-2026-production-secure"
 
 [agent]
 expertMode = true
+integrations = ["resend:1.0.0"]
 
 [[ports]]
 localPort = 3001
