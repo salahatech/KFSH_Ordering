@@ -1024,50 +1024,50 @@ export default function Settings() {
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px', width: '100%' }}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              paddingBottom: '1rem',
-              borderBottom: '1px solid var(--border)',
-              marginBottom: '1.5rem'
-            }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', width: '95%' }}>
+            <div className="modal-header">
               <h3 style={{ fontWeight: 600, margin: 0, fontSize: '1.125rem' }}>
-                {editItem ? 'Edit' : 'Add'} {activeTabInfo?.label.replace(/s$/, '')}
+                {editItem ? 'Edit' : 'Add New'} {activeTabInfo?.label.replace(/ies$/, 'y').replace(/s$/, '')}
               </h3>
               <button 
-                className="btn btn-sm btn-secondary" 
+                className="btn btn-sm" 
                 onClick={() => setShowModal(false)}
-                style={{ padding: '0.25rem' }}
+                style={{ padding: '0.375rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}
               >
                 <X size={18} />
               </button>
             </div>
 
-            {renderForm()}
+            <div className="modal-body">
+              {renderForm()}
 
-            {editItem && (
-              <div className="form-group" style={{ marginTop: '1rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={formData.isActive !== false}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  />
-                  <span className="form-label" style={{ marginBottom: 0 }}>Active</span>
-                </label>
-              </div>
-            )}
+              {editItem && (
+                <div className="form-group" style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+                  <label style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.75rem', 
+                    cursor: 'pointer',
+                    padding: '0.75rem 1rem',
+                    background: formData.isActive !== false ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                    borderRadius: 'var(--radius)',
+                    border: `1px solid ${formData.isActive !== false ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.isActive !== false}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontWeight: 500, color: formData.isActive !== false ? 'var(--success)' : 'var(--danger)' }}>
+                      {formData.isActive !== false ? 'Active' : 'Inactive'}
+                    </span>
+                  </label>
+                </div>
+              )}
+            </div>
 
-            <div style={{ 
-              display: 'flex', 
-              gap: '0.75rem', 
-              justifyContent: 'flex-end', 
-              marginTop: '1.5rem',
-              paddingTop: '1rem',
-              borderTop: '1px solid var(--border)'
-            }}>
+            <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
                 Cancel
               </button>
