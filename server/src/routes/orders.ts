@@ -146,7 +146,7 @@ router.post('/', authenticateToken, requireRole('Admin', 'Production Manager', '
       patientCount, specialNotes, status, notes, priority
     } = req.body;
 
-    const customerId = user.role === 'Customer' ? user.customerId : bodyCustomerId;
+    const customerId = user.roleName === 'Customer' ? user.customerId : bodyCustomerId;
     
     if (!customerId) {
       res.status(400).json({ error: 'Customer ID is required' });
