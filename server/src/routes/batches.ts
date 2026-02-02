@@ -63,6 +63,80 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
 
 /**
  * @swagger
+ * /batches/release/stats:
+ *   get:
+ *     summary: Get release statistics
+ *     tags: [Batches]
+ *     responses:
+ *       200:
+ *         description: Release statistics
+ */
+router.get('/release/stats', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [pendingRelease, releasedToday, rejectedToday, qpReview] = await Promise.all([
+      prisma.batch.count({ where: { status: 'QC_PASSED' } }),
+      prisma.batch.count({ 
+        where: { 
+          status: 'RELEASED',
+          updatedAt: { gte: today },
+        } 
+      }),
+      prisma.batch.count({ 
+        where: { 
+          status: 'REJECTED',
+          updatedAt: { gte: today },
+        } 
+      }),
+      prisma.batch.count({ where: { status: 'QP_REVIEW' } }),
+    ]);
+
+    res.json({ pendingRelease, releasedToday, rejectedToday, qpReview });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch release stats' });
+  }
+});
+
+/**
+ * @swagger
+ * /batches/release/history:
+ *   get:
+ *     summary: Get release history
+ *     tags: [Batches]
+ *     responses:
+ *       200:
+ *         description: Release history
+ */
+router.get('/release/history', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { days = '14' } = req.query;
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - parseInt(days as string));
+
+    const batches = await prisma.batch.findMany({
+      where: {
+        status: { in: ['RELEASED', 'REJECTED'] },
+        updatedAt: { gte: fromDate },
+      },
+      include: {
+        product: true,
+        orders: { include: { customer: true } },
+        batchReleases: { include: { releasedBy: true } },
+        qcResults: { include: { template: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    res.json(batches);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch release history' });
+  }
+});
+
+/**
+ * @swagger
  * /batches/{id}:
  *   get:
  *     summary: Get batch by ID
