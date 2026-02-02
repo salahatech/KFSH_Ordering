@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { format } from 'date-fns';
-import { Receipt, Eye, X, Download, CreditCard, AlertCircle, CheckCircle, Upload, FileText, Clock, XCircle } from 'lucide-react';
+import { Receipt, Eye, X, Download, CreditCard, AlertCircle, CheckCircle, Upload, FileText, Clock, XCircle, FileDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function PortalInvoices() {
@@ -370,19 +370,31 @@ export default function PortalInvoices() {
               </div>
             </div>
 
-            {canSubmitPayment && (
-              <button 
-                className="btn btn-primary" 
-                style={{ width: '100%', marginBottom: '1.5rem' }}
-                onClick={() => {
-                  setPaymentForm(prev => ({ ...prev, amount: remainingAmount.toString() }));
-                  setShowPaymentModal(true);
-                }}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <a 
+                href={`/api/invoice-pdf/${selectedInvoice.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-outline"
+                style={{ flex: canSubmitPayment ? 1 : undefined }}
               >
-                <CreditCard size={16} style={{ marginRight: '0.5rem' }} />
-                Submit Payment
-              </button>
-            )}
+                <FileDown size={16} style={{ marginRight: '0.5rem' }} />
+                Download PDF
+              </a>
+              {canSubmitPayment && (
+                <button 
+                  className="btn btn-primary" 
+                  style={{ flex: 1 }}
+                  onClick={() => {
+                    setPaymentForm(prev => ({ ...prev, amount: remainingAmount.toString() }));
+                    setShowPaymentModal(true);
+                  }}
+                >
+                  <CreditCard size={16} style={{ marginRight: '0.5rem' }} />
+                  Submit Payment
+                </button>
+              )}
+            </div>
 
             <h4 style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
               Line Items
