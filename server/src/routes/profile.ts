@@ -14,8 +14,9 @@ const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg'];
 
 const uploadsDir = path.join(process.cwd(), 'uploads');
 const logosDir = path.join(uploadsDir, 'logos');
+const locationPhotosDir = path.join(uploadsDir, 'location-photos');
 
-[uploadsDir, logosDir].forEach(dir => {
+[uploadsDir, logosDir, locationPhotosDir].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -283,6 +284,157 @@ router.delete('/logo', authenticateToken, async (req: Request, res: Response): P
   } catch (error) {
     console.error('Logo delete error:', error);
     res.status(500).json({ error: 'Failed to remove logo' });
+  }
+});
+
+const locationPhotoStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, locationPhotosDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const customerId = (req as any).user?.customerId || 'unknown';
+    cb(null, `${customerId}-location-${Date.now()}${ext}`);
+  }
+});
+
+const locationPhotoUpload = multer({
+  storage: locationPhotoStorage,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (req, file, cb) => {
+    if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('INVALID_FILE_TYPE'));
+    }
+  }
+});
+
+router.get('/location-photos', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = (req as any).user;
+    
+    if (!user.customerId) {
+      res.status(403).json({ error: 'This endpoint is only available for customer users' });
+      return;
+    }
+
+    const photos = await prisma.customerLocationPhoto.findMany({
+      where: { customerId: user.customerId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        uploadedBy: { select: { id: true, username: true } }
+      }
+    });
+
+    res.json(photos);
+  } catch (error) {
+    console.error('Location photos fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch location photos' });
+  }
+});
+
+router.post('/location-photos', authenticateToken, (req: Request, res: Response): void => {
+  const user = (req as any).user;
+  
+  if (!user.customerId) {
+    res.status(403).json({ error: 'This endpoint is only available for customer users' });
+    return;
+  }
+
+  locationPhotoUpload.single('photo')(req, res, async (err) => {
+    if (err) {
+      if (err.message === 'INVALID_FILE_TYPE') {
+        res.status(400).json({ error: 'Invalid file type. Only PNG and JPG are allowed.' });
+      } else if (err.code === 'LIMIT_FILE_SIZE') {
+        res.status(400).json({ error: 'File size exceeds 5MB limit.' });
+      } else {
+        res.status(500).json({ error: 'Failed to upload photo' });
+      }
+      return;
+    }
+
+    if (!req.file) {
+      res.status(400).json({ error: 'No file provided' });
+      return;
+    }
+
+    try {
+      const { caption } = req.body;
+      const photoUrl = `/uploads/location-photos/${req.file.filename}`;
+
+      const photo = await prisma.customerLocationPhoto.create({
+        data: {
+          customerId: user.customerId,
+          photoUrl,
+          caption: caption || null,
+          fileSizeBytes: req.file.size,
+          mimeType: req.file.mimetype,
+          uploadedByUserId: user.userId,
+        },
+        include: {
+          uploadedBy: { select: { id: true, username: true } }
+        }
+      });
+
+      await createAuditLog(
+        user.userId,
+        'CREATE',
+        'CustomerLocationPhoto',
+        photo.id,
+        null,
+        { photoUrl, caption },
+        req
+      );
+
+      res.json(photo);
+    } catch (error) {
+      console.error('Location photo save error:', error);
+      res.status(500).json({ error: 'Failed to save location photo' });
+    }
+  });
+});
+
+router.delete('/location-photos/:id', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = (req as any).user;
+    const { id } = req.params;
+    
+    if (!user.customerId) {
+      res.status(403).json({ error: 'This endpoint is only available for customer users' });
+      return;
+    }
+
+    const photo = await prisma.customerLocationPhoto.findFirst({
+      where: { id, customerId: user.customerId },
+    });
+
+    if (!photo) {
+      res.status(404).json({ error: 'Photo not found' });
+      return;
+    }
+
+    const photoPath = path.join(process.cwd(), photo.photoUrl);
+    if (fs.existsSync(photoPath)) {
+      fs.unlinkSync(photoPath);
+    }
+
+    await prisma.customerLocationPhoto.delete({
+      where: { id },
+    });
+
+    await createAuditLog(
+      user.userId,
+      'DELETE',
+      'CustomerLocationPhoto',
+      id,
+      { photoUrl: photo.photoUrl, caption: photo.caption },
+      null,
+      req
+    );
+
+    res.json({ message: 'Photo deleted' });
+  } catch (error) {
+    console.error('Location photo delete error:', error);
+    res.status(500).json({ error: 'Failed to delete photo' });
   }
 });
 
