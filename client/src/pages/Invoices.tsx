@@ -22,6 +22,7 @@ import {
   Clock,
   Printer,
 } from 'lucide-react';
+import { KpiCard } from '../components/shared';
 
 function generateZatcaQRData(invoice: any, sellerName: string, vatNumber: string): string {
   const invoiceDate = new Date(invoice.invoiceDate).toISOString();
@@ -402,50 +403,38 @@ export default function Invoices() {
 
       {summary && (
         <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div className="card stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' }}>
-              <Receipt size={20} />
-            </div>
-            <div>
-              <div className="stat-value" style={{ color: 'var(--primary)' }}>
-                ${(summary.totalAmount / 1000)?.toFixed(1) || '0'}k
-              </div>
-              <div className="stat-label">Total Invoiced</div>
-            </div>
-          </div>
-          <div className="card stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(34, 197, 94, 0.1)', color: 'var(--success)' }}>
-              <TrendingUp size={20} />
-            </div>
-            <div>
-              <div className="stat-value" style={{ color: 'var(--success)' }}>
-                ${(summary.totalPaid / 1000)?.toFixed(1) || '0'}k
-              </div>
-              <div className="stat-label">Total Paid</div>
-            </div>
-          </div>
-          <div className="card stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(234, 179, 8, 0.1)', color: 'var(--warning)' }}>
-              <Clock size={20} />
-            </div>
-            <div>
-              <div className="stat-value" style={{ color: 'var(--warning)' }}>
-                ${(summary.totalOutstanding / 1000)?.toFixed(1) || '0'}k
-              </div>
-              <div className="stat-label">Outstanding</div>
-            </div>
-          </div>
-          <div className="card stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)' }}>
-              <AlertCircle size={20} />
-            </div>
-            <div>
-              <div className="stat-value" style={{ color: 'var(--danger)' }}>
-                {summary.byStatus?.overdue || 0}
-              </div>
-              <div className="stat-label">Overdue</div>
-            </div>
-          </div>
+          <KpiCard 
+            title="Total Invoiced" 
+            value={`$${(summary.totalAmount / 1000)?.toFixed(1) || '0'}k`}
+            icon={<Receipt size={20} />}
+            color="primary"
+            onClick={() => setStatusFilter('')}
+            selected={!statusFilter}
+          />
+          <KpiCard 
+            title="Total Paid" 
+            value={`$${(summary.totalPaid / 1000)?.toFixed(1) || '0'}k`}
+            icon={<TrendingUp size={20} />}
+            color="success"
+            onClick={() => setStatusFilter('PAID')}
+            selected={statusFilter === 'PAID'}
+          />
+          <KpiCard 
+            title="Outstanding" 
+            value={`$${(summary.totalOutstanding / 1000)?.toFixed(1) || '0'}k`}
+            icon={<Clock size={20} />}
+            color="warning"
+            onClick={() => setStatusFilter('SENT')}
+            selected={statusFilter === 'SENT'}
+          />
+          <KpiCard 
+            title="Overdue" 
+            value={summary.byStatus?.overdue || 0}
+            icon={<AlertCircle size={20} />}
+            color="danger"
+            onClick={() => setStatusFilter('OVERDUE')}
+            selected={statusFilter === 'OVERDUE'}
+          />
         </div>
       )}
 

@@ -13,6 +13,7 @@ export interface KpiCardProps {
   onClick?: () => void;
   loading?: boolean;
   active?: boolean;
+  selected?: boolean;
   linkTo?: string;
 }
 
@@ -36,11 +37,13 @@ export function KpiCard({
   onClick,
   loading = false,
   active = false,
+  selected = false,
   linkTo
 }: KpiCardProps) {
   const navigate = useNavigate();
   const styles = colorStyles[color];
   const isClickable = onClick || linkTo;
+  const isHighlighted = active || selected;
 
   const handleClick = () => {
     if (onClick) {
@@ -60,8 +63,8 @@ export function KpiCard({
         minWidth: '180px',
         minHeight: '100px',
         padding: '1.25rem 1.5rem',
-        border: active ? `2px solid ${styles.accent}` : '1px solid var(--border)',
-        boxShadow: active ? `0 0 0 3px ${styles.accent}20` : '0 1px 3px rgba(0,0,0,0.05)',
+        border: isHighlighted ? `2px solid ${styles.accent}` : '1px solid var(--border)',
+        boxShadow: isHighlighted ? `0 0 0 3px ${styles.accent}20` : '0 1px 3px rgba(0,0,0,0.05)',
         borderRadius: '12px',
       }}
       onClick={handleClick}

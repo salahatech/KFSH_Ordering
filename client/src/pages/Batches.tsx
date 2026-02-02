@@ -196,25 +196,32 @@ export default function Batches() {
           value={metrics?.batchesToday || 0} 
           icon={<Calendar size={20} />}
           color="primary"
+          onClick={() => { clearFilters(); }}
+          selected={!statusFilter && !showExceptionsOnly}
         />
         <KpiCard 
           title="Awaiting QC" 
           value={metrics?.awaitingQC || 0} 
           icon={<Beaker size={20} />}
           color="warning"
+          onClick={() => { setStatusFilter('QC_PENDING'); setShowExceptionsOnly(false); }}
+          selected={statusFilter === 'QC_PENDING'}
         />
         <KpiCard 
           title="Awaiting Release" 
           value={metrics?.awaitingRelease || 0} 
           icon={<Shield size={20} />}
           color="info"
+          onClick={() => { setStatusFilter('QP_REVIEW'); setShowExceptionsOnly(false); }}
+          selected={statusFilter === 'QP_REVIEW'}
         />
         <KpiCard 
           title="Exceptions" 
           value={metrics?.exceptions || 0} 
           icon={<AlertTriangle size={20} />}
           color="danger"
-          onClick={() => setShowExceptionsOnly(!showExceptionsOnly)}
+          onClick={() => { setShowExceptionsOnly(!showExceptionsOnly); setStatusFilter(''); }}
+          selected={showExceptionsOnly}
         />
       </div>
 

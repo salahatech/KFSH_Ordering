@@ -15,7 +15,9 @@ import {
   Building2,
   Package,
   Copy,
+  CheckCircle,
 } from 'lucide-react';
+import { KpiCard } from '../components/shared';
 
 const statusColors: Record<string, string> = {
   TENTATIVE: 'warning',
@@ -200,22 +202,38 @@ export default function Reservations() {
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div className="card stat-card">
-          <div className="stat-label">Total Reservations</div>
-          <div className="stat-value">{stats.total}</div>
-        </div>
-        <div className="card stat-card">
-          <div className="stat-label">Tentative</div>
-          <div className="stat-value" style={{ color: 'var(--warning)' }}>{stats.tentative}</div>
-        </div>
-        <div className="card stat-card">
-          <div className="stat-label">Confirmed</div>
-          <div className="stat-value" style={{ color: 'var(--success)' }}>{stats.confirmed}</div>
-        </div>
-        <div className="card stat-card">
-          <div className="stat-label">Converted to Orders</div>
-          <div className="stat-value" style={{ color: 'var(--primary)' }}>{stats.converted}</div>
-        </div>
+        <KpiCard 
+          title="Total Reservations" 
+          value={stats.total}
+          icon={<Calendar size={20} />}
+          color="primary"
+          onClick={() => setStatusFilter('')}
+          selected={!statusFilter}
+        />
+        <KpiCard 
+          title="Tentative" 
+          value={stats.tentative}
+          icon={<Clock size={20} />}
+          color="warning"
+          onClick={() => setStatusFilter('TENTATIVE')}
+          selected={statusFilter === 'TENTATIVE'}
+        />
+        <KpiCard 
+          title="Confirmed" 
+          value={stats.confirmed}
+          icon={<CheckCircle size={20} />}
+          color="success"
+          onClick={() => setStatusFilter('CONFIRMED')}
+          selected={statusFilter === 'CONFIRMED'}
+        />
+        <KpiCard 
+          title="Converted to Orders" 
+          value={stats.converted}
+          icon={<ShoppingCart size={20} />}
+          color="info"
+          onClick={() => setStatusFilter('CONVERTED')}
+          selected={statusFilter === 'CONVERTED'}
+        />
       </div>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>

@@ -199,24 +199,31 @@ export default function Approvals() {
           value={stats.pending} 
           icon={<Clock size={20} />}
           color="warning"
+          onClick={() => setFilter('PENDING')}
+          selected={filter === 'PENDING'}
         />
         <KpiCard 
           title="Urgent" 
           value={stats.urgent} 
           icon={<FileCheck size={20} />}
           color="danger"
+          onClick={() => setSearchFilters(prev => ({ ...prev, priority: 'URGENT' }))}
         />
         <KpiCard 
           title="Approved" 
           value={stats.approved} 
           icon={<CheckCircle size={20} />}
           color="success"
+          onClick={() => setFilter('APPROVED')}
+          selected={filter === 'APPROVED'}
         />
         <KpiCard 
           title="Rejected" 
           value={stats.rejected} 
           icon={<XCircle size={20} />}
           color="default"
+          onClick={() => setFilter('REJECTED')}
+          selected={filter === 'REJECTED'}
         />
       </div>
 

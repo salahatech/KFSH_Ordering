@@ -218,30 +218,40 @@ export default function Orders() {
           value={stats.total} 
           icon={<ShoppingCart size={20} />}
           color="primary"
+          onClick={() => setFilters({})}
+          selected={!filters.status}
         />
         <KpiCard 
           title="Pending" 
           value={stats.pending} 
           icon={<Clock size={20} />}
           color="warning"
+          onClick={() => setFilters(prev => ({ ...prev, status: 'SUBMITTED' }))}
+          selected={filters.status === 'SUBMITTED'}
         />
         <KpiCard 
           title="In Progress" 
           value={stats.inProgress} 
           icon={<Package size={20} />}
           color="info"
+          onClick={() => setFilters(prev => ({ ...prev, status: 'IN_PRODUCTION' }))}
+          selected={filters.status === 'IN_PRODUCTION'}
         />
         <KpiCard 
           title="Ready/Dispatched" 
           value={stats.ready} 
           icon={<Truck size={20} />}
           color="success"
+          onClick={() => setFilters(prev => ({ ...prev, status: 'RELEASED' }))}
+          selected={filters.status === 'RELEASED'}
         />
         <KpiCard 
           title="Delivered" 
           value={stats.delivered} 
           icon={<CheckCircle size={20} />}
           color="default"
+          onClick={() => setFilters(prev => ({ ...prev, status: 'DELIVERED' }))}
+          selected={filters.status === 'DELIVERED'}
         />
       </div>
 

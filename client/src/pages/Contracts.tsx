@@ -19,6 +19,7 @@ import {
   Trash2,
   Package,
 } from 'lucide-react';
+import { KpiCard } from '../components/shared';
 
 export default function Contracts() {
   const [selectedContract, setSelectedContract] = useState<any>(null);
@@ -250,42 +251,36 @@ export default function Contracts() {
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div className="card stat-card">
-          <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' }}>
-            <FileText size={20} />
-          </div>
-          <div>
-            <div className="stat-value">{contracts?.length || 0}</div>
-            <div className="stat-label">Total Contracts</div>
-          </div>
-        </div>
-        <div className="card stat-card">
-          <div className="stat-icon" style={{ background: 'rgba(34, 197, 94, 0.1)', color: 'var(--success)' }}>
-            <Check size={20} />
-          </div>
-          <div>
-            <div className="stat-value" style={{ color: 'var(--success)' }}>{activeContracts}</div>
-            <div className="stat-label">Active</div>
-          </div>
-        </div>
-        <div className="card stat-card">
-          <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-            <CreditCard size={20} />
-          </div>
-          <div>
-            <div className="stat-value">${(totalCreditLimit / 1000).toFixed(0)}k</div>
-            <div className="stat-label">Total Credit</div>
-          </div>
-        </div>
-        <div className="card stat-card">
-          <div className="stat-icon" style={{ background: expiringContracts > 0 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(107, 114, 128, 0.1)', color: expiringContracts > 0 ? 'var(--warning)' : 'var(--text-muted)' }}>
-            <AlertTriangle size={20} />
-          </div>
-          <div>
-            <div className="stat-value" style={{ color: expiringContracts > 0 ? 'var(--warning)' : undefined }}>{expiringContracts}</div>
-            <div className="stat-label">Expiring Soon</div>
-          </div>
-        </div>
+        <KpiCard 
+          title="Total Contracts" 
+          value={contracts?.length || 0}
+          icon={<FileText size={20} />}
+          color="primary"
+          onClick={() => setStatusFilter('')}
+          selected={!statusFilter}
+        />
+        <KpiCard 
+          title="Active" 
+          value={activeContracts}
+          icon={<Check size={20} />}
+          color="success"
+          onClick={() => setStatusFilter('ACTIVE')}
+          selected={statusFilter === 'ACTIVE'}
+        />
+        <KpiCard 
+          title="Total Credit" 
+          value={`$${(totalCreditLimit / 1000).toFixed(0)}k`}
+          icon={<CreditCard size={20} />}
+          color="info"
+        />
+        <KpiCard 
+          title="Expiring Soon" 
+          value={expiringContracts}
+          icon={<AlertTriangle size={20} />}
+          color={expiringContracts > 0 ? 'warning' : 'default'}
+          onClick={() => setStatusFilter('EXPIRING')}
+          selected={statusFilter === 'EXPIRING'}
+        />
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: selectedContract ? '1fr 420px' : '1fr', gap: '1.5rem' }}>

@@ -177,30 +177,40 @@ export default function Shipments() {
           value={stats.total} 
           icon={<Truck size={20} />}
           color="primary"
+          onClick={() => setFilters({})}
+          selected={!filters.status}
         />
         <KpiCard 
           title="Pending" 
           value={stats.created} 
           icon={<Clock size={20} />}
           color="warning"
+          onClick={() => setFilters(prev => ({ ...prev, status: 'CREATED' }))}
+          selected={filters.status === 'CREATED'}
         />
         <KpiCard 
           title="In Transit" 
           value={stats.inTransit} 
           icon={<Send size={20} />}
           color="info"
+          onClick={() => setFilters(prev => ({ ...prev, status: 'IN_TRANSIT' }))}
+          selected={filters.status === 'IN_TRANSIT'}
         />
         <KpiCard 
           title="Delivered" 
           value={stats.delivered} 
           icon={<CheckCircle size={20} />}
           color="success"
+          onClick={() => setFilters(prev => ({ ...prev, status: 'DELIVERED' }))}
+          selected={filters.status === 'DELIVERED'}
         />
         <KpiCard 
           title="Delayed" 
           value={stats.delayed} 
           icon={<AlertTriangle size={20} />}
           color="danger"
+          onClick={() => setFilters(prev => ({ ...prev, status: 'DELAYED' }))}
+          selected={filters.status === 'DELAYED'}
         />
       </div>
 
