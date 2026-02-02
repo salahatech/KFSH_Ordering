@@ -246,6 +246,34 @@ router.put('/:id/price-items/:itemId', authenticateToken, async (req: Request, r
   }
 });
 
+router.delete('/:id/price-items/:itemId', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id, itemId } = req.params;
+
+    const contract = await prisma.contract.findUnique({ where: { id } });
+    if (!contract) {
+      res.status(404).json({ error: 'Contract not found' });
+      return;
+    }
+
+    if (contract.status !== 'DRAFT') {
+      res.status(400).json({ error: 'Can only delete price items from draft contracts' });
+      return;
+    }
+
+    await prisma.contractPriceItem.delete({
+      where: { id: itemId },
+    });
+
+    await createAuditLog(req.user?.userId, 'DELETE', 'ContractPriceItem', itemId, null, null, req);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete price item error:', error);
+    res.status(500).json({ error: 'Failed to delete price item' });
+  }
+});
+
 router.get('/customer/:customerId/pricing', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const { customerId } = req.params;
