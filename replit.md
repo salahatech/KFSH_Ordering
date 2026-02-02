@@ -40,6 +40,16 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
 - **Security**: Status state machines to prevent invalid transitions, comprehensive audit logging for critical operations.
 
 ## Recent Changes (2026-02-02)
+- **Enhanced Customer Module**: Comprehensive customer management with:
+  - Bilingual support (nameEn/nameAr) for i18n readiness
+  - Saudi business identifiers (CR Number, Tax Number)
+  - GPS coordinates (latitude/longitude) for delivery optimization
+  - Customer logo upload with image preview
+  - Document management system (CR, Tax Certificate, License, Contract, NDA)
+  - Saudi National Address format with full address field
+  - Mobile number validation supporting Saudi format (+9665xxxxxxxx)
+  - Enhanced search across name, code, mobile, email, CR, tax number
+  - Dedicated create/edit pages with sectioned layout and validations
 - **Dashboard Command Center**: Complete operations dashboard overhaul with:
   - End-to-end journey funnel stepper showing order flow from Submitted → Delivered
   - KPI cards with deep-link routing to filtered pages
