@@ -107,20 +107,28 @@ export default function Batches() {
 
   const getStatusColor = (status: string): string => {
     const colors: Record<string, string> = {
+      // Planning stage - gray (not started)
       PLANNED: 'default',
-      SCHEDULED: 'info',
-      IN_PRODUCTION: 'warning',
-      PRODUCTION_COMPLETE: 'success',
+      SCHEDULED: 'secondary',
+      // Production stage - blue (active work)
+      IN_PRODUCTION: 'info',
+      PRODUCTION_COMPLETE: 'info',
+      // QC stage - orange/warning (testing)
       QC_PENDING: 'warning',
       QC_IN_PROGRESS: 'warning',
       QC_PASSED: 'success',
-      QP_REVIEW: 'info',
+      // Release stage - purple (review)
+      QP_REVIEW: 'purple',
       RELEASED: 'success',
-      DISPENSING_IN_PROGRESS: 'warning',
-      DISPENSED: 'success',
+      // Dispensing stage - teal (fulfillment)
+      DISPENSING_IN_PROGRESS: 'teal',
+      DISPENSED: 'teal',
+      // Logistics stage - blue (shipping)
       PACKED: 'info',
       DISPATCHED: 'info',
+      // Completed - green
       CLOSED: 'success',
+      // Exceptions - red/orange
       ON_HOLD: 'warning',
       REJECTED: 'danger',
       FAILED_QC: 'danger',
