@@ -280,32 +280,32 @@ export default function Customers() {
                 </h4>
                 <div className="grid grid-2" style={{ gap: '1rem', marginBottom: '1.5rem' }}>
                   <div className="form-group">
-                    <label className="form-label">Short Address (العنوان المختصر)</label>
+                    <label className="form-label">Short Address</label>
                     <input name="shortAddress" className="form-input" defaultValue={selectedCustomer?.shortAddress} placeholder="e.g., JERA4240" style={{ fontFamily: 'monospace', letterSpacing: '0.1em' }} />
                     <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>8-character Saudi National Address code</small>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Building No. (رقم المبنى) *</label>
+                    <label className="form-label">Building No. *</label>
                     <input name="buildingNo" className="form-input" defaultValue={selectedCustomer?.buildingNo} placeholder="e.g., 4240" />
                   </div>
                   <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                    <label className="form-label">Street (الشارع) *</label>
+                    <label className="form-label">Street *</label>
                     <input name="street" className="form-input" defaultValue={selectedCustomer?.street} placeholder="e.g., Muhammad Ali Maghrebi" />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Secondary No. (الرقم الفرعي)</label>
+                    <label className="form-label">Secondary No.</label>
                     <input name="secondaryNo" className="form-input" defaultValue={selectedCustomer?.secondaryNo} placeholder="e.g., 9014" />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">District (الحي) *</label>
+                    <label className="form-label">District *</label>
                     <input name="district" className="form-input" defaultValue={selectedCustomer?.district} placeholder="e.g., Ar Rawdah Dist." />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Postal Code (الرمز البريدي) *</label>
+                    <label className="form-label">Postal Code *</label>
                     <input name="postalCode" className="form-input" defaultValue={selectedCustomer?.postalCode} required placeholder="e.g., 23434" />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Country (الدولة) *</label>
+                    <label className="form-label">Country *</label>
                     <select 
                       className="form-select" 
                       value={selectedCountryId}
@@ -318,7 +318,7 @@ export default function Customers() {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Region (المنطقة)</label>
+                    <label className="form-label">Region</label>
                     <select 
                       className="form-select" 
                       value={selectedRegionId}
@@ -331,7 +331,7 @@ export default function Customers() {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">City (المدينة) *</label>
+                    <label className="form-label">City *</label>
                     <select 
                       className="form-select" 
                       value={selectedCityId}
