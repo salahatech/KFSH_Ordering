@@ -1,21 +1,15 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
 import { format } from 'date-fns';
-import { Plus, Edit2, AlertTriangle, CheckCircle, MapPin, Users, Building, ShieldCheck, Search } from 'lucide-react';
-import { useToast } from '../components/ui/Toast';
-import { parseApiError } from '../components/ui/FormErrors';
+import { Plus, Edit2, AlertTriangle, MapPin, Users, Building, ShieldCheck, FileText, Phone, Mail } from 'lucide-react';
 import { KpiCard, StatusBadge, FilterBar, EmptyState, type FilterWidget } from '../components/shared';
 
 export default function Customers() {
-  const [showModal, setShowModal] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const [selectedCountryId, setSelectedCountryId] = useState<string>('');
-  const [selectedRegionId, setSelectedRegionId] = useState<string>('');
-  const [selectedCityId, setSelectedCityId] = useState<string>('');
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<Record<string, any>>({});
-  const queryClient = useQueryClient();
-  const toast = useToast();
+  const [selectedKpi, setSelectedKpi] = useState<string | null>(null);
 
   const { data: customers, isLoading } = useQuery({
     queryKey: ['customers'],
@@ -23,33 +17,6 @@ export default function Customers() {
       const { data } = await api.get('/customers');
       return data;
     },
-  });
-
-  const { data: countries } = useQuery({
-    queryKey: ['settings', 'countries'],
-    queryFn: async () => {
-      const { data } = await api.get('/settings/countries');
-      return data;
-    },
-  });
-
-  const { data: regions } = useQuery({
-    queryKey: ['settings', 'regions', selectedCountryId],
-    queryFn: async () => {
-      const params = selectedCountryId ? { countryId: selectedCountryId } : {};
-      const { data } = await api.get('/settings/regions', { params });
-      return data;
-    },
-  });
-
-  const { data: cities } = useQuery({
-    queryKey: ['settings', 'cities', selectedRegionId],
-    queryFn: async () => {
-      const params = selectedRegionId ? { regionId: selectedRegionId } : {};
-      const { data } = await api.get('/settings/cities', { params });
-      return data;
-    },
-    enabled: !!selectedRegionId,
   });
 
   const { data: categories } = useQuery({
@@ -60,111 +27,17 @@ export default function Customers() {
     },
   });
 
-  useEffect(() => {
-    if (selectedCustomer?.countryId) {
-      setSelectedCountryId(selectedCustomer.countryId);
-      setSelectedRegionId(selectedCustomer.regionId || '');
-      setSelectedCityId(selectedCustomer.cityId || '');
-    } else {
-      const saudiArabia = countries?.find((c: any) => c.code === 'SA');
-      if (saudiArabia) {
-        setSelectedCountryId(saudiArabia.id);
-      }
-      setSelectedRegionId('');
-      setSelectedCityId('');
-    }
-  }, [selectedCustomer, countries]);
-
-  const handleCountryChange = (countryId: string) => {
-    setSelectedCountryId(countryId);
-    setSelectedRegionId('');
-    setSelectedCityId('');
-  };
-
-  const handleRegionChange = (regionId: string) => {
-    setSelectedRegionId(regionId);
-    setSelectedCityId('');
-  };
-
-  const createMutation = useMutation({
-    mutationFn: async (data: any) => {
-      if (selectedCustomer) {
-        return api.put(`/customers/${selectedCustomer.id}`, data);
-      }
-      return api.post('/customers', data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      setShowModal(false);
-      setSelectedCustomer(null);
-      setSelectedCountryId('');
-      setSelectedRegionId('');
-      setSelectedCityId('');
-      toast.success(selectedCustomer ? 'Customer Updated' : 'Customer Created', 
-        selectedCustomer ? 'Customer details have been updated' : 'New customer has been added');
-    },
-    onError: (error: any) => {
-      const apiError = parseApiError(error);
-      toast.error('Error', apiError?.userMessage || 'Failed to save customer');
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    createMutation.mutate({
-      name: formData.get('name'),
-      code: formData.get('code'),
-      shortAddress: formData.get('shortAddress'),
-      buildingNo: formData.get('buildingNo'),
-      street: formData.get('street'),
-      secondaryNo: formData.get('secondaryNo'),
-      district: formData.get('district'),
-      postalCode: formData.get('postalCode'),
-      countryId: selectedCountryId || null,
-      regionId: selectedRegionId || null,
-      cityId: selectedCityId || null,
-      categoryId: formData.get('categoryId') || null,
-      address: formData.get('address'),
-      phone: formData.get('phone'),
-      email: formData.get('email'),
-      licenseNumber: formData.get('licenseNumber'),
-      licenseExpiryDate: formData.get('licenseExpiryDate'),
-      travelTimeMinutes: parseInt(formData.get('travelTimeMinutes') as string) || 60,
-    });
-  };
-
   const isLicenseExpired = (date: string | null) => {
     if (!date) return false;
     return new Date(date) < new Date();
   };
 
-  const handleOpenModal = (customer?: any) => {
-    if (customer) {
-      setSelectedCustomer(customer);
-      setSelectedCountryId(customer.countryId || '');
-      setSelectedRegionId(customer.regionId || '');
-      setSelectedCityId(customer.cityId || '');
-    } else {
-      setSelectedCustomer(null);
-      const saudiArabia = countries?.find((c: any) => c.code === 'SA');
-      setSelectedCountryId(saudiArabia?.id || '');
-      setSelectedRegionId('');
-      setSelectedCityId('');
-    }
-    setShowModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setSelectedCustomer(null);
-    setSelectedCountryId('');
-    setSelectedRegionId('');
-    setSelectedCityId('');
+  const hasMissingDocs = (customer: any) => {
+    return !customer.documents || customer.documents.length === 0;
   };
 
   const filterWidgets: FilterWidget[] = [
-    { key: 'search', label: 'Search', type: 'search', placeholder: 'Search customers...' },
+    { key: 'search', label: 'Search', type: 'search', placeholder: 'Search name, code, mobile, email, CR, tax...' },
     { 
       key: 'category', 
       label: 'Category', 
@@ -184,17 +57,44 @@ export default function Customers() {
         { value: 'expired', label: 'Expired' },
       ]
     },
+    { 
+      key: 'docsStatus', 
+      label: 'Documents', 
+      type: 'select', 
+      options: [
+        { value: '', label: 'All' },
+        { value: 'missing', label: 'Missing Docs' },
+        { value: 'uploaded', label: 'Has Docs' },
+      ]
+    },
   ];
 
   const filteredCustomers = customers?.filter((customer: any) => {
     if (filters.category && customer.categoryId !== filters.category) return false;
     if (filters.licenseStatus === 'valid' && isLicenseExpired(customer.licenseExpiryDate)) return false;
     if (filters.licenseStatus === 'expired' && !isLicenseExpired(customer.licenseExpiryDate)) return false;
+    if (filters.docsStatus === 'missing' && !hasMissingDocs(customer)) return false;
+    if (filters.docsStatus === 'uploaded' && hasMissingDocs(customer)) return false;
+    
+    if (selectedKpi === 'expired' && !isLicenseExpired(customer.licenseExpiryDate)) return false;
+    if (selectedKpi === 'licensed' && isLicenseExpired(customer.licenseExpiryDate)) return false;
+    if (selectedKpi === 'hospitals' && !customer.category?.name?.toLowerCase().includes('hospital')) return false;
+    if (selectedKpi === 'missingDocs' && !hasMissingDocs(customer)) return false;
+
     if (filters.search) {
       const q = filters.search.toLowerCase();
-      if (!customer.name?.toLowerCase().includes(q) &&
-          !customer.code?.toLowerCase().includes(q) &&
-          !customer.email?.toLowerCase().includes(q)) {
+      const searchFields = [
+        customer.name,
+        customer.nameEn,
+        customer.nameAr,
+        customer.code,
+        customer.email,
+        customer.mobile,
+        customer.phone,
+        customer.crNumber,
+        customer.taxNumber,
+      ];
+      if (!searchFields.some(field => field?.toLowerCase().includes(q))) {
         return false;
       }
     }
@@ -203,9 +103,18 @@ export default function Customers() {
 
   const stats = {
     total: customers?.length || 0,
-    active: customers?.filter((c: any) => !isLicenseExpired(c.licenseExpiryDate)).length || 0,
+    licensed: customers?.filter((c: any) => !isLicenseExpired(c.licenseExpiryDate)).length || 0,
     expired: customers?.filter((c: any) => isLicenseExpired(c.licenseExpiryDate)).length || 0,
     hospitals: customers?.filter((c: any) => c.category?.name?.toLowerCase().includes('hospital')).length || 0,
+    missingDocs: customers?.filter((c: any) => hasMissingDocs(c)).length || 0,
+  };
+
+  const handleKpiClick = (kpi: string) => {
+    if (selectedKpi === kpi) {
+      setSelectedKpi(null);
+    } else {
+      setSelectedKpi(kpi);
+    }
   };
 
   if (isLoading) {
@@ -225,36 +134,52 @@ export default function Customers() {
             Manage healthcare facilities and their licensing information
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => handleOpenModal()}>
+        <button className="btn btn-primary" onClick={() => navigate('/customers/new')}>
           <Plus size={16} />
           Add Customer
         </button>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
         <KpiCard 
           title="Total Customers" 
           value={stats.total} 
           icon={<Users size={20} />}
           color="primary"
+          onClick={() => setSelectedKpi(null)}
+          selected={selectedKpi === null}
         />
         <KpiCard 
           title="Licensed" 
-          value={stats.active} 
+          value={stats.licensed} 
           icon={<ShieldCheck size={20} />}
           color="success"
+          onClick={() => handleKpiClick('licensed')}
+          selected={selectedKpi === 'licensed'}
         />
         <KpiCard 
           title="License Expired" 
           value={stats.expired} 
           icon={<AlertTriangle size={20} />}
           color="danger"
+          onClick={() => handleKpiClick('expired')}
+          selected={selectedKpi === 'expired'}
         />
         <KpiCard 
           title="Hospitals" 
           value={stats.hospitals} 
           icon={<Building size={20} />}
           color="info"
+          onClick={() => handleKpiClick('hospitals')}
+          selected={selectedKpi === 'hospitals'}
+        />
+        <KpiCard 
+          title="Missing Docs" 
+          value={stats.missingDocs} 
+          icon={<FileText size={20} />}
+          color="warning"
+          onClick={() => handleKpiClick('missingDocs')}
+          selected={selectedKpi === 'missingDocs'}
         />
       </div>
 
@@ -263,7 +188,7 @@ export default function Customers() {
           widgets={filterWidgets}
           values={filters}
           onChange={(key, value) => setFilters(prev => ({ ...prev, [key]: value }))}
-          onReset={() => setFilters({})}
+          onReset={() => { setFilters({}); setSelectedKpi(null); }}
         />
       </div>
 
@@ -274,72 +199,105 @@ export default function Customers() {
           </h3>
         </div>
         {filteredCustomers?.length > 0 ? (
-          <table className="table" style={{ marginBottom: 0 }}>
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Name</th>
-                <th>Location</th>
-                <th>Category</th>
-                <th>Contact</th>
-                <th>License Status</th>
-                <th style={{ width: '80px', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCustomers.map((customer: any) => (
-                <tr key={customer.id}>
-                  <td style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '0.8125rem' }}>{customer.code}</td>
-                  <td style={{ fontWeight: 500 }}>{customer.name}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <MapPin size={14} style={{ color: 'var(--text-muted)' }} />
-                      <span>{customer.city?.name || customer.district || '-'}</span>
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {customer.region?.name || ''}{customer.region && customer.country ? ', ' : ''}{customer.country?.name || ''}
-                    </div>
-                  </td>
-                  <td>
-                    {customer.category ? (
-                      <span className="badge badge-default">{customer.category.name}</span>
-                    ) : '-'}
-                  </td>
-                  <td>
-                    <div style={{ fontSize: '0.875rem' }}>{customer.email || '-'}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{customer.phone || '-'}</div>
-                  </td>
-                  <td>
-                    {customer.licenseNumber ? (
-                      <div>
-                        {isLicenseExpired(customer.licenseExpiryDate) ? (
-                          <StatusBadge status="EXPIRED" size="sm" />
-                        ) : (
-                          <StatusBadge status="VALID" size="sm" />
-                        )}
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                          {customer.licenseExpiryDate ? `Exp: ${format(new Date(customer.licenseExpiryDate), 'MMM dd, yyyy')}` : ''}
-                        </div>
-                      </div>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No license</span>
-                    )}
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                      <button
-                        className="btn btn-sm btn-outline"
-                        onClick={() => handleOpenModal(customer)}
-                        title="Edit Customer"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                    </div>
-                  </td>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table" style={{ marginBottom: 0, minWidth: '1000px' }}>
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Name (EN / AR)</th>
+                  <th>City</th>
+                  <th>Contact</th>
+                  <th>CR Number</th>
+                  <th>Tax Number</th>
+                  <th>Docs</th>
+                  <th>License Status</th>
+                  <th style={{ width: '80px', textAlign: 'right' }}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredCustomers.map((customer: any) => (
+                  <tr key={customer.id}>
+                    <td style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '0.8125rem' }}>{customer.code}</td>
+                    <td>
+                      <div style={{ fontWeight: 500 }}>{customer.nameEn || customer.name}</div>
+                      {customer.nameAr && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', direction: 'rtl' }}>
+                          {customer.nameAr}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <MapPin size={14} style={{ color: 'var(--text-muted)' }} />
+                        <span>{customer.city?.name || customer.district || '-'}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '0.8125rem' }}>
+                        {customer.mobile && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <Phone size={12} style={{ color: 'var(--text-muted)' }} />
+                            <span>{customer.mobile}</span>
+                          </div>
+                        )}
+                        {customer.email && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                            <Mail size={12} />
+                            <span>{customer.email}</span>
+                          </div>
+                        )}
+                        {!customer.mobile && !customer.email && '-'}
+                      </div>
+                    </td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                      {customer.crNumber || '-'}
+                    </td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                      {customer.taxNumber || '-'}
+                    </td>
+                    <td>
+                      {customer.documents?.length > 0 ? (
+                        <span className="badge badge-success" style={{ fontSize: '0.6875rem' }}>
+                          {customer.documents.length} docs
+                        </span>
+                      ) : (
+                        <span className="badge badge-warning" style={{ fontSize: '0.6875rem' }}>
+                          None
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {customer.licenseNumber ? (
+                        <div>
+                          {isLicenseExpired(customer.licenseExpiryDate) ? (
+                            <StatusBadge status="EXPIRED" size="sm" />
+                          ) : (
+                            <StatusBadge status="VALID" size="sm" />
+                          )}
+                          <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
+                            {customer.licenseExpiryDate ? `Exp: ${format(new Date(customer.licenseExpiryDate), 'MMM dd, yyyy')}` : ''}
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>-</span>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        <button
+                          className="btn btn-sm btn-outline"
+                          onClick={() => navigate(`/customers/${customer.id}/edit`)}
+                          title="Edit Customer"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <div style={{ padding: '2rem' }}>
             <EmptyState 
@@ -350,159 +308,6 @@ export default function Customers() {
           </div>
         )}
       </div>
-
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal" style={{ maxWidth: '700px' }}>
-            <div className="modal-header">
-              <h3>{selectedCustomer ? 'Edit Customer' : 'Add Customer'}</h3>
-              <button className="btn btn-secondary btn-sm" onClick={handleCloseModal}>×</button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">Customer Code *</label>
-                    <input type="text" name="code" className="form-input" defaultValue={selectedCustomer?.code} required />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Customer Name *</label>
-                    <input type="text" name="name" className="form-input" defaultValue={selectedCustomer?.name} required />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Category</label>
-                  <select name="categoryId" className="form-select" defaultValue={selectedCustomer?.categoryId || ''}>
-                    <option value="">Select Category</option>
-                    {categories?.map((category: any) => (
-                      <option key={category.id} value={category.id}>{category.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.75rem' }}>Saudi National Address</h4>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Short Address (8 digits)</label>
-                      <input type="text" name="shortAddress" className="form-input" defaultValue={selectedCustomer?.shortAddress} maxLength={8} placeholder="ABCD1234" />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Building No.</label>
-                      <input type="text" name="buildingNo" className="form-input" defaultValue={selectedCustomer?.buildingNo} />
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Street</label>
-                      <input type="text" name="street" className="form-input" defaultValue={selectedCustomer?.street} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Secondary No.</label>
-                      <input type="text" name="secondaryNo" className="form-input" defaultValue={selectedCustomer?.secondaryNo} />
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">District</label>
-                      <input type="text" name="district" className="form-input" defaultValue={selectedCustomer?.district} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Postal Code</label>
-                      <input type="text" name="postalCode" className="form-input" defaultValue={selectedCustomer?.postalCode} />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">Country</label>
-                    <select 
-                      className="form-select" 
-                      value={selectedCountryId}
-                      onChange={(e) => handleCountryChange(e.target.value)}
-                    >
-                      <option value="">Select Country</option>
-                      {countries?.map((country: any) => (
-                        <option key={country.id} value={country.id}>{country.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Region</label>
-                    <select 
-                      className="form-select"
-                      value={selectedRegionId}
-                      onChange={(e) => handleRegionChange(e.target.value)}
-                      disabled={!selectedCountryId}
-                    >
-                      <option value="">Select Region</option>
-                      {regions?.map((region: any) => (
-                        <option key={region.id} value={region.id}>{region.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">City</label>
-                    <select 
-                      className="form-select"
-                      value={selectedCityId}
-                      onChange={(e) => setSelectedCityId(e.target.value)}
-                      disabled={!selectedRegionId}
-                    >
-                      <option value="">Select City</option>
-                      {cities?.map((city: any) => (
-                        <option key={city.id} value={city.id}>{city.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Full Address</label>
-                  <textarea name="address" className="form-textarea" rows={2} defaultValue={selectedCustomer?.address} />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">Email</label>
-                    <input type="email" name="email" className="form-input" defaultValue={selectedCustomer?.email} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Phone</label>
-                    <input type="tel" name="phone" className="form-input" defaultValue={selectedCustomer?.phone} />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">License Number</label>
-                    <input type="text" name="licenseNumber" className="form-input" defaultValue={selectedCustomer?.licenseNumber} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">License Expiry Date</label>
-                    <input type="date" name="licenseExpiryDate" className="form-input" defaultValue={selectedCustomer?.licenseExpiryDate?.split('T')[0]} />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Travel Time (minutes)</label>
-                  <input type="number" name="travelTimeMinutes" className="form-input" defaultValue={selectedCustomer?.travelTimeMinutes || 60} min={0} />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? 'Saving...' : selectedCustomer ? 'Update Customer' : 'Add Customer'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import PortalLayout from './components/PortalLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Customers from './pages/Customers';
+import CustomerForm from './pages/CustomerForm';
 import Products from './pages/Products';
 import Orders from './pages/Orders';
 import OrderForm from './pages/OrderForm';
@@ -148,6 +149,8 @@ export default function App() {
                   <Route path="/dashboard/dispensing" element={<DashboardDispensing />} />
                   <Route path="/dashboard/logistics" element={<DashboardLogistics />} />
                   <Route path="/customers" element={<Customers />} />
+                  <Route path="/customers/new" element={<CustomerForm />} />
+                  <Route path="/customers/:id/edit" element={<CustomerForm />} />
                   <Route path="/products" element={<Products />} />
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/orders/new" element={<OrderForm />} />
