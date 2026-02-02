@@ -33,6 +33,7 @@ model User {
   orderHistories   OrderHistory[]
   batchEvents      BatchEvent[]
   uploadedDocuments CustomerDocument[]
+  uploadedLocationPhotos CustomerLocationPhoto[] @relation("LocationPhotoUploader")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -114,6 +115,7 @@ model Customer {
   permittedProducts   CustomerProduct[]
   contacts            CustomerContact[]
   documents           CustomerDocument[]
+  locationPhotos      CustomerLocationPhoto[]
   orders              Order[]
   users               User[]
   shipments           Shipment[]
@@ -147,6 +149,21 @@ model CustomerDocument {
   uploadedAt      DateTime     @default(now())
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
+}
+
+model CustomerLocationPhoto {
+  id              String    @id @default(uuid())
+  customerId      String
+  customer        Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  photoUrl        String
+  caption         String?
+  fileSizeBytes   Int
+  mimeType        String
+  uploadedByUserId String?
+  uploadedBy      User?     @relation("LocationPhotoUploader", fields: [uploadedByUserId], references: [id])
+  uploadedAt      DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model CustomerContact {
