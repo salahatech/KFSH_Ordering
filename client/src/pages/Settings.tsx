@@ -17,8 +17,6 @@ import {
   Pencil,
   Trash2,
   X,
-  Check,
-  AlertCircle,
 } from 'lucide-react';
 
 const tabs = [
@@ -214,7 +212,7 @@ export default function Settings() {
             <tbody>
               {data.map((item: any) => (
                 <tr key={item.id}>
-                  <td style={{ fontFamily: 'monospace' }}>{item.code}</td>
+                  <td style={{ fontFamily: 'monospace', fontWeight: 500 }}>{item.code}</td>
                   <td>{item.name}</td>
                   <td dir="rtl">{item.nameAr || '-'}</td>
                   <td>
@@ -223,17 +221,24 @@ export default function Settings() {
                     </span>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      <button className="btn btn-sm btn-outline" onClick={() => handleEdit(item)}>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleEdit(item)} title="Edit">
                         <Pencil size={14} />
                       </button>
-                      <button className="btn btn-sm btn-outline" onClick={() => handleDelete(item.id)}>
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleDelete(item.id)} title="Delete">
                         <Trash2 size={14} />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
+              {data.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                    No records found
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         );
@@ -255,27 +260,34 @@ export default function Settings() {
             <tbody>
               {data.map((item: any) => (
                 <tr key={item.id}>
-                  <td style={{ fontFamily: 'monospace' }}>{item.code}</td>
+                  <td style={{ fontFamily: 'monospace', fontWeight: 500 }}>{item.code}</td>
                   <td>{item.name}</td>
                   <td dir="rtl">{item.nameAr || '-'}</td>
-                  <td>{item.country?.name}</td>
+                  <td>{item.country?.name || '-'}</td>
                   <td>
                     <span className={`badge badge-${item.isActive ? 'success' : 'default'}`}>
                       {item.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      <button className="btn btn-sm btn-outline" onClick={() => handleEdit(item)}>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleEdit(item)} title="Edit">
                         <Pencil size={14} />
                       </button>
-                      <button className="btn btn-sm btn-outline" onClick={() => handleDelete(item.id)}>
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleDelete(item.id)} title="Delete">
                         <Trash2 size={14} />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
+              {data.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                    No records found
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         );
@@ -297,7 +309,7 @@ export default function Settings() {
             <tbody>
               {data.map((item: any) => (
                 <tr key={item.id}>
-                  <td style={{ fontFamily: 'monospace' }}>{item.code}</td>
+                  <td style={{ fontFamily: 'monospace', fontWeight: 500 }}>{item.code}</td>
                   <td>{item.name}</td>
                   <td>{item.phone || '-'}</td>
                   <td>{item.email || '-'}</td>
@@ -308,17 +320,24 @@ export default function Settings() {
                     </span>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      <button className="btn btn-sm btn-outline" onClick={() => handleEdit(item)}>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleEdit(item)} title="Edit">
                         <Pencil size={14} />
                       </button>
-                      <button className="btn btn-sm btn-outline" onClick={() => handleDelete(item.id)}>
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleDelete(item.id)} title="Delete">
                         <Trash2 size={14} />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
+              {data.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                    No records found
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         );
@@ -340,7 +359,7 @@ export default function Settings() {
             <tbody>
               {data.map((item: any) => (
                 <tr key={item.id}>
-                  <td style={{ fontFamily: 'monospace' }}>{item.plateNumber}</td>
+                  <td style={{ fontFamily: 'monospace', fontWeight: 500 }}>{item.plateNumber}</td>
                   <td>{item.vehicleType}</td>
                   <td>{item.model || '-'}</td>
                   <td>{item.capacity || '-'}</td>
@@ -351,17 +370,24 @@ export default function Settings() {
                     </span>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      <button className="btn btn-sm btn-outline" onClick={() => handleEdit(item)}>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleEdit(item)} title="Edit">
                         <Pencil size={14} />
                       </button>
-                      <button className="btn btn-sm btn-outline" onClick={() => handleDelete(item.id)}>
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleDelete(item.id)} title="Delete">
                         <Trash2 size={14} />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
+              {data.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                    No records found
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         );
@@ -398,12 +424,12 @@ export default function Settings() {
                     </span>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      <button className="btn btn-sm btn-outline" onClick={() => handleEdit(item)}>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleEdit(item)} title="Edit">
                         <Pencil size={14} />
                       </button>
                       {!item.isDefault && (
-                        <button className="btn btn-sm btn-outline" onClick={() => handleDelete(item.id)}>
+                        <button className="btn btn-sm btn-secondary" onClick={() => handleDelete(item.id)} title="Delete">
                           <Trash2 size={14} />
                         </button>
                       )}
@@ -411,6 +437,13 @@ export default function Settings() {
                   </td>
                 </tr>
               ))}
+              {data.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                    No records found
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         );
@@ -430,7 +463,7 @@ export default function Settings() {
             <tbody>
               {data.map((item: any) => (
                 <tr key={item.id}>
-                  <td style={{ fontFamily: 'monospace' }}>{item.code}</td>
+                  <td style={{ fontFamily: 'monospace', fontWeight: 500 }}>{item.code}</td>
                   <td>{item.name}</td>
                   <td>{item.description || item.symbol || '-'}</td>
                   <td>
@@ -439,17 +472,24 @@ export default function Settings() {
                     </span>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
-                      <button className="btn btn-sm btn-outline" onClick={() => handleEdit(item)}>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleEdit(item)} title="Edit">
                         <Pencil size={14} />
                       </button>
-                      <button className="btn btn-sm btn-outline" onClick={() => handleDelete(item.id)}>
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleDelete(item.id)} title="Delete">
                         <Trash2 size={14} />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
+              {data.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                    No records found
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         );
@@ -462,7 +502,7 @@ export default function Settings() {
         return (
           <>
             <div className="form-group">
-              <label>Code *</label>
+              <label className="form-label">Code *</label>
               <input
                 type="text"
                 className="form-input"
@@ -473,7 +513,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Name *</label>
+              <label className="form-label">Name *</label>
               <input
                 type="text"
                 className="form-input"
@@ -483,7 +523,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Name (Arabic)</label>
+              <label className="form-label">Name (Arabic)</label>
               <input
                 type="text"
                 className="form-input"
@@ -501,7 +541,7 @@ export default function Settings() {
         return (
           <>
             <div className="form-group">
-              <label>Country *</label>
+              <label className="form-label">Country *</label>
               <select
                 className="form-select"
                 value={formData.countryId || ''}
@@ -514,7 +554,7 @@ export default function Settings() {
               </select>
             </div>
             <div className="form-group">
-              <label>Code *</label>
+              <label className="form-label">Code *</label>
               <input
                 type="text"
                 className="form-input"
@@ -524,7 +564,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Name *</label>
+              <label className="form-label">Name *</label>
               <input
                 type="text"
                 className="form-input"
@@ -534,7 +574,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Name (Arabic)</label>
+              <label className="form-label">Name (Arabic)</label>
               <input
                 type="text"
                 className="form-input"
@@ -551,7 +591,7 @@ export default function Settings() {
         return (
           <>
             <div className="form-group">
-              <label>Code *</label>
+              <label className="form-label">Code *</label>
               <input
                 type="text"
                 className="form-input"
@@ -561,7 +601,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Name *</label>
+              <label className="form-label">Name *</label>
               <input
                 type="text"
                 className="form-input"
@@ -571,7 +611,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Phone</label>
+              <label className="form-label">Phone</label>
               <input
                 type="text"
                 className="form-input"
@@ -581,7 +621,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Email</label>
+              <label className="form-label">Email</label>
               <input
                 type="email"
                 className="form-input"
@@ -597,7 +637,7 @@ export default function Settings() {
         return (
           <>
             <div className="form-group">
-              <label>Courier</label>
+              <label className="form-label">Courier</label>
               <select
                 className="form-select"
                 value={formData.courierId || ''}
@@ -610,7 +650,7 @@ export default function Settings() {
               </select>
             </div>
             <div className="form-group">
-              <label>Plate Number *</label>
+              <label className="form-label">Plate Number *</label>
               <input
                 type="text"
                 className="form-input"
@@ -620,7 +660,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Vehicle Type *</label>
+              <label className="form-label">Vehicle Type *</label>
               <select
                 className="form-select"
                 value={formData.vehicleType || ''}
@@ -634,7 +674,7 @@ export default function Settings() {
               </select>
             </div>
             <div className="form-group">
-              <label>Model</label>
+              <label className="form-label">Model</label>
               <input
                 type="text"
                 className="form-input"
@@ -644,7 +684,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Capacity</label>
+              <label className="form-label">Capacity</label>
               <input
                 type="text"
                 className="form-input"
@@ -660,7 +700,7 @@ export default function Settings() {
         return (
           <>
             <div className="form-group">
-              <label>Code *</label>
+              <label className="form-label">Code *</label>
               <input
                 type="text"
                 className="form-input"
@@ -671,7 +711,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Name *</label>
+              <label className="form-label">Name *</label>
               <input
                 type="text"
                 className="form-input"
@@ -681,7 +721,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Symbol *</label>
+              <label className="form-label">Symbol *</label>
               <input
                 type="text"
                 className="form-input"
@@ -692,7 +732,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Exchange Rate (to SAR) *</label>
+              <label className="form-label">Exchange Rate (to SAR) *</label>
               <input
                 type="number"
                 className="form-input"
@@ -701,16 +741,16 @@ export default function Settings() {
                 step="0.0001"
                 min="0"
               />
-              <small style={{ color: 'var(--text-muted)' }}>Rate relative to SAR (SAR = 1.0000)</small>
+              <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Rate relative to SAR (SAR = 1.0000)</small>
             </div>
             <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={formData.isDefault || false}
                   onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
                 />
-                Set as default currency
+                <span className="form-label" style={{ marginBottom: 0 }}>Set as default currency</span>
               </label>
             </div>
           </>
@@ -720,7 +760,7 @@ export default function Settings() {
         return (
           <>
             <div className="form-group">
-              <label>Code *</label>
+              <label className="form-label">Code *</label>
               <input
                 type="text"
                 className="form-input"
@@ -730,7 +770,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Name *</label>
+              <label className="form-label">Name *</label>
               <input
                 type="text"
                 className="form-input"
@@ -740,7 +780,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Symbol *</label>
+              <label className="form-label">Symbol *</label>
               <input
                 type="text"
                 className="form-input"
@@ -750,7 +790,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Description</label>
+              <label className="form-label">Description</label>
               <input
                 type="text"
                 className="form-input"
@@ -766,7 +806,7 @@ export default function Settings() {
         return (
           <>
             <div className="form-group">
-              <label>Code *</label>
+              <label className="form-label">Code *</label>
               <input
                 type="text"
                 className="form-input"
@@ -776,7 +816,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Name *</label>
+              <label className="form-label">Name *</label>
               <input
                 type="text"
                 className="form-input"
@@ -786,7 +826,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Name (Arabic)</label>
+              <label className="form-label">Name (Arabic)</label>
               <input
                 type="text"
                 className="form-input"
@@ -797,7 +837,7 @@ export default function Settings() {
               />
             </div>
             <div className="form-group">
-              <label>Description</label>
+              <label className="form-label">Description</label>
               <textarea
                 className="form-input"
                 value={formData.description || ''}
@@ -811,66 +851,61 @@ export default function Settings() {
     }
   };
 
+  const activeTabInfo = tabs.find(t => t.id === activeTab);
+  const ActiveIcon = activeTabInfo?.icon || SettingsIcon;
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <SettingsIcon size={28} style={{ color: 'var(--primary)' }} />
-          <div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 600, margin: 0 }}>System Settings</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-              Manage lookup tables and system configuration
-            </p>
-          </div>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <SettingsIcon size={24} />
+          Settings
+        </h2>
       </div>
 
-      <div className="card" style={{ padding: 0 }}>
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ 
-            width: '220px', 
-            borderRight: '1px solid var(--border)', 
-            padding: '0.5rem',
-            backgroundColor: 'var(--background-secondary)'
-          }}>
+      <div style={{ display: 'flex', gap: '1.5rem' }}>
+        <div className="card" style={{ width: '220px', padding: '0.5rem', flexShrink: 0 }}>
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             {tabs.map((tab) => {
               const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
+                  className={isActive ? 'btn btn-primary' : 'btn btn-secondary'}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem',
+                    justifyContent: 'flex-start',
                     width: '100%',
-                    padding: '0.75rem',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    backgroundColor: activeTab === tab.id ? 'white' : 'transparent',
-                    color: activeTab === tab.id ? 'var(--primary)' : 'var(--text-secondary)',
-                    fontWeight: activeTab === tab.id ? 600 : 400,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    marginBottom: '0.25rem',
-                    boxShadow: activeTab === tab.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    fontWeight: isActive ? 600 : 400,
                   }}
                 >
-                  <Icon size={18} />
+                  <Icon size={16} />
                   {tab.label}
                 </button>
               );
             })}
+          </nav>
+        </div>
+
+        <div className="card" style={{ flex: 1 }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            padding: '1rem 1.5rem',
+            borderBottom: '1px solid var(--border)'
+          }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <ActiveIcon size={18} />
+              {activeTabInfo?.label}
+            </h3>
+            <button className="btn btn-primary" onClick={handleAdd}>
+              <Plus size={18} />
+              Add New
+            </button>
           </div>
-          <div style={{ flex: 1, padding: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontWeight: 600, margin: 0 }}>
-                {tabs.find(t => t.id === activeTab)?.label}
-              </h3>
-              <button className="btn btn-primary" onClick={handleAdd}>
-                <Plus size={18} /> Add New
-              </button>
-            </div>
+          <div style={{ overflow: 'auto' }}>
             {renderTable()}
           </div>
         </div>
@@ -878,17 +913,23 @@ export default function Settings() {
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px', width: '100%' }}>
             <div style={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
               alignItems: 'center',
+              paddingBottom: '1rem',
+              borderBottom: '1px solid var(--border)',
               marginBottom: '1.5rem'
             }}>
-              <h3 style={{ fontWeight: 600, margin: 0 }}>
-                {editItem ? 'Edit' : 'Add'} {tabs.find(t => t.id === activeTab)?.label.slice(0, -1)}
+              <h3 style={{ fontWeight: 600, margin: 0, fontSize: '1.125rem' }}>
+                {editItem ? 'Edit' : 'Add'} {activeTabInfo?.label.replace(/s$/, '')}
               </h3>
-              <button className="btn btn-sm btn-outline" onClick={() => setShowModal(false)}>
+              <button 
+                className="btn btn-sm btn-secondary" 
+                onClick={() => setShowModal(false)}
+                style={{ padding: '0.25rem' }}
+              >
                 <X size={18} />
               </button>
             </div>
@@ -896,20 +937,27 @@ export default function Settings() {
             {renderForm()}
 
             {editItem && (
-              <div className="form-group">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div className="form-group" style={{ marginTop: '1rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     checked={formData.isActive !== false}
                     onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                   />
-                  Active
+                  <span className="form-label" style={{ marginBottom: 0 }}>Active</span>
                 </label>
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-              <button className="btn btn-outline" onClick={() => setShowModal(false)}>
+            <div style={{ 
+              display: 'flex', 
+              gap: '0.75rem', 
+              justifyContent: 'flex-end', 
+              marginTop: '1.5rem',
+              paddingTop: '1rem',
+              borderTop: '1px solid var(--border)'
+            }}>
+              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
                 Cancel
               </button>
               <button 
