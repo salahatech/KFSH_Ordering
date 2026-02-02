@@ -72,6 +72,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         email: user.email,
         roleId: user.roleId,
         roleName: user.role.name,
+        customerId: user.customerId || undefined,
       },
       getJwtSecret(),
       { expiresIn: JWT_EXPIRES_IN }
@@ -139,7 +140,7 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
 
     const storedToken = await prisma.refreshToken.findUnique({
       where: { token: refreshToken },
-      include: { user: { include: { role: true } } },
+      include: { user: { include: { role: true, customer: true } } },
     });
 
     if (!storedToken || storedToken.expiresAt < new Date()) {
@@ -153,6 +154,7 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
         email: storedToken.user.email,
         roleId: storedToken.user.roleId,
         roleName: storedToken.user.role.name,
+        customerId: storedToken.user.customerId || undefined,
       },
       getJwtSecret(),
       { expiresIn: JWT_EXPIRES_IN }
