@@ -1,0 +1,119 @@
+You are Replit AI acting as a Senior Full-Stack Engineer + Security/RBAC Architect.
+
+Context:
+We have a RadioPharma OMS with RBAC, Customer Portal, Orders, Customers master.
+Requirement:
+If the logged-in user role is CUSTOMER, the user must be linked to a specific Customer record.
+When the customer user creates an order in the customer portal, the Customer must be auto-captured from the logged-in user context and the order must be linked to that Customer automatically (no manual selection, no spoofing).
+
+========================================================
+1) DATA MODEL (PRISMA) — MUST IMPLEMENT
+1.1 User ↔ Customer Link
+Option A (preferred for simplicity):
+- Add to User table:
+  - customerId (nullable)
+  - role (enum)
+Rules:
+- If role == CUSTOMER, customerId is REQUIRED.
+- If role != CUSTOMER, customerId must be NULL (or ignored).
+
+Also add:
+- CustomerUser table (optional for multi-customer access):
+  - id, userId, customerId, isPrimary, permissionsJson
+If you support multiple customers per user, implement CustomerUser;
+otherwise implement single user.customerId.
+
+========================================================
+2) AUTH CONTEXT (MANDATORY)
+In JWT claims include:
+- userId
+- role
+- customerId (if role == CUSTOMER)
+
+Backend must load “auth context” on each request:
+- req.user = { id, role, customerId, ... }
+
+========================================================
+3) API SECURITY RULES (CRITICAL)
+3.1 Customer Scoped Access
+For any endpoint used by customer portal:
+- The server must enforce:
+  - only access records where record.customerId == req.user.customerId
+Examples:
+- GET /portal/orders -> filter by customerId from auth context
+- GET /portal/orders/:id -> verify ownership
+- GET /portal/invoices -> verify ownership
+- GET /portal/shipments -> verify ownership
+
+Do NOT accept customerId from the client for customer role.
+If client sends customerId, ignore it and use auth context.
+
+3.2 Internal Users
+Internal roles (Admin/Finance/etc.) can select customerId where allowed.
+
+========================================================
+4) ORDER CREATION FLOW (CUSTOMER PORTAL) — MUST IMPLEMENT
+4.1 UI Requirements
+Customer portal order form must:
+- NOT show a “Customer” dropdown.
+- Display the customer name (read-only) near the top:
+  “Ordering as: <Customer Name>”
+- Any order creation request sends no customerId.
+
+4.2 Backend Requirements
+POST /portal/orders:
+- Create order with:
+  - customerId = req.user.customerId
+  - createdByUserId = req.user.id
+  - source = "CUSTOMER_PORTAL"
+- Validate:
+  - req.user.role == CUSTOMER
+  - req.user.customerId exists
+If missing:
+  - return error code CUSTOMER_NOT_LINKED
+  - userMessage: “Your account is not linked to a customer profile. Please contact support.”
+
+4.3 Status & Linking
+On submit:
+- Order is created with status SUBMITTED
+- Order journey events recorded
+- Customer portal sees the order immediately linked to them.
+
+========================================================
+5) ADMIN UI TO LINK CUSTOMER USERS (MANDATORY)
+Create an Admin screen:
+- /admin/users (list)
+- /admin/users/:id (edit)
+Features:
+- Assign role
+- If role == CUSTOMER: require selecting a Customer record
+- Show warning if role changed from CUSTOMER to internal or vice versa
+
+Validationils:
+- Show “Linked Customer” field
+- Prevent saving customer role without customer link
+
+========================================================
+6) MULTI-USER PER CUSTOMER (RECOMMENDED)
+Support multiple customer portal users for the same customer:
+- Customer can have many users
+- All those users see the same customer’s orders/invoices/shipments (scoped)
+
+Optionally add:
+- CustomerUserRole (within customer):
+  - CUSTOMER_ADMIN, CUSTOMER_VIEWER, CUSTOMER_BILLING
+So some users can submit payments but others can only view.
+
+========================================================
+7) AUDIT + NOTIFICATIONS
+- Store actorUserId for order creation/submission.
+- Notify customer’s internal assigned team (order desk) that a customer submitted an order.
+- Notify the customer user in-app “Order submitted successfully”.
+
+========================================================
+8) ACCEPTANCE CRITERIA
+- Customer user cannot choose or change customerId.
+- All customer portal data is restricted to the linked customerId.
+- Order creation automatically assigns customerId from auth context.
+- Admin can link customer users to customers.
+- If a customer user is not linked, system blocks order creation with meaningful message.

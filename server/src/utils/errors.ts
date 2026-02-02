@@ -38,6 +38,8 @@ export const ErrorCodes = {
   DUPLICATE_ENTRY: 'DUPLICATE_ENTRY',
   DATABASE_ERROR: 'DATABASE_ERROR',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
+  CUSTOMER_NOT_LINKED: 'CUSTOMER_NOT_LINKED',
+  CUSTOMER_ROLE_REQUIRES_CUSTOMER: 'CUSTOMER_ROLE_REQUIRES_CUSTOMER',
 } as const;
 
 export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
@@ -61,6 +63,8 @@ const userMessages: Record<string, string> = {
   DUPLICATE_ENTRY: 'This entry already exists.',
   DATABASE_ERROR: 'A database error occurred. Please try again later.',
   INTERNAL_ERROR: 'An unexpected error occurred. Please try again later.',
+  CUSTOMER_NOT_LINKED: 'Your account is not linked to a customer profile. Please contact support.',
+  CUSTOMER_ROLE_REQUIRES_CUSTOMER: 'Customer role users must be linked to a customer record.',
 };
 
 export function createAppError(

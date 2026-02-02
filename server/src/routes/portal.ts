@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth.js';
 import { createAuditLog } from '../middleware/audit.js';
+import { sendError, ErrorCodes } from '../utils/errors.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -43,7 +44,10 @@ const paymentProofUpload = multer({
 function requireCustomer(req: Request, res: Response, next: Function) {
   const user = (req as any).user;
   if (!user.customerId) {
-    res.status(403).json({ error: 'This endpoint is only available for customer users' });
+    sendError(res, 403, ErrorCodes.CUSTOMER_NOT_LINKED, 
+      'User is not linked to a customer record', {
+        userMessage: 'Your account is not linked to a customer profile. Please contact support to complete your account setup.',
+      });
     return;
   }
   next();

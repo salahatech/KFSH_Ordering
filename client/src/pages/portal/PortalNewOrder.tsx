@@ -3,11 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { format, addDays } from 'date-fns';
-import { Package, Calendar, Clock, Activity, CheckCircle, AlertCircle } from 'lucide-react';
+import { Package, Calendar, Clock, Activity, CheckCircle, AlertCircle, Building2 } from 'lucide-react';
+import { useAuthStore } from '../../store/authStore';
 
 export default function PortalNewOrder() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
   
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -22,6 +24,14 @@ export default function PortalNewOrder() {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  const { data: profile } = useQuery({
+    queryKey: ['portal-profile'],
+    queryFn: async () => {
+      const { data } = await api.get('/portal/profile');
+      return data;
+    },
+  });
 
   const { data: products } = useQuery({
     queryKey: ['products'],
@@ -86,6 +96,8 @@ export default function PortalNewOrder() {
     );
   }
 
+  const customerName = profile?.nameEn || profile?.name || user?.customerName || 'Your Facility';
+
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ marginBottom: '2rem' }}>
@@ -93,6 +105,23 @@ export default function PortalNewOrder() {
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
           Order radiopharmaceuticals for your facility
         </p>
+      </div>
+
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '0.75rem',
+        padding: '1rem 1.25rem', 
+        backgroundColor: 'rgba(13, 148, 136, 0.1)', 
+        borderRadius: '0.5rem',
+        marginBottom: '1.5rem',
+        border: '1px solid rgba(13, 148, 136, 0.2)'
+      }}>
+        <Building2 size={20} style={{ color: '#0d9488' }} />
+        <div>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Ordering as: </span>
+          <span style={{ fontWeight: 600, color: '#0d9488' }}>{customerName}</span>
+        </div>
       </div>
 
       <div style={{ display: 'flex', marginBottom: '2rem', gap: '0.5rem' }}>
