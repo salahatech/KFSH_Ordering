@@ -1094,28 +1094,8 @@ async function main() {
     create: { code: 'KW', name: 'Kuwait', nameAr: 'الكويت' },
   });
 
-  // Saudi Cities
-  const cities = [
-    { code: 'RUH', name: 'Riyadh', nameAr: 'الرياض' },
-    { code: 'JED', name: 'Jeddah', nameAr: 'جدة' },
-    { code: 'DMM', name: 'Dammam', nameAr: 'الدمام' },
-    { code: 'MKK', name: 'Mecca', nameAr: 'مكة المكرمة' },
-    { code: 'MED', name: 'Medina', nameAr: 'المدينة المنورة' },
-    { code: 'KHO', name: 'Khobar', nameAr: 'الخبر' },
-    { code: 'TAB', name: 'Tabuk', nameAr: 'تبوك' },
-    { code: 'ABH', name: 'Abha', nameAr: 'أبها' },
-  ];
-
-  for (const city of cities) {
-    await prisma.settingCity.upsert({
-      where: { countryId_code: { countryId: saudiArabia.id, code: city.code } },
-      update: {},
-      create: { countryId: saudiArabia.id, ...city },
-    });
-  }
-
-  // Saudi Regions
-  const regions = [
+  // Saudi Regions (create first so cities can reference them)
+  const regionsData = [
     { code: 'CENT', name: 'Central Region', nameAr: 'المنطقة الوسطى' },
     { code: 'WEST', name: 'Western Region', nameAr: 'المنطقة الغربية' },
     { code: 'EAST', name: 'Eastern Region', nameAr: 'المنطقة الشرقية' },
@@ -1123,11 +1103,33 @@ async function main() {
     { code: 'SOUT', name: 'Southern Region', nameAr: 'المنطقة الجنوبية' },
   ];
 
-  for (const region of regions) {
-    await prisma.settingRegion.upsert({
+  const regions: Record<string, any> = {};
+  for (const region of regionsData) {
+    regions[region.code] = await prisma.settingRegion.upsert({
       where: { countryId_code: { countryId: saudiArabia.id, code: region.code } },
       update: {},
       create: { countryId: saudiArabia.id, ...region },
+    });
+  }
+
+  // Saudi Cities (with region references)
+  const citiesData = [
+    { code: 'RUH', name: 'Riyadh', nameAr: 'الرياض', regionCode: 'CENT' },
+    { code: 'JED', name: 'Jeddah', nameAr: 'جدة', regionCode: 'WEST' },
+    { code: 'DMM', name: 'Dammam', nameAr: 'الدمام', regionCode: 'EAST' },
+    { code: 'MKK', name: 'Mecca', nameAr: 'مكة المكرمة', regionCode: 'WEST' },
+    { code: 'MED', name: 'Medina', nameAr: 'المدينة المنورة', regionCode: 'WEST' },
+    { code: 'KHO', name: 'Khobar', nameAr: 'الخبر', regionCode: 'EAST' },
+    { code: 'TAB', name: 'Tabuk', nameAr: 'تبوك', regionCode: 'NORT' },
+    { code: 'ABH', name: 'Abha', nameAr: 'أبها', regionCode: 'SOUT' },
+  ];
+
+  for (const city of citiesData) {
+    const { regionCode, ...cityData } = city;
+    await prisma.settingCity.upsert({
+      where: { countryId_code: { countryId: saudiArabia.id, code: city.code } },
+      update: { regionId: regions[regionCode].id },
+      create: { countryId: saudiArabia.id, regionId: regions[regionCode].id, ...cityData },
     });
   }
 

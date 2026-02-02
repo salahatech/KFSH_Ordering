@@ -59,12 +59,13 @@ router.delete('/countries/:id', authenticateToken, requireRole('Admin'), async (
 
 router.get('/cities', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { countryId } = req.query;
+    const { countryId, regionId } = req.query;
     const where: any = {};
     if (countryId) where.countryId = countryId;
+    if (regionId) where.regionId = regionId;
     const cities = await prisma.settingCity.findMany({
       where,
-      include: { country: true },
+      include: { country: true, region: true },
       orderBy: { name: 'asc' },
     });
     res.json(cities);
@@ -75,9 +76,9 @@ router.get('/cities', authenticateToken, async (req: Request, res: Response): Pr
 
 router.post('/cities', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { countryId, code, name, nameAr } = req.body;
+    const { countryId, regionId, code, name, nameAr } = req.body;
     const city = await prisma.settingCity.create({
-      data: { countryId, code, name, nameAr },
+      data: { countryId, regionId: regionId || null, code, name, nameAr },
     });
     await createAuditLog(req.user?.userId, 'CREATE', 'SettingCity', city.id, null, city, req);
     res.status(201).json(city);
@@ -88,11 +89,11 @@ router.post('/cities', authenticateToken, requireRole('Admin'), async (req: Requ
 
 router.put('/cities/:id', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { countryId, code, name, nameAr, isActive } = req.body;
+    const { countryId, regionId, code, name, nameAr, isActive } = req.body;
     const oldData = await prisma.settingCity.findUnique({ where: { id: req.params.id } });
     const city = await prisma.settingCity.update({
       where: { id: req.params.id },
-      data: { countryId, code, name, nameAr, isActive },
+      data: { countryId, regionId: regionId || null, code, name, nameAr, isActive },
     });
     await createAuditLog(req.user?.userId, 'UPDATE', 'SettingCity', city.id, oldData, city, req);
     res.json(city);

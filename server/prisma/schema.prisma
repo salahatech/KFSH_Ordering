@@ -887,6 +887,8 @@ model SettingCity {
   id          String          @id @default(uuid())
   countryId   String
   country     SettingCountry  @relation(fields: [countryId], references: [id])
+  regionId    String?
+  region      SettingRegion?  @relation(fields: [regionId], references: [id])
   code        String
   name        String
   nameAr      String?
@@ -907,6 +909,7 @@ model SettingRegion {
   nameAr      String?
   isActive    Boolean         @default(true)
   customers   Customer[]
+  cities      SettingCity[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 

@@ -244,6 +244,55 @@ export default function Settings() {
         );
 
       case 'cities':
+        return (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Name</th>
+                <th>Name (Arabic)</th>
+                <th>Region</th>
+                <th>Country</th>
+                <th>Status</th>
+                <th style={{ width: '100px' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((item: any) => (
+                <tr key={item.id}>
+                  <td style={{ fontFamily: 'monospace', fontWeight: 500 }}>{item.code}</td>
+                  <td>{item.name}</td>
+                  <td dir="rtl">{item.nameAr || '-'}</td>
+                  <td>{item.region?.name || '-'}</td>
+                  <td>{item.country?.name || '-'}</td>
+                  <td>
+                    <span className={`badge badge-${item.isActive ? 'success' : 'default'}`}>
+                      {item.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleEdit(item)} title="Edit">
+                        <Pencil size={14} />
+                      </button>
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleDelete(item.id)} title="Delete">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {data.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                    No records found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        );
+
       case 'regions':
         return (
           <table className="table">
@@ -537,6 +586,68 @@ export default function Settings() {
         );
 
       case 'cities':
+        return (
+          <>
+            <div className="form-group">
+              <label className="form-label">Country *</label>
+              <select
+                className="form-select"
+                value={formData.countryId || ''}
+                onChange={(e) => setFormData({ ...formData, countryId: e.target.value, regionId: '' })}
+              >
+                <option value="">Select Country</option>
+                {countries?.map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Region *</label>
+              <select
+                className="form-select"
+                value={formData.regionId || ''}
+                onChange={(e) => setFormData({ ...formData, regionId: e.target.value })}
+              >
+                <option value="">Select Region</option>
+                {regions?.filter((r: any) => r.countryId === formData.countryId).map((r: any) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Code *</label>
+              <input
+                type="text"
+                className="form-input"
+                value={formData.code || ''}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                placeholder="e.g., JED, RUH"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Name *</label>
+              <input
+                type="text"
+                className="form-input"
+                value={formData.name || ''}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Jeddah"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Name (Arabic)</label>
+              <input
+                type="text"
+                className="form-input"
+                dir="rtl"
+                value={formData.nameAr || ''}
+                onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
+                placeholder="e.g., جدة"
+              />
+            </div>
+          </>
+        );
+
       case 'regions':
         return (
           <>
@@ -560,7 +671,7 @@ export default function Settings() {
                 className="form-input"
                 value={formData.code || ''}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                placeholder={activeTab === 'cities' ? 'e.g., JED, RUH' : 'e.g., WEST, CENT'}
+                placeholder="e.g., WEST, CENT"
               />
             </div>
             <div className="form-group">
@@ -570,7 +681,7 @@ export default function Settings() {
                 className="form-input"
                 value={formData.name || ''}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder={activeTab === 'cities' ? 'e.g., Jeddah' : 'e.g., Western Region'}
+                placeholder="e.g., Western Region"
               />
             </div>
             <div className="form-group">
@@ -581,7 +692,7 @@ export default function Settings() {
                 dir="rtl"
                 value={formData.nameAr || ''}
                 onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
-                placeholder={activeTab === 'cities' ? 'e.g., جدة' : 'e.g., المنطقة الغربية'}
+                placeholder="e.g., المنطقة الغربية"
               />
             </div>
           </>

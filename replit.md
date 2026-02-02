@@ -200,12 +200,19 @@ cd server && npx tsx prisma/seed.ts
 6. Lu-177 DOTATATE (Lu-177, half-life: 9500 min) - Therapy
 
 ## Recent Changes
+- 2026-02-02: Cascading Location Hierarchy (Country -> Region -> City)
+  - Cities now belong to regions (Country -> Region -> City hierarchy)
+  - Added regionId field to SettingCity model
+  - Backend routes updated to filter cities by regionId
+  - Customer form updated: selecting a region loads only its cities
+  - Settings page updated to require region when adding/editing cities
+  - Seed data updated to link Saudi cities to their respective regions
+  - Customer form labels now in English only (removed mixed Arabic/English)
 - 2026-02-02: Customer Address Form Enhancement
   - Updated customer creation/edit form with Saudi National Address fields
   - Fields: Short Address, Building No., Street, Secondary No., District, Postal Code
   - Dropdown selections for Country, Region, City, Category from Settings tables
-  - Country selection filters available regions and cities
-  - Controlled state for cascading dropdowns (changing country clears region/city)
+  - Controlled state for cascading dropdowns
   - Backend routes updated to handle new address field IDs (cityId, regionId, countryId, categoryId)
   - Customer list shows location with city/region/country from settings
 - 2026-02-02: System Settings Module

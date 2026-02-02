@@ -38,12 +38,13 @@ export default function Customers() {
   });
 
   const { data: cities } = useQuery({
-    queryKey: ['settings', 'cities', selectedCountryId],
+    queryKey: ['settings', 'cities', selectedRegionId],
     queryFn: async () => {
-      const params = selectedCountryId ? { countryId: selectedCountryId } : {};
+      const params = selectedRegionId ? { regionId: selectedRegionId } : {};
       const { data } = await api.get('/settings/cities', { params });
       return data;
     },
+    enabled: !!selectedRegionId,
   });
 
   const { data: categories } = useQuery({
@@ -72,6 +73,11 @@ export default function Customers() {
   const handleCountryChange = (countryId: string) => {
     setSelectedCountryId(countryId);
     setSelectedRegionId('');
+    setSelectedCityId('');
+  };
+
+  const handleRegionChange = (regionId: string) => {
+    setSelectedRegionId(regionId);
     setSelectedCityId('');
   };
 
@@ -318,11 +324,12 @@ export default function Customers() {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Region</label>
+                    <label className="form-label">Region *</label>
                     <select 
                       className="form-select" 
                       value={selectedRegionId}
-                      onChange={(e) => setSelectedRegionId(e.target.value)}
+                      onChange={(e) => handleRegionChange(e.target.value)}
+                      required
                     >
                       <option value="">Select Region</option>
                       {regions?.filter((r: any) => r.isActive).map((region: any) => (
