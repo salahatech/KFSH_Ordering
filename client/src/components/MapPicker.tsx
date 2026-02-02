@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin } from 'lucide-react';
+import { MapPin, Crosshair, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface MapPickerProps {
   latitude: number | null;
@@ -37,6 +38,55 @@ export default function MapPicker({ latitude, longitude, onLocationSelect, heigh
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude: lat, longitude: lng } = position.coords;
+        
+        if (mapInstanceRef.current) {
+          if (markerRef.current) {
+            markerRef.current.setLatLng([lat, lng]);
+          } else {
+            markerRef.current = L.marker([lat, lng], { icon: markerIcon }).addTo(mapInstanceRef.current);
+          }
+          mapInstanceRef.current.setView([lat, lng], 16);
+        }
+        
+        onLocationSelect(lat, lng);
+        setIsLocating(false);
+        toast.success('Location detected successfully');
+      },
+      (error) => {
+        setIsLocating(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error('Location access denied. Please enable location permissions.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            toast.error('Location information unavailable');
+            break;
+          case error.TIMEOUT:
+            toast.error('Location request timed out');
+            break;
+          default:
+            toast.error('Unable to get your location');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
+  };
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -103,6 +153,51 @@ export default function MapPicker({ latitude, longitude, onLocationSelect, heigh
           overflow: 'hidden',
         }}
       />
+      <button
+        type="button"
+        onClick={handleUseCurrentLocation}
+        disabled={isLocating}
+        style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          background: 'white',
+          border: 'none',
+          padding: '8px 12px',
+          borderRadius: '6px',
+          fontSize: '0.8125rem',
+          fontWeight: 500,
+          color: '#0d9488',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+          cursor: isLocating ? 'wait' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          transition: 'all 0.2s',
+        }}
+        onMouseOver={(e) => {
+          if (!isLocating) {
+            e.currentTarget.style.background = '#0d9488';
+            e.currentTarget.style.color = 'white';
+          }
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.background = 'white';
+          e.currentTarget.style.color = '#0d9488';
+        }}
+      >
+        {isLocating ? (
+          <>
+            <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+            Locating...
+          </>
+        ) : (
+          <>
+            <Crosshair size={16} />
+            Use My Location
+          </>
+        )}
+      </button>
       <div
         style={{
           position: 'absolute',
@@ -122,6 +217,12 @@ export default function MapPicker({ latitude, longitude, onLocationSelect, heigh
         <MapPin size={14} />
         Click on the map to select location
       </div>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
