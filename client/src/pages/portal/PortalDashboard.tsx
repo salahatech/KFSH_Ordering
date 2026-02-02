@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { format } from 'date-fns';
 import { useAuthStore } from '../../store/authStore';
-import { ShoppingCart, Clock, CheckCircle, Plus, Receipt, Truck, Package, AlertTriangle } from 'lucide-react';
+import { ShoppingCart, Clock, CheckCircle, Plus, Receipt, Truck, Package, AlertTriangle, Building2 } from 'lucide-react';
 import { KpiCard, StatusBadge } from '../../components/shared';
 import { DashboardHeader, JourneyFunnelStepper, QueueList, type JourneyStage, type QueueItem } from '../../components/dashboard';
 
@@ -132,6 +132,23 @@ export default function PortalDashboard() {
           </Link>
         }
       />
+
+      {user?.customerName && (
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '0.75rem',
+          padding: '0.75rem 1rem', 
+          backgroundColor: 'rgba(13, 148, 136, 0.1)', 
+          borderRadius: '0.5rem',
+          marginBottom: '1.5rem',
+          border: '1px solid rgba(13, 148, 136, 0.2)'
+        }}>
+          <Building2 size={18} style={{ color: '#0d9488' }} />
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Viewing portal for: </span>
+          <span style={{ fontWeight: 600, color: '#0d9488' }}>{user.customerName}</span>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
