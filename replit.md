@@ -200,6 +200,21 @@ cd server && npx tsx prisma/seed.ts
 6. Lu-177 DOTATATE (Lu-177, half-life: 9500 min) - Therapy
 
 ## Recent Changes
+- 2026-02-02: Enhanced Invoicing with PDF Generation and ZATCA QR
+  - Redesigned Invoice page UI with tabbed detail panel (Details, Payments)
+  - PDF invoice generation in A4 format using jsPDF library
+  - ZATCA-compliant QR code with TLV-encoded data (seller, VAT, date, totals)
+  - Professional invoice layout: header with company info, line items table, totals
+  - Download PDF button on invoice list and detail panel
+  - Enhanced stats cards with icons and better visual hierarchy
+  - Improved payment recording modal and payment history display
+  - VAT rate defaults to Saudi Arabia standard 15%
+- 2026-02-02: Enhanced Contracts Page UI
+  - Tabbed detail panel (Contract Info, Product Pricing)
+  - Contract period progress bar with days remaining indicator
+  - Add/delete product pricing for draft contracts
+  - "Expiring Soon" warning stat for contracts within 30 days
+  - Better visual hierarchy with icons and improved styling
 - 2026-02-02: Reservations Page - Capacity Reservation System
   - New Reservations page for managing capacity reservations
   - Prevents overbooking based on dispensing/production time estimates
