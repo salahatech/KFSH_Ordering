@@ -53,11 +53,17 @@ function generateOrderNumber(): string {
 router.get('/', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const { status, customerId, fromDate, toDate } = req.query;
+    const user = (req as any).user;
     
     const where: any = {};
     
+    if (user.role === 'Customer') {
+      where.customerId = user.customerId;
+    } else if (customerId) {
+      where.customerId = customerId as string;
+    }
+    
     if (status) where.status = status as OrderStatus;
-    if (customerId) where.customerId = customerId as string;
     if (fromDate || toDate) {
       where.deliveryDate = {};
       if (fromDate) where.deliveryDate.gte = new Date(fromDate as string);
@@ -93,6 +99,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
  */
 router.get('/:id', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
+    const user = (req as any).user;
     const order = await prisma.order.findUnique({
       where: { id: req.params.id },
       include: {
@@ -105,6 +112,11 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response): Promi
     });
 
     if (!order) {
+      res.status(404).json({ error: 'Order not found' });
+      return;
+    }
+
+    if (user.role === 'Customer' && order.customerId !== user.customerId) {
       res.status(404).json({ error: 'Order not found' });
       return;
     }
@@ -125,13 +137,21 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response): Promi
  *       201:
  *         description: Order created
  */
-router.post('/', authenticateToken, requireRole('Admin', 'Production Manager', 'Customer Service'), async (req: Request, res: Response): Promise<void> => {
+router.post('/', authenticateToken, requireRole('Admin', 'Production Manager', 'Customer Service', 'Customer'), async (req: Request, res: Response): Promise<void> => {
   try {
+    const user = (req as any).user;
     const {
-      customerId, productId, deliveryDate, deliveryTimeStart, deliveryTimeEnd,
+      customerId: bodyCustomerId, productId, deliveryDate, deliveryTimeStart, deliveryTimeEnd,
       requestedActivity, activityUnit, numberOfDoses, injectionTime,
-      patientCount, specialNotes, status
+      patientCount, specialNotes, status, notes, priority
     } = req.body;
+
+    const customerId = user.role === 'Customer' ? user.customerId : bodyCustomerId;
+    
+    if (!customerId) {
+      res.status(400).json({ error: 'Customer ID is required' });
+      return;
+    }
 
     const customer = await prisma.customer.findUnique({
       where: { id: customerId },
@@ -190,6 +210,8 @@ router.post('/', authenticateToken, requireRole('Admin', 'Production Manager', '
       return;
     }
 
+    const orderStatus = user.role === 'Customer' ? 'SUBMITTED' : (status || 'DRAFT');
+    
     const order = await prisma.order.create({
       data: {
         orderNumber: generateOrderNumber(),
@@ -203,10 +225,11 @@ router.post('/', authenticateToken, requireRole('Admin', 'Production Manager', '
         numberOfDoses,
         injectionTime: injectionTime ? new Date(injectionTime) : null,
         patientCount,
-        specialNotes,
+        specialNotes: specialNotes || notes || null,
+        priority: priority || 'NORMAL',
         calculatedProductionActivity,
         calculatedCalibrationTime: schedule.synthesisStartTime,
-        status: status || 'DRAFT',
+        status: orderStatus,
       },
       include: { customer: true, product: true },
     });
@@ -403,12 +426,18 @@ router.patch('/:id/status', authenticateToken, requireRole('Admin', 'Production 
  */
 router.get('/:id/calculate-activity', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
+    const user = (req as any).user;
     const order = await prisma.order.findUnique({
       where: { id: req.params.id },
       include: { product: true, customer: true },
     });
 
     if (!order) {
+      res.status(404).json({ error: 'Order not found' });
+      return;
+    }
+    
+    if (user.role === 'Customer' && order.customerId !== user.customerId) {
       res.status(404).json({ error: 'Order not found' });
       return;
     }

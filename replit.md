@@ -4,7 +4,7 @@
 A comprehensive web application for managing radiopharmaceutical manufacturing operations, including ordering, production planning, QC testing, batch release, delivery, dose dispensing, capacity management, contracts/pricing, and invoicing. The system handles time-critical, decay-based products (PET and SPECT radiopharmaceuticals) with GMP-style traceability, radioactive decay calculations, and backward scheduling based on delivery times and product half-lives.
 
 ## Project Status
-**Current State**: Fully functional MVP with all core features implemented including financial and capacity modules
+**Current State**: Fully functional MVP with all core features implemented including financial modules, capacity management, and Client Ordering Portal
 
 ## Architecture
 
@@ -110,6 +110,15 @@ Key entities:
 - Financial summary dashboard (Total, Paid, Outstanding, Overdue)
 - Invoice status workflow (Draft, Sent, Paid, Partially Paid, Overdue)
 
+### 13. Client Ordering Portal
+- Self-service portal for hospitals to place orders directly
+- Separate customer-facing interface with teal color scheme
+- Portal Dashboard with order statistics and quick actions
+- Order History page with status tracking
+- 3-step New Order wizard (product selection, delivery scheduling, review)
+- Invoice viewing with payment history
+- Automatic role-based routing (Customer role -> portal, others -> internal system)
+
 ## Demo Credentials
 All accounts use password: **admin123**
 
@@ -177,6 +186,13 @@ cd server && npx tsx prisma/seed.ts
 6. Lu-177 DOTATATE (Lu-177, half-life: 9500 min) - Therapy
 
 ## Recent Changes
+- 2026-02-02: Client Ordering Portal
+  - PortalLayout component with teal theme for customer-facing interface
+  - PortalDashboard: Order stats, quick actions, recent orders/invoices
+  - PortalOrders: Order history with status filtering
+  - PortalNewOrder: 3-step wizard for placing orders
+  - PortalInvoices: Invoice viewing with payment history
+  - Role-based routing: Customer role auto-redirects to /portal
 - 2026-02-02: Financial and Capacity Modules
   - Dose Dispensing: DoseUnit management with labeling, dispensing, and waste tracking
   - Availability Calendar: Minutes-based capacity with weekly view and utilization

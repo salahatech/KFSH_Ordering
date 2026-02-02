@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { createAuditLog } from '../middleware/audit.js';
 
 const router = Router();
@@ -17,9 +17,15 @@ function generateInvoiceNumber(): string {
 router.get('/', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const { customerId, status, startDate, endDate, overdue } = req.query;
+    const user = (req as any).user;
 
     const where: any = {};
-    if (customerId) where.customerId = customerId;
+    
+    if (user.role === 'Customer') {
+      where.customerId = user.customerId;
+    } else if (customerId) {
+      where.customerId = customerId;
+    }
     if (status) where.status = status;
     if (startDate || endDate) {
       where.invoiceDate = {};
@@ -51,7 +57,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
   }
 });
 
-router.post('/', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.post('/', authenticateToken, requireRole('Admin', 'Sales', 'Customer Service'), async (req: Request, res: Response): Promise<void> => {
   try {
     const {
       customerId,
@@ -123,7 +129,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response): Promise
   }
 });
 
-router.post('/generate-from-orders', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.post('/generate-from-orders', authenticateToken, requireRole('Admin', 'Sales', 'Customer Service'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { orderIds, customerId, taxRate } = req.body;
 
@@ -212,7 +218,7 @@ router.post('/generate-from-orders', authenticateToken, async (req: Request, res
   }
 });
 
-router.put('/:id/send', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.put('/:id/send', authenticateToken, requireRole('Admin', 'Sales', 'Customer Service'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -244,7 +250,7 @@ router.put('/:id/send', authenticateToken, async (req: Request, res: Response): 
   }
 });
 
-router.post('/:id/payments', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/payments', authenticateToken, requireRole('Admin', 'Sales', 'Customer Service'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { amount, paymentMethod, referenceNumber, notes } = req.body;
@@ -292,7 +298,7 @@ router.post('/:id/payments', authenticateToken, async (req: Request, res: Respon
   }
 });
 
-router.put('/:id/cancel', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+router.put('/:id/cancel', authenticateToken, requireRole('Admin', 'Sales'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
@@ -330,9 +336,15 @@ router.put('/:id/cancel', authenticateToken, async (req: Request, res: Response)
 router.get('/summary', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const { customerId, startDate, endDate } = req.query;
+    const user = (req as any).user;
 
     const where: any = {};
-    if (customerId) where.customerId = customerId;
+    
+    if (user.role === 'Customer') {
+      where.customerId = user.customerId;
+    } else if (customerId) {
+      where.customerId = customerId;
+    }
     if (startDate || endDate) {
       where.invoiceDate = {};
       if (startDate) where.invoiceDate.gte = new Date(startDate as string);
@@ -365,6 +377,7 @@ router.get('/summary', authenticateToken, async (req: Request, res: Response): P
 router.get('/:id', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+    const user = (req as any).user;
 
     const invoice = await prisma.invoice.findUnique({
       where: { id },
@@ -377,6 +390,11 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response): Promi
     });
 
     if (!invoice) {
+      res.status(404).json({ error: 'Invoice not found' });
+      return;
+    }
+
+    if (user.role === 'Customer' && invoice.customerId !== user.customerId) {
       res.status(404).json({ error: 'Invoice not found' });
       return;
     }
