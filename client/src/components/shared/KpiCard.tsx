@@ -44,34 +44,42 @@ export function KpiCard({
         backgroundColor: styles.bg,
         cursor: onClick ? 'pointer' : 'default',
         transition: 'transform 0.2s, box-shadow 0.2s',
-        minWidth: '160px',
-        border: active ? `2px solid ${styles.accent}` : undefined,
-        boxShadow: active ? `0 0 0 3px ${styles.accent}20` : undefined,
+        minWidth: '180px',
+        minHeight: '100px',
+        padding: '1.25rem 1.5rem',
+        border: active ? `2px solid ${styles.accent}` : '1px solid var(--border)',
+        boxShadow: active ? `0 0 0 3px ${styles.accent}20` : '0 1px 3px rgba(0,0,0,0.05)',
+        borderRadius: '12px',
       }}
       onClick={onClick}
       onMouseEnter={(e) => onClick && (e.currentTarget.style.transform = 'translateY(-2px)')}
       onMouseLeave={(e) => onClick && (e.currentTarget.style.transform = 'translateY(0)')}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <div style={{ fontSize: '0.75rem', color: styles.accent, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', height: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '0.75rem' }}>
             {title}
           </div>
           {loading ? (
-            <div className="skeleton" style={{ width: '60px', height: '2rem', borderRadius: '4px' }} />
+            <div className="skeleton" style={{ width: '60px', height: '2.5rem', borderRadius: '4px' }} />
           ) : (
-            <div style={{ fontSize: '1.75rem', fontWeight: 700, color: styles.text, lineHeight: 1.2 }}>
+            <div style={{ fontSize: '2.25rem', fontWeight: 700, color: styles.text, lineHeight: 1.1 }}>
               {value}
             </div>
           )}
           {subtext && (
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
               {subtext}
             </div>
           )}
         </div>
         {icon && (
-          <div style={{ color: styles.accent, opacity: 0.8 }}>
+          <div style={{ 
+            padding: '0.625rem', 
+            borderRadius: '10px', 
+            backgroundColor: `${styles.accent}15`,
+            color: styles.accent,
+          }}>
             {icon}
           </div>
         )}
