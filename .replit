@@ -50,7 +50,7 @@ JWT_SECRET = "radiopharma-oms-secret-key-2026-production-secure"
 
 [agent]
 expertMode = true
-integrations = ["resend:1.0.0"]
+integrations = ["resend:1.0.0", "twilio:1.0.0"]
 
 [[ports]]
 localPort = 3001

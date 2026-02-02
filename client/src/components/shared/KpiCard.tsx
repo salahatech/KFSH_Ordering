@@ -11,6 +11,7 @@ interface KpiCardProps {
   color?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
   onClick?: () => void;
   loading?: boolean;
+  active?: boolean;
 }
 
 const colorStyles: Record<string, { bg: string; text: string; accent: string }> = {
@@ -31,7 +32,8 @@ export function KpiCard({
   trendValue, 
   color = 'default',
   onClick,
-  loading = false
+  loading = false,
+  active = false
 }: KpiCardProps) {
   const styles = colorStyles[color];
 
@@ -43,6 +45,8 @@ export function KpiCard({
         cursor: onClick ? 'pointer' : 'default',
         transition: 'transform 0.2s, box-shadow 0.2s',
         minWidth: '160px',
+        border: active ? `2px solid ${styles.accent}` : undefined,
+        boxShadow: active ? `0 0 0 3px ${styles.accent}20` : undefined,
       }}
       onClick={onClick}
       onMouseEnter={(e) => onClick && (e.currentTarget.style.transform = 'translateY(-2px)')}

@@ -16,6 +16,9 @@ import {
   Search,
   Filter,
 } from 'lucide-react';
+import { useToast } from '../components/ui/Toast';
+import { parseApiError } from '../components/ui/FormErrors';
+import { KpiCard, EmptyState } from '../components/shared';
 
 export default function Products() {
   const [showModal, setShowModal] = useState(false);
@@ -25,6 +28,7 @@ export default function Products() {
   const [methodFilter, setMethodFilter] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const { data: products, isLoading } = useQuery({
     queryKey: ['products'],
@@ -45,6 +49,12 @@ export default function Products() {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       setShowModal(false);
       setSelectedProduct(null);
+      toast.success(selectedProduct ? 'Product Updated' : 'Product Created', 
+        selectedProduct ? 'Product details have been updated' : 'New product has been added');
+    },
+    onError: (error: any) => {
+      const apiError = parseApiError(error);
+      toast.error('Error', apiError?.userMessage || 'Failed to save product');
     },
   });
 
@@ -116,75 +126,52 @@ export default function Products() {
   }
 
   return (
-    <div className="page">
-      <div className="page-header">
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="page-title">
-            <Package size={28} style={{ marginRight: '0.5rem' }} />
-            Product Catalog
-          </h1>
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Product Catalog</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
             Manage radiopharmaceutical products with decay properties and production times
           </p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <Plus size={18} /> Add Product
+          <Plus size={16} /> Add Product
         </button>
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div 
-          className="card stat-card" 
-          style={{ cursor: 'pointer', border: !typeFilter ? '2px solid var(--primary)' : undefined }}
+        <KpiCard 
+          title="Total Products" 
+          value={stats.total} 
+          icon={<Package size={20} />}
+          color="primary"
           onClick={() => setTypeFilter('')}
-        >
-          <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' }}>
-            <Package size={20} />
-          </div>
-          <div>
-            <div className="stat-value" style={{ color: 'var(--primary)' }}>{stats.total}</div>
-            <div className="stat-label">Total Products</div>
-          </div>
-        </div>
-        <div 
-          className="card stat-card" 
-          style={{ cursor: 'pointer', border: typeFilter === 'PET' ? '2px solid var(--primary)' : undefined }}
+          active={!typeFilter}
+        />
+        <KpiCard 
+          title="PET Products" 
+          value={stats.pet} 
+          icon={<Atom size={20} />}
+          color="info"
           onClick={() => setTypeFilter(typeFilter === 'PET' ? '' : 'PET')}
-        >
-          <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' }}>
-            <Atom size={20} />
-          </div>
-          <div>
-            <div className="stat-value">{stats.pet}</div>
-            <div className="stat-label">PET Products</div>
-          </div>
-        </div>
-        <div 
-          className="card stat-card" 
-          style={{ cursor: 'pointer', border: typeFilter === 'SPECT' ? '2px solid var(--success)' : undefined }}
+          active={typeFilter === 'PET'}
+        />
+        <KpiCard 
+          title="SPECT Products" 
+          value={stats.spect} 
+          icon={<Activity size={20} />}
+          color="success"
           onClick={() => setTypeFilter(typeFilter === 'SPECT' ? '' : 'SPECT')}
-        >
-          <div className="stat-icon" style={{ background: 'rgba(34, 197, 94, 0.1)', color: 'var(--success)' }}>
-            <Activity size={20} />
-          </div>
-          <div>
-            <div className="stat-value" style={{ color: 'var(--success)' }}>{stats.spect}</div>
-            <div className="stat-label">SPECT Products</div>
-          </div>
-        </div>
-        <div 
-          className="card stat-card" 
-          style={{ cursor: 'pointer', border: typeFilter === 'THERAPY' ? '2px solid var(--warning)' : undefined }}
+          active={typeFilter === 'SPECT'}
+        />
+        <KpiCard 
+          title="Therapy Products" 
+          value={stats.therapy} 
+          icon={<Zap size={20} />}
+          color="warning"
           onClick={() => setTypeFilter(typeFilter === 'THERAPY' ? '' : 'THERAPY')}
-        >
-          <div className="stat-icon" style={{ background: 'rgba(234, 179, 8, 0.1)', color: 'var(--warning)' }}>
-            <Zap size={20} />
-          </div>
-          <div>
-            <div className="stat-value" style={{ color: 'var(--warning)' }}>{stats.therapy}</div>
-            <div className="stat-label">Therapy Products</div>
-          </div>
-        </div>
+          active={typeFilter === 'THERAPY'}
+        />
       </div>
 
       <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
@@ -319,12 +306,12 @@ export default function Products() {
           </div>
 
           {filteredProducts.length === 0 && (
-            <div className="card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-              <Package size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
-              <div style={{ fontWeight: 500 }}>No products found</div>
-              <div style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>
-                {searchQuery || typeFilter || methodFilter ? 'Try adjusting your filters' : 'Add your first product to get started'}
-              </div>
+            <div className="card" style={{ padding: '2rem' }}>
+              <EmptyState 
+                title="No products found"
+                message={searchQuery || typeFilter || methodFilter ? 'Try adjusting your filters' : 'Add your first product to get started'}
+                icon="package"
+              />
             </div>
           )}
         </div>

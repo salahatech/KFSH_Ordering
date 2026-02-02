@@ -5,10 +5,11 @@ import api from '../lib/api';
 import { format, addDays } from 'date-fns';
 import { 
   Play, Route, ArrowRight, Calendar, Package, FlaskConical, 
-  Beaker, Shield, AlertTriangle, Clock, Filter, X, Search
+  Beaker, Shield, AlertTriangle, Clock, Filter, X, Search, Eye
 } from 'lucide-react';
 import { useToast } from '../components/ui/Toast';
 import { parseApiError } from '../components/ui/FormErrors';
+import { KpiCard, StatusBadge, EmptyState } from '../components/shared';
 
 const allStatuses = [
   { value: 'PLANNED', label: 'Planned', group: 'main' },
@@ -174,8 +175,13 @@ export default function Batches() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Batch Management</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Batch Management</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+            Track production batches through the manufacturing lifecycle
+          </p>
+        </div>
         <button 
           className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setShowFilters(!showFilters)}
@@ -184,43 +190,32 @@ export default function Batches() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div className="card" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ padding: '0.5rem', borderRadius: '8px', backgroundColor: 'rgba(59, 130, 246, 0.1)' }}>
-            <Calendar size={20} style={{ color: 'var(--primary)' }} />
-          </div>
-          <div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{metrics?.batchesToday || 0}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Today</div>
-          </div>
-        </div>
-        <div className="card" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ padding: '0.5rem', borderRadius: '8px', backgroundColor: 'rgba(245, 158, 11, 0.1)' }}>
-            <Beaker size={20} style={{ color: '#f59e0b' }} />
-          </div>
-          <div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{metrics?.awaitingQC || 0}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Awaiting QC</div>
-          </div>
-        </div>
-        <div className="card" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ padding: '0.5rem', borderRadius: '8px', backgroundColor: 'rgba(139, 92, 246, 0.1)' }}>
-            <Shield size={20} style={{ color: '#8b5cf6' }} />
-          </div>
-          <div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{metrics?.awaitingRelease || 0}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Awaiting Release</div>
-          </div>
-        </div>
-        <div className="card" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }} onClick={() => setShowExceptionsOnly(!showExceptionsOnly)}>
-          <div style={{ padding: '0.5rem', borderRadius: '8px', backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
-            <AlertTriangle size={20} style={{ color: '#ef4444' }} />
-          </div>
-          <div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{metrics?.exceptions || 0}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Exceptions</div>
-          </div>
-        </div>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <KpiCard 
+          title="Today's Batches" 
+          value={metrics?.batchesToday || 0} 
+          icon={<Calendar size={20} />}
+          color="primary"
+        />
+        <KpiCard 
+          title="Awaiting QC" 
+          value={metrics?.awaitingQC || 0} 
+          icon={<Beaker size={20} />}
+          color="warning"
+        />
+        <KpiCard 
+          title="Awaiting Release" 
+          value={metrics?.awaitingRelease || 0} 
+          icon={<Shield size={20} />}
+          color="info"
+        />
+        <KpiCard 
+          title="Exceptions" 
+          value={metrics?.exceptions || 0} 
+          icon={<AlertTriangle size={20} />}
+          color="danger"
+          onClick={() => setShowExceptionsOnly(!showExceptionsOnly)}
+        />
       </div>
 
       {showFilters && (
@@ -314,52 +309,56 @@ export default function Batches() {
       )}
 
       <div className="card">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Batch #</th>
-              <th>Product</th>
-              <th>Planned Start</th>
-              <th>Status</th>
-              <th>Orders</th>
-              <th>Doses</th>
-              <th>Updated</th>
-              <th style={{ width: '140px' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredBatches?.length > 0 ? (
-              filteredBatches.map((batch: any) => {
+        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 style={{ fontWeight: 600, fontSize: '1rem', margin: 0 }}>
+            Batch List ({filteredBatches?.length || 0})
+          </h3>
+        </div>
+        {filteredBatches?.length > 0 ? (
+          <table className="table" style={{ marginBottom: 0 }}>
+            <thead>
+              <tr>
+                <th>Batch #</th>
+                <th>Product</th>
+                <th>Planned Start</th>
+                <th>Status</th>
+                <th>Orders</th>
+                <th>Doses</th>
+                <th>Updated</th>
+                <th style={{ width: '160px', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredBatches.map((batch: any) => {
                 const nextStatus = getNextStatus(batch.status);
                 const doseCount = batch.doseUnits?.length || 0;
                 return (
                   <tr key={batch.id}>
                     <td>
-                      <strong>{batch.batchNumber}</strong>
+                      <span style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '0.8125rem' }}>{batch.batchNumber}</span>
                       {isException(batch.status) && (
                         <AlertTriangle size={14} style={{ color: 'var(--danger)', marginLeft: '0.25rem' }} />
                       )}
                     </td>
-                    <td>{batch.product?.name}</td>
+                    <td style={{ fontWeight: 500 }}>{batch.product?.name}</td>
                     <td>{format(new Date(batch.plannedStartTime), 'MMM dd HH:mm')}</td>
                     <td>
-                      <span className={`badge badge-${getStatusColor(batch.status)}`}>
-                        {batch.status.replace(/_/g, ' ')}
-                      </span>
+                      <StatusBadge status={batch.status} size="sm" />
                     </td>
-                    <td>{batch.orders?.length || 0}</td>
-                    <td>{doseCount}</td>
+                    <td><span className="badge badge-default">{batch.orders?.length || 0}</span></td>
+                    <td><span className="badge badge-default">{doseCount}</span></td>
                     <td style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
                       {format(new Date(batch.updatedAt), 'MMM dd HH:mm')}
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <Link to={`/batches/${batch.id}/journey`} className="btn btn-secondary btn-sm" title="View Journey">
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        <Link to={`/batches/${batch.id}/journey`} className="btn btn-sm btn-outline" title="View Journey">
                           <Route size={14} />
                         </Link>
                         {nextStatus && !isException(batch.status) && (
                           <button
                             className="btn btn-primary btn-sm"
+                            style={{ minWidth: '80px' }}
                             onClick={() => transitionMutation.mutate({ id: batch.id, status: nextStatus.status })}
                             disabled={transitionMutation.isPending}
                             title={nextStatus.label}
@@ -371,17 +370,18 @@ export default function Batches() {
                     </td>
                   </tr>
                 );
-              })
-            ) : (
-              <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                  <Package size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
-                  <p>No batches found</p>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              })}
+            </tbody>
+          </table>
+        ) : (
+          <div style={{ padding: '2rem' }}>
+            <EmptyState 
+              title="No batches found"
+              message="Batches will appear here when orders are scheduled for production"
+              icon="package"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
