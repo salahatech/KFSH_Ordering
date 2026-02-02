@@ -205,8 +205,8 @@ export default function Release() {
         <div className="modal-overlay" onClick={() => setShowReleaseModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontWeight: 600 }}>Batch Release - Electronic Signature</h3>
-              <button onClick={() => setShowReleaseModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem' }}>&times;</button>
+              <h3 style={{ fontWeight: 600, margin: 0 }}>Batch Release - Electronic Signature</h3>
+              <button onClick={() => setShowReleaseModal(false)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
             </div>
             <form onSubmit={handleRelease}>
               <div className="modal-body">

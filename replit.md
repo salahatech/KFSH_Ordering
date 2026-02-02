@@ -200,6 +200,13 @@ cd server && npx tsx prisma/seed.ts
 6. Lu-177 DOTATATE (Lu-177, half-life: 9500 min) - Therapy
 
 ## Recent Changes
+- 2026-02-02: Unified Modal Design Across All Pages
+  - All popup modals now use consistent structure: modal-header, modal-body, modal-footer
+  - Smooth animations (fade in backdrop + slide up modal) with backdrop blur
+  - Unified close button styling with gray background and rounded corners
+  - Form fields use consistent form-label and form-input classes
+  - Footer buttons use consistent btn btn-secondary and btn btn-primary classes
+  - Updated pages: Settings, Users, Products, Customers, Release, Dispensing, Approvals, Invoices, Availability, Contracts
 - 2026-02-02: Cascading Location Hierarchy (Country -> Region -> City)
   - Cities now belong to regions (Country -> Region -> City hierarchy)
   - Added regionId field to SettingCity model

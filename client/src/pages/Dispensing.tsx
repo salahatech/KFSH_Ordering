@@ -427,81 +427,86 @@ export default function Dispensing() {
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '0.5rem', fontWeight: 600 }}>Create Dose Unit</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-              Create a new dose unit from a released batch
-            </p>
-            <div className="form-group">
-              <label>Batch *</label>
-              <select
-                className="form-select"
-                value={createForm.batchId}
-                onChange={(e) => setCreateForm({ ...createForm, batchId: e.target.value })}
-              >
-                <option value="">Select a batch</option>
-                {releasedBatches?.map((batch: any) => (
-                  <option key={batch.id} value={batch.id}>
-                    {batch.batchNumber} - {batch.product?.name}
-                  </option>
-                ))}
-              </select>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 600, margin: 0 }}>Create Dose Unit</h3>
+              <button onClick={() => setShowCreateModal(false)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer' }}>&times;</button>
             </div>
-            <div className="form-group">
-              <label>Requested Activity (mCi) *</label>
-              <input
-                type="number"
-                className="form-input"
-                value={createForm.requestedActivity}
-                onChange={(e) => setCreateForm({ ...createForm, requestedActivity: e.target.value })}
-                step="0.01"
-                placeholder="Enter activity amount"
-              />
-            </div>
-            <div className="form-group">
-              <label>Patient Reference</label>
-              <input
-                type="text"
-                className="form-input"
-                value={createForm.patientReference}
-                onChange={(e) => setCreateForm({ ...createForm, patientReference: e.target.value })}
-                placeholder="e.g., Hospital order ref or pseudonym"
-              />
-            </div>
-            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="modal-body">
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+                Create a new dose unit from a released batch
+              </p>
               <div className="form-group">
-                <label>Volume (mL)</label>
+                <label className="form-label">Batch *</label>
+                <select
+                  className="form-select"
+                  value={createForm.batchId}
+                  onChange={(e) => setCreateForm({ ...createForm, batchId: e.target.value })}
+                >
+                  <option value="">Select a batch</option>
+                  {releasedBatches?.map((batch: any) => (
+                    <option key={batch.id} value={batch.id}>
+                      {batch.batchNumber} - {batch.product?.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Requested Activity (mCi) *</label>
                 <input
                   type="number"
                   className="form-input"
-                  value={createForm.volume}
-                  onChange={(e) => setCreateForm({ ...createForm, volume: e.target.value })}
-                  step="0.1"
-                  placeholder="Optional"
+                  value={createForm.requestedActivity}
+                  onChange={(e) => setCreateForm({ ...createForm, requestedActivity: e.target.value })}
+                  step="0.01"
+                  placeholder="Enter activity amount"
                 />
               </div>
               <div className="form-group">
-                <label>Container Type</label>
+                <label className="form-label">Patient Reference</label>
                 <input
                   type="text"
                   className="form-input"
-                  value={createForm.containerType}
-                  onChange={(e) => setCreateForm({ ...createForm, containerType: e.target.value })}
-                  placeholder="e.g., Vial, Syringe"
+                  value={createForm.patientReference}
+                  onChange={(e) => setCreateForm({ ...createForm, patientReference: e.target.value })}
+                  placeholder="e.g., Hospital order ref or pseudonym"
+                />
+              </div>
+              <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Volume (mL)</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={createForm.volume}
+                    onChange={(e) => setCreateForm({ ...createForm, volume: e.target.value })}
+                    step="0.1"
+                    placeholder="Optional"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Container Type</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={createForm.containerType}
+                    onChange={(e) => setCreateForm({ ...createForm, containerType: e.target.value })}
+                    placeholder="e.g., Vial, Syringe"
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Notes</label>
+                <textarea
+                  className="form-input"
+                  value={createForm.notes}
+                  onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })}
+                  rows={2}
+                  placeholder="Optional notes"
                 />
               </div>
             </div>
-            <div className="form-group">
-              <label>Notes</label>
-              <textarea
-                className="form-input"
-                value={createForm.notes}
-                onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })}
-                rows={2}
-                placeholder="Optional notes"
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
-              <button className="btn btn-outline" onClick={() => setShowCreateModal(false)}>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>
                 Cancel
               </button>
               <button

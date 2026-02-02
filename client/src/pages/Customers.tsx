@@ -248,8 +248,8 @@ export default function Customers() {
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal" style={{ maxWidth: '48rem', maxHeight: '90vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontWeight: 600 }}>{selectedCustomer ? 'Edit Customer' : 'Add Customer'}</h3>
-              <button onClick={handleCloseModal} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
+              <h3 style={{ fontWeight: 600, margin: 0 }}>{selectedCustomer ? 'Edit Customer' : 'Add Customer'}</h3>
+              <button onClick={handleCloseModal} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">

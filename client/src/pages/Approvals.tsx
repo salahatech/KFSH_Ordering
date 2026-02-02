@@ -416,49 +416,51 @@ export default function Approvals() {
         <div className="modal-overlay" onClick={() => setActionModal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3 style={{ margin: 0, fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {actionModal.action === 'APPROVED' ? (
                   <>
-                    <CheckCircle color="#22c55e" /> Approve Request
+                    <CheckCircle color="#22c55e" size={20} /> Approve Request
                   </>
                 ) : (
                   <>
-                    <XCircle color="#ef4444" /> Reject Request
+                    <XCircle color="#ef4444" size={20} /> Reject Request
                   </>
                 )}
-              </h2>
+              </h3>
+              <button onClick={() => setActionModal(null)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label>Comments (optional)</label>
+                <label className="form-label">Comments (optional)</label>
                 <textarea
+                  className="form-input"
                   value={comments}
                   onChange={(e) => setComments(e.target.value)}
                   placeholder="Add any comments or notes..."
                   rows={3}
-                  style={{ width: '100%' }}
                 />
               </div>
               <div className="form-group">
-                <label>Electronic Signature</label>
+                <label className="form-label">Electronic Signature</label>
                 <input
                   type="text"
+                  className="form-input"
                   value={signature}
                   onChange={(e) => setSignature(e.target.value)}
                   placeholder="Type your name to sign"
                 />
-                <small style={{ color: '#6b7280' }}>
+                <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>
                   By signing, you confirm this action is in compliance with GMP requirements.
                 </small>
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setActionModal(null)}>
+              <button className="btn btn-secondary" onClick={() => setActionModal(null)}>
                 Cancel
               </button>
               <button
-                className={actionModal.action === 'APPROVED' ? 'btn-primary' : 'btn-danger'}
-                style={actionModal.action === 'REJECTED' ? { background: '#ef4444' } : {}}
+                className={`btn ${actionModal.action === 'APPROVED' ? 'btn-primary' : ''}`}
+                style={actionModal.action === 'REJECTED' ? { background: '#ef4444', color: 'white' } : {}}
                 onClick={submitAction}
                 disabled={processActionMutation.isPending}
               >

@@ -134,8 +134,8 @@ export default function Products() {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" style={{ maxWidth: '40rem' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontWeight: 600 }}>{selectedProduct ? 'Edit Product' : 'Add Product'}</h3>
-              <button onClick={() => { setShowModal(false); setSelectedProduct(null); }} style={{ background: 'none', border: 'none', fontSize: '1.5rem' }}>&times;</button>
+              <h3 style={{ fontWeight: 600, margin: 0 }}>{selectedProduct ? 'Edit Product' : 'Add Product'}</h3>
+              <button onClick={() => { setShowModal(false); setSelectedProduct(null); }} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">

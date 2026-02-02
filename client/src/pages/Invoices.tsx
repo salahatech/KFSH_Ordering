@@ -476,94 +476,99 @@ export default function Invoices() {
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="modal" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '0.5rem', fontWeight: 600 }}>Generate Invoice from Orders</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-              Select delivered orders to include in the invoice
-            </p>
-            <div className="form-group">
-              <label>Customer *</label>
-              <select
-                className="form-select"
-                value={createForm.customerId}
-                onChange={(e) => setCreateForm({ ...createForm, customerId: e.target.value, selectedOrders: [] })}
-              >
-                <option value="">Select a customer</option>
-                {customers?.map((customer: any) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.name}
-                  </option>
-                ))}
-              </select>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 600, margin: 0 }}>Generate Invoice from Orders</h3>
+              <button onClick={() => setShowCreateModal(false)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer' }}>&times;</button>
             </div>
-            {createForm.customerId && (
+            <div className="modal-body">
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+                Select delivered orders to include in the invoice
+              </p>
               <div className="form-group">
-                <label>Select Delivered Orders *</label>
-                <div style={{ 
-                  maxHeight: '200px', 
-                  overflow: 'auto', 
-                  border: '1px solid var(--border)', 
-                  borderRadius: '0.5rem', 
-                  backgroundColor: 'var(--background-secondary)'
-                }}>
-                  {customerOrders.length > 0 ? customerOrders.map((order: any) => (
-                    <label 
-                      key={order.id} 
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '0.75rem', 
-                        padding: '0.75rem 1rem', 
-                        cursor: 'pointer',
-                        borderBottom: '1px solid var(--border)',
-                        backgroundColor: createForm.selectedOrders.includes(order.id) ? 'rgba(59, 130, 246, 0.1)' : undefined
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={createForm.selectedOrders.includes(order.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setCreateForm({ ...createForm, selectedOrders: [...createForm.selectedOrders, order.id] });
-                          } else {
-                            setCreateForm({ ...createForm, selectedOrders: createForm.selectedOrders.filter(id => id !== order.id) });
-                          }
+                <label className="form-label">Customer *</label>
+                <select
+                  className="form-select"
+                  value={createForm.customerId}
+                  onChange={(e) => setCreateForm({ ...createForm, customerId: e.target.value, selectedOrders: [] })}
+                >
+                  <option value="">Select a customer</option>
+                  {customers?.map((customer: any) => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {createForm.customerId && (
+                <div className="form-group">
+                  <label className="form-label">Select Delivered Orders *</label>
+                  <div style={{ 
+                    maxHeight: '200px', 
+                    overflow: 'auto', 
+                    border: '1px solid var(--border)', 
+                    borderRadius: '0.5rem', 
+                    backgroundColor: 'var(--background-secondary)'
+                  }}>
+                    {customerOrders.length > 0 ? customerOrders.map((order: any) => (
+                      <label 
+                        key={order.id} 
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '0.75rem', 
+                          padding: '0.75rem 1rem', 
+                          cursor: 'pointer',
+                          borderBottom: '1px solid var(--border)',
+                          backgroundColor: createForm.selectedOrders.includes(order.id) ? 'rgba(59, 130, 246, 0.1)' : undefined
                         }}
-                        style={{ width: '16px', height: '16px' }}
-                      />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '0.8125rem' }}>{order.orderNumber}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {order.product?.name} - {order.requestedActivity} {order.activityUnit}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={createForm.selectedOrders.includes(order.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setCreateForm({ ...createForm, selectedOrders: [...createForm.selectedOrders, order.id] });
+                            } else {
+                              setCreateForm({ ...createForm, selectedOrders: createForm.selectedOrders.filter(id => id !== order.id) });
+                            }
+                          }}
+                          style={{ width: '16px', height: '16px' }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '0.8125rem' }}>{order.orderNumber}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {order.product?.name} - {order.requestedActivity} {order.activityUnit}
+                          </div>
                         </div>
-                      </div>
-                    </label>
-                  )) : (
-                    <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
-                      No delivered orders for this customer
-                    </p>
+                      </label>
+                    )) : (
+                      <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
+                        No delivered orders for this customer
+                      </p>
+                    )}
+                  </div>
+                  {createForm.selectedOrders.length > 0 && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--primary)' }}>
+                      {createForm.selectedOrders.length} order(s) selected
+                    </div>
                   )}
                 </div>
-                {createForm.selectedOrders.length > 0 && (
-                  <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--primary)' }}>
-                    {createForm.selectedOrders.length} order(s) selected
-                  </div>
-                )}
+              )}
+              <div className="form-group">
+                <label className="form-label">Tax Rate (%)</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={createForm.taxRate}
+                  onChange={(e) => setCreateForm({ ...createForm, taxRate: parseFloat(e.target.value) || 0 })}
+                  min="0"
+                  max="100"
+                  step="0.5"
+                />
               </div>
-            )}
-            <div className="form-group">
-              <label>Tax Rate (%)</label>
-              <input
-                type="number"
-                className="form-input"
-                value={createForm.taxRate}
-                onChange={(e) => setCreateForm({ ...createForm, taxRate: parseFloat(e.target.value) || 0 })}
-                min="0"
-                max="100"
-                step="0.5"
-              />
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
-              <button className="btn btn-outline" onClick={() => setShowCreateModal(false)}>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>
                 Cancel
               </button>
               <button
@@ -581,57 +586,62 @@ export default function Invoices() {
       {showPaymentModal && (
         <div className="modal-overlay" onClick={() => setShowPaymentModal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '0.5rem', fontWeight: 600 }}>Record Payment</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-              Invoice: {showPaymentModal.invoiceNumber} | 
-              Outstanding: <span style={{ color: 'var(--danger)', fontWeight: 500 }}>${(showPaymentModal.totalAmount - showPaymentModal.paidAmount).toFixed(2)}</span>
-            </p>
-            <div className="form-group">
-              <label>Amount *</label>
-              <input
-                type="number"
-                className="form-input"
-                value={paymentForm.amount}
-                onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                step="0.01"
-                placeholder="Enter payment amount"
-              />
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 600, margin: 0 }}>Record Payment</h3>
+              <button onClick={() => setShowPaymentModal(null)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer' }}>&times;</button>
             </div>
-            <div className="form-group">
-              <label>Payment Method</label>
-              <select
-                className="form-select"
-                value={paymentForm.paymentMethod}
-                onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
-              >
-                <option value="BANK_TRANSFER">Bank Transfer</option>
-                <option value="CHECK">Check</option>
-                <option value="CREDIT_CARD">Credit Card</option>
-                <option value="CASH">Cash</option>
-              </select>
+            <div className="modal-body">
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+                Invoice: {showPaymentModal.invoiceNumber} | 
+                Outstanding: <span style={{ color: 'var(--danger)', fontWeight: 500 }}>${(showPaymentModal.totalAmount - showPaymentModal.paidAmount).toFixed(2)}</span>
+              </p>
+              <div className="form-group">
+                <label className="form-label">Amount *</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={paymentForm.amount}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                  step="0.01"
+                  placeholder="Enter payment amount"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Payment Method</label>
+                <select
+                  className="form-select"
+                  value={paymentForm.paymentMethod}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
+                >
+                  <option value="BANK_TRANSFER">Bank Transfer</option>
+                  <option value="CHECK">Check</option>
+                  <option value="CREDIT_CARD">Credit Card</option>
+                  <option value="CASH">Cash</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Reference Number</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={paymentForm.referenceNumber}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, referenceNumber: e.target.value })}
+                  placeholder="e.g., Check #, Transaction ID"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Notes</label>
+                <textarea
+                  className="form-input"
+                  value={paymentForm.notes}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                  rows={2}
+                  placeholder="Optional notes"
+                />
+              </div>
             </div>
-            <div className="form-group">
-              <label>Reference Number</label>
-              <input
-                type="text"
-                className="form-input"
-                value={paymentForm.referenceNumber}
-                onChange={(e) => setPaymentForm({ ...paymentForm, referenceNumber: e.target.value })}
-                placeholder="e.g., Check #, Transaction ID"
-              />
-            </div>
-            <div className="form-group">
-              <label>Notes</label>
-              <textarea
-                className="form-input"
-                value={paymentForm.notes}
-                onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
-                rows={2}
-                placeholder="Optional notes"
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
-              <button className="btn btn-outline" onClick={() => setShowPaymentModal(null)}>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowPaymentModal(null)}>
                 Cancel
               </button>
               <button

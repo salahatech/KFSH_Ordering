@@ -355,60 +355,65 @@ export default function Availability() {
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '0.5rem', fontWeight: 600 }}>Create Delivery Window</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-              Add a new delivery window for a specific date
-            </p>
-            <div className="form-group">
-              <label>Name</label>
-              <input
-                type="text"
-                className="form-input"
-                value={createForm.name}
-                onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                placeholder="e.g., Morning Delivery Window"
-              />
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 600, margin: 0 }}>Create Delivery Window</h3>
+              <button onClick={() => setShowCreateModal(false)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer' }}>&times;</button>
             </div>
-            <div className="form-group">
-              <label>Date</label>
-              <input
-                type="date"
-                className="form-input"
-                value={createForm.date}
-                onChange={(e) => setCreateForm({ ...createForm, date: e.target.value })}
-              />
-            </div>
-            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="modal-body">
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+                Add a new delivery window for a specific date
+              </p>
               <div className="form-group">
-                <label>Start Time</label>
+                <label className="form-label">Name</label>
                 <input
-                  type="time"
+                  type="text"
                   className="form-input"
-                  value={createForm.startTime}
-                  onChange={(e) => setCreateForm({ ...createForm, startTime: e.target.value })}
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                  placeholder="e.g., Morning Delivery Window"
                 />
               </div>
               <div className="form-group">
-                <label>End Time</label>
+                <label className="form-label">Date</label>
                 <input
-                  type="time"
+                  type="date"
                   className="form-input"
-                  value={createForm.endTime}
-                  onChange={(e) => setCreateForm({ ...createForm, endTime: e.target.value })}
+                  value={createForm.date}
+                  onChange={(e) => setCreateForm({ ...createForm, date: e.target.value })}
+                />
+              </div>
+              <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Start Time</label>
+                  <input
+                    type="time"
+                    className="form-input"
+                    value={createForm.startTime}
+                    onChange={(e) => setCreateForm({ ...createForm, startTime: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">End Time</label>
+                  <input
+                    type="time"
+                    className="form-input"
+                    value={createForm.endTime}
+                    onChange={(e) => setCreateForm({ ...createForm, endTime: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Capacity (minutes)</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={createForm.capacityMinutes}
+                  onChange={(e) => setCreateForm({ ...createForm, capacityMinutes: parseInt(e.target.value) || 0 })}
                 />
               </div>
             </div>
-            <div className="form-group">
-              <label>Capacity (minutes)</label>
-              <input
-                type="number"
-                className="form-input"
-                value={createForm.capacityMinutes}
-                onChange={(e) => setCreateForm({ ...createForm, capacityMinutes: parseInt(e.target.value) || 0 })}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
-              <button className="btn btn-outline" onClick={() => setShowCreateModal(false)}>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>
                 Cancel
               </button>
               <button
@@ -426,72 +431,77 @@ export default function Availability() {
       {showGenerateModal && (
         <div className="modal-overlay" onClick={() => setShowGenerateModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '0.5rem', fontWeight: 600 }}>Generate Delivery Windows</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-              Automatically create delivery windows for a date range
-            </p>
-            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 600, margin: 0 }}>Generate Delivery Windows</h3>
+              <button onClick={() => setShowGenerateModal(false)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer' }}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+                Automatically create delivery windows for a date range
+              </p>
+              <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Start Date</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={generateForm.startDate}
+                    onChange={(e) => setGenerateForm({ ...generateForm, startDate: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">End Date</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={generateForm.endDate}
+                    onChange={(e) => setGenerateForm({ ...generateForm, endDate: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Start Time</label>
+                  <input
+                    type="time"
+                    className="form-input"
+                    value={generateForm.startTime}
+                    onChange={(e) => setGenerateForm({ ...generateForm, startTime: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">End Time</label>
+                  <input
+                    type="time"
+                    className="form-input"
+                    value={generateForm.endTime}
+                    onChange={(e) => setGenerateForm({ ...generateForm, endTime: e.target.value })}
+                  />
+                </div>
+              </div>
               <div className="form-group">
-                <label>Start Date</label>
+                <label className="form-label">Daily Capacity (minutes)</label>
                 <input
-                  type="date"
+                  type="number"
                   className="form-input"
-                  value={generateForm.startDate}
-                  onChange={(e) => setGenerateForm({ ...generateForm, startDate: e.target.value })}
+                  value={generateForm.capacityMinutes}
+                  onChange={(e) => setGenerateForm({ ...generateForm, capacityMinutes: parseInt(e.target.value) || 0 })}
                 />
               </div>
               <div className="form-group">
-                <label>End Date</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={generateForm.endDate}
-                  onChange={(e) => setGenerateForm({ ...generateForm, endDate: e.target.value })}
-                />
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={generateForm.excludeWeekends}
+                    onChange={(e) => setGenerateForm({ ...generateForm, excludeWeekends: e.target.checked })}
+                    style={{ width: '16px', height: '16px' }}
+                  />
+                  Exclude Weekends
+                </label>
               </div>
             </div>
-            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div className="form-group">
-                <label>Start Time</label>
-                <input
-                  type="time"
-                  className="form-input"
-                  value={generateForm.startTime}
-                  onChange={(e) => setGenerateForm({ ...generateForm, startTime: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>End Time</label>
-                <input
-                  type="time"
-                  className="form-input"
-                  value={generateForm.endTime}
-                  onChange={(e) => setGenerateForm({ ...generateForm, endTime: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="form-group">
-              <label>Daily Capacity (minutes)</label>
-              <input
-                type="number"
-                className="form-input"
-                value={generateForm.capacityMinutes}
-                onChange={(e) => setGenerateForm({ ...generateForm, capacityMinutes: parseInt(e.target.value) || 0 })}
-              />
-            </div>
-            <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={generateForm.excludeWeekends}
-                  onChange={(e) => setGenerateForm({ ...generateForm, excludeWeekends: e.target.checked })}
-                  style={{ width: '16px', height: '16px' }}
-                />
-                Exclude Weekends
-              </label>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
-              <button className="btn btn-outline" onClick={() => setShowGenerateModal(false)}>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowGenerateModal(false)}>
                 Cancel
               </button>
               <button

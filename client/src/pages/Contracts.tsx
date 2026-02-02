@@ -369,100 +369,105 @@ export default function Contracts() {
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '0.5rem', fontWeight: 600 }}>Create Contract</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-              Set up a new customer contract with payment terms and pricing
-            </p>
-            <div className="form-group">
-              <label>Customer *</label>
-              <select
-                className="form-select"
-                value={createForm.customerId}
-                onChange={(e) => setCreateForm({ ...createForm, customerId: e.target.value })}
-              >
-                <option value="">Select a customer</option>
-                {customers?.map((customer: any) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.name} ({customer.code})
-                  </option>
-                ))}
-              </select>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 600, margin: 0 }}>Create Contract</h3>
+              <button onClick={() => setShowCreateModal(false)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer' }}>&times;</button>
             </div>
-            <div className="form-group">
-              <label>Contract Name *</label>
-              <input
-                type="text"
-                className="form-input"
-                value={createForm.name}
-                onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                placeholder="e.g., Annual Supply Agreement 2026"
-              />
-            </div>
-            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="modal-body">
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+                Set up a new customer contract with payment terms and pricing
+              </p>
               <div className="form-group">
-                <label>Start Date</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={createForm.startDate}
-                  onChange={(e) => setCreateForm({ ...createForm, startDate: e.target.value })}
-                />
+                <label className="form-label">Customer *</label>
+                <select
+                  className="form-select"
+                  value={createForm.customerId}
+                  onChange={(e) => setCreateForm({ ...createForm, customerId: e.target.value })}
+                >
+                  <option value="">Select a customer</option>
+                  {customers?.map((customer: any) => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.name} ({customer.code})
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="form-group">
-                <label>End Date</label>
+                <label className="form-label">Contract Name *</label>
                 <input
-                  type="date"
+                  type="text"
                   className="form-input"
-                  value={createForm.endDate}
-                  onChange={(e) => setCreateForm({ ...createForm, endDate: e.target.value })}
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                  placeholder="e.g., Annual Supply Agreement 2026"
                 />
               </div>
-            </div>
-            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Start Date</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={createForm.startDate}
+                    onChange={(e) => setCreateForm({ ...createForm, startDate: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">End Date</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={createForm.endDate}
+                    onChange={(e) => setCreateForm({ ...createForm, endDate: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Payment Terms (days)</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={createForm.paymentTermsDays}
+                    onChange={(e) => setCreateForm({ ...createForm, paymentTermsDays: parseInt(e.target.value) || 30 })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Credit Limit ($)</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={createForm.creditLimit}
+                    onChange={(e) => setCreateForm({ ...createForm, creditLimit: e.target.value })}
+                    placeholder="Leave empty for no limit"
+                  />
+                </div>
+              </div>
               <div className="form-group">
-                <label>Payment Terms (days)</label>
+                <label className="form-label">Contract Discount (%)</label>
                 <input
                   type="number"
                   className="form-input"
-                  value={createForm.paymentTermsDays}
-                  onChange={(e) => setCreateForm({ ...createForm, paymentTermsDays: parseInt(e.target.value) || 30 })}
+                  value={createForm.discountPercent}
+                  onChange={(e) => setCreateForm({ ...createForm, discountPercent: parseFloat(e.target.value) || 0 })}
+                  min="0"
+                  max="100"
+                  step="0.5"
                 />
               </div>
               <div className="form-group">
-                <label>Credit Limit ($)</label>
-                <input
-                  type="number"
+                <label className="form-label">Notes</label>
+                <textarea
                   className="form-input"
-                  value={createForm.creditLimit}
-                  onChange={(e) => setCreateForm({ ...createForm, creditLimit: e.target.value })}
-                  placeholder="Leave empty for no limit"
+                  value={createForm.notes}
+                  onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })}
+                  rows={2}
+                  placeholder="Optional notes about this contract"
                 />
               </div>
             </div>
-            <div className="form-group">
-              <label>Contract Discount (%)</label>
-              <input
-                type="number"
-                className="form-input"
-                value={createForm.discountPercent}
-                onChange={(e) => setCreateForm({ ...createForm, discountPercent: parseFloat(e.target.value) || 0 })}
-                min="0"
-                max="100"
-                step="0.5"
-              />
-            </div>
-            <div className="form-group">
-              <label>Notes</label>
-              <textarea
-                className="form-input"
-                value={createForm.notes}
-                onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })}
-                rows={2}
-                placeholder="Optional notes about this contract"
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
-              <button className="btn btn-outline" onClick={() => setShowCreateModal(false)}>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>
                 Cancel
               </button>
               <button
