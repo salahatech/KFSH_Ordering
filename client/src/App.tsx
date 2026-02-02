@@ -30,6 +30,7 @@ import PortalDashboard from './pages/portal/PortalDashboard';
 import PortalOrders from './pages/portal/PortalOrders';
 import PortalNewOrder from './pages/portal/PortalNewOrder';
 import PortalInvoices from './pages/portal/PortalInvoices';
+import PortalOrderJourney from './pages/portal/PortalOrderJourney';
 import Settings from './pages/Settings';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -123,6 +124,7 @@ export default function App() {
                   <Route path="/" element={<PortalDashboard />} />
                   <Route path="/orders" element={<PortalOrders />} />
                   <Route path="/orders/new" element={<PortalNewOrder />} />
+                  <Route path="/orders/:id/journey" element={<PortalOrderJourney />} />
                   <Route path="/invoices" element={<PortalInvoices />} />
                 </Routes>
               </PortalLayout>

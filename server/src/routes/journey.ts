@@ -40,7 +40,7 @@ const formatEventTitle = (type: string, fromStatus?: string, toStatus?: string):
 
 router.get('/orders/:id/journey', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
-    const order = await prisma.order.findUnique({
+    const order: any = await prisma.order.findUnique({
       where: { id: req.params.id },
       include: {
         customer: true,
@@ -217,7 +217,7 @@ router.get('/orders/:id/journey', authenticateToken, async (req: Request, res: R
 
 router.get('/batches/:id/journey', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
-    const batch = await prisma.batch.findUnique({
+    const batch: any = await prisma.batch.findUnique({
       where: { id: req.params.id },
       include: {
         product: true,
@@ -352,7 +352,7 @@ router.get('/batches/:id/journey', authenticateToken, async (req: Request, res: 
 
 router.get('/shipments/:id/journey', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
-    const shipment = await prisma.shipment.findUnique({
+    const shipment: any = await prisma.shipment.findUnique({
       where: { id: req.params.id },
       include: {
         courier: true,

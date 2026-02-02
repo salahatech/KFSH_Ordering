@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import api from '../../lib/api';
 import { format } from 'date-fns';
-import { Plus, Eye, Package, Clock, CheckCircle, Truck, XCircle } from 'lucide-react';
+import { Plus, Eye, Package, Clock, CheckCircle, Truck, XCircle, MapPin } from 'lucide-react';
 
 export default function PortalOrders() {
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -100,6 +100,7 @@ export default function PortalOrders() {
               <th>Delivery Time</th>
               <th>Status</th>
               <th>Created</th>
+              <th style={{ width: '80px' }}>Track</th>
             </tr>
           </thead>
           <tbody>
@@ -135,11 +136,20 @@ export default function PortalOrders() {
                 <td style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
                   {format(new Date(order.createdAt), 'MMM d, yyyy')}
                 </td>
+                <td>
+                  <Link 
+                    to={`/portal/orders/${order.id}/journey`} 
+                    className="btn btn-sm btn-outline"
+                    title="Track Order"
+                  >
+                    <MapPin size={14} />
+                  </Link>
+                </td>
               </tr>
             ))}
             {(!orders || orders.length === 0) && (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '3rem' }}>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '3rem' }}>
                   <Package size={48} style={{ color: 'var(--text-muted)', opacity: 0.3, marginBottom: '1rem' }} />
                   <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>No orders found</p>
                   <Link to="/portal/orders/new" className="btn btn-primary">
