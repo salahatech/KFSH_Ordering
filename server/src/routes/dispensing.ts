@@ -300,4 +300,39 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response): Promi
   }
 });
 
+/**
+ * @swagger
+ * /dispensing/stats:
+ *   get:
+ *     summary: Get dispensing statistics
+ *     tags: [Dispensing]
+ *     responses:
+ *       200:
+ *         description: Dispensing statistics
+ */
+router.get('/stats', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [releasedBatches, totalDoses, pending, dispensedToday, wasted, shipped] = await Promise.all([
+      prisma.batch.count({ where: { status: 'RELEASED' } }),
+      prisma.doseUnit.count(),
+      prisma.doseUnit.count({ where: { status: { in: ['CREATED', 'LABELED'] } } }),
+      prisma.doseUnit.count({ 
+        where: { 
+          status: 'DISPENSED',
+          dispensedAt: { gte: today },
+        } 
+      }),
+      prisma.doseUnit.count({ where: { status: 'WASTED' } }),
+      prisma.doseUnit.count({ where: { status: 'SHIPPED' } }),
+    ]);
+
+    res.json({ releasedBatches, totalDoses, pending, dispensedToday, wasted, shipped });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch dispensing stats' });
+  }
+});
+
 export default router;

@@ -1,12 +1,19 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import { format } from 'date-fns';
-import { Plus, Syringe, Tag, Trash2, Package, Activity, Beaker } from 'lucide-react';
+import { Plus, Syringe, Tag, Trash2, Package, Activity, Beaker, Eye, Clock, CheckCircle, AlertTriangle, Truck } from 'lucide-react';
+import { KpiCard, StatusBadge, FilterBar, EmptyState, type FilterWidget } from '../components/shared';
+import { useToast } from '../components/ui/Toast';
 
 export default function Dispensing() {
   const [selectedBatchId, setSelectedBatchId] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showWasteModal, setShowWasteModal] = useState(false);
+  const [wasteTarget, setWasteTarget] = useState<any>(null);
+  const [wasteReason, setWasteReason] = useState('');
+  const [filters, setFilters] = useState<Record<string, any>>({});
   const [createForm, setCreateForm] = useState({
     batchId: '',
     orderId: '',
@@ -17,6 +24,15 @@ export default function Dispensing() {
     notes: '',
   });
   const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const { data: stats } = useQuery({
+    queryKey: ['dispensing-stats'],
+    queryFn: async () => {
+      const { data } = await api.get('/dispensing/stats');
+      return data;
+    },
+  });
 
   const { data: releasedBatches, isLoading: batchesLoading } = useQuery({
     queryKey: ['batches', 'RELEASED'],
@@ -35,7 +51,7 @@ export default function Dispensing() {
     enabled: !!selectedBatchId,
   });
 
-  const { data: doseUnits, isLoading: doseUnitsLoading } = useQuery({
+  const { data: doseUnits } = useQuery({
     queryKey: ['dispensing'],
     queryFn: async () => {
       const { data } = await api.get('/dispensing');
@@ -49,6 +65,7 @@ export default function Dispensing() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dispensing'] });
+      queryClient.invalidateQueries({ queryKey: ['dispensing-stats'] });
       setShowCreateModal(false);
       setCreateForm({
         batchId: '',
@@ -59,6 +76,10 @@ export default function Dispensing() {
         containerType: '',
         notes: '',
       });
+      toast.success('Dose Created', 'New dose unit has been created successfully');
+    },
+    onError: (error: any) => {
+      toast.error('Creation Failed', error.response?.data?.error || 'Failed to create dose unit');
     },
   });
 
@@ -68,6 +89,11 @@ export default function Dispensing() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dispensing'] });
+      queryClient.invalidateQueries({ queryKey: ['dispensing-stats'] });
+      toast.success('Dose Dispensed', 'Dose has been marked as dispensed');
+    },
+    onError: (error: any) => {
+      toast.error('Dispense Failed', error.response?.data?.error || 'Failed to dispense dose');
     },
   });
 
@@ -77,6 +103,10 @@ export default function Dispensing() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dispensing'] });
+      toast.success('Label Printed', 'Dose has been labeled');
+    },
+    onError: (error: any) => {
+      toast.error('Label Failed', error.response?.data?.error || 'Failed to label dose');
     },
   });
 
@@ -86,21 +116,16 @@ export default function Dispensing() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dispensing'] });
+      queryClient.invalidateQueries({ queryKey: ['dispensing-stats'] });
+      setShowWasteModal(false);
+      setWasteTarget(null);
+      setWasteReason('');
+      toast.warning('Dose Wasted', 'Dose has been marked as wasted');
+    },
+    onError: (error: any) => {
+      toast.error('Waste Failed', error.response?.data?.error || 'Failed to mark as wasted');
     },
   });
-
-  const getStatusColor = (status: string): string => {
-    const colors: Record<string, string> = {
-      CREATED: 'default',
-      LABELED: 'warning',
-      DISPENSED: 'success',
-      SHIPPED: 'success',
-      DELIVERED: 'success',
-      CANCELLED: 'danger',
-      WASTED: 'danger',
-    };
-    return colors[status] || 'default';
-  };
 
   const handleCreate = () => {
     if (!createForm.batchId || !createForm.requestedActivity) return;
@@ -115,9 +140,43 @@ export default function Dispensing() {
     });
   };
 
-  const totalDoses = doseUnits?.length || 0;
-  const dispensedDoses = doseUnits?.filter((d: any) => d.status === 'DISPENSED').length || 0;
-  const pendingDoses = doseUnits?.filter((d: any) => ['CREATED', 'LABELED'].includes(d.status)).length || 0;
+  const handleWaste = () => {
+    if (!wasteTarget || !wasteReason.trim()) return;
+    wasteMutation.mutate({ id: wasteTarget.id, reason: wasteReason });
+  };
+
+  const openWasteModal = (dose: any) => {
+    setWasteTarget(dose);
+    setWasteReason('');
+    setShowWasteModal(true);
+  };
+
+  const filterWidgets: FilterWidget[] = [
+    { key: 'search', label: 'Search', type: 'search', placeholder: 'Search doses...' },
+  ];
+
+  const filteredBatches = releasedBatches?.filter((batch: any) => {
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      if (!batch.batchNumber.toLowerCase().includes(q) && 
+          !batch.product?.name.toLowerCase().includes(q)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  const filteredDoseUnits = doseUnits?.filter((dose: any) => {
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      if (!dose.doseNumber.toLowerCase().includes(q) && 
+          !dose.batch?.batchNumber?.toLowerCase().includes(q) &&
+          !dose.batch?.product?.name?.toLowerCase().includes(q)) {
+        return false;
+      }
+    }
+    return true;
+  });
 
   if (batchesLoading) {
     return (
@@ -131,8 +190,8 @@ export default function Dispensing() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.25rem' }}>Dose Dispensing</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Dose Dispensing</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
             Create and manage individual dose units from released batches
           </p>
         </div>
@@ -141,72 +200,92 @@ export default function Dispensing() {
         </button>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--primary)' }}>
-            {releasedBatches?.length || 0}
-          </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Released Batches</div>
-        </div>
-        <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--text)' }}>
-            {totalDoses}
-          </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Total Doses</div>
-        </div>
-        <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--warning)' }}>
-            {pendingDoses}
-          </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Pending</div>
-        </div>
-        <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--success)' }}>
-            {dispensedDoses}
-          </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Dispensed</div>
-        </div>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <KpiCard 
+          title="Released Batches" 
+          value={stats?.releasedBatches || 0} 
+          icon={<Beaker size={20} />}
+          color="primary"
+        />
+        <KpiCard 
+          title="Total Doses" 
+          value={stats?.totalDoses || 0} 
+          icon={<Syringe size={20} />}
+          color="default"
+        />
+        <KpiCard 
+          title="Pending" 
+          value={stats?.pending || 0} 
+          icon={<Clock size={20} />}
+          color="warning"
+        />
+        <KpiCard 
+          title="Dispensed Today" 
+          value={stats?.dispensedToday || 0} 
+          icon={<CheckCircle size={20} />}
+          color="success"
+        />
+        <KpiCard 
+          title="Shipped" 
+          value={stats?.shipped || 0} 
+          icon={<Truck size={20} />}
+          color="info"
+        />
+      </div>
+
+      <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
+        <FilterBar 
+          widgets={filterWidgets}
+          values={filters}
+          onChange={(key, value) => setFilters(prev => ({ ...prev, [key]: value }))}
+          onReset={() => setFilters({})}
+        />
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: '320px 1fr', gap: '1.5rem' }}>
         <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+          <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Beaker size={18} style={{ color: 'var(--primary)' }} />
-            <h3 style={{ fontWeight: 600, fontSize: '1rem' }}>Released Batches</h3>
+            <h3 style={{ fontWeight: 600, fontSize: '1rem', margin: 0 }}>Released Batches ({filteredBatches?.length || 0})</h3>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {releasedBatches?.map((batch: any) => (
-              <button
-                key={batch.id}
-                className={`btn ${selectedBatchId === batch.id ? 'btn-primary' : 'btn-outline'}`}
-                style={{ 
-                  textAlign: 'left', 
-                  justifyContent: 'flex-start',
-                  padding: '0.75rem 1rem',
-                  height: 'auto'
-                }}
-                onClick={() => setSelectedBatchId(batch.id)}
-              >
-                <Package size={16} />
-                <div style={{ flex: 1, marginLeft: '0.5rem' }}>
-                  <div style={{ fontWeight: 500 }}>{batch.batchNumber}</div>
-                  <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>
-                    {batch.product?.name}
-                  </div>
-                </div>
-              </button>
-            ))}
-            {(!releasedBatches || releasedBatches.length === 0) && (
-              <div style={{ 
-                textAlign: 'center', 
-                padding: '2rem 1rem', 
-                color: 'var(--text-muted)',
-                backgroundColor: 'var(--background-secondary)',
-                borderRadius: '0.5rem'
-              }}>
-                <Package size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
-                <p style={{ fontSize: '0.875rem', margin: 0 }}>No released batches available</p>
+          <div style={{ padding: '0.75rem', maxHeight: '50vh', overflowY: 'auto' }}>
+            {filteredBatches?.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {filteredBatches.map((batch: any) => {
+                  const doseCount = batch.doseUnits?.length || 0;
+                  return (
+                    <button
+                      key={batch.id}
+                      className={`btn ${selectedBatchId === batch.id ? 'btn-primary' : 'btn-outline'}`}
+                      style={{ 
+                        textAlign: 'left', 
+                        justifyContent: 'flex-start',
+                        padding: '0.75rem 1rem',
+                        height: 'auto'
+                      }}
+                      onClick={() => setSelectedBatchId(batch.id)}
+                    >
+                      <Package size={16} />
+                      <div style={{ flex: 1, marginLeft: '0.5rem' }}>
+                        <div style={{ fontWeight: 500 }}>{batch.batchNumber}</div>
+                        <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>
+                          {batch.product?.name}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '0.25rem' }}>
+                          {doseCount} doses | {batch.targetActivity} {batch.activityUnit}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
+            ) : (
+              <EmptyState 
+                title="No released batches"
+                message="Batches must be released by QP before dispensing"
+                icon="package"
+                variant="compact"
+              />
             )}
           </div>
         </div>
@@ -215,213 +294,249 @@ export default function Dispensing() {
           {selectedBatchId && batchDispensing ? (
             <>
               <div style={{ 
+                padding: '1rem 1.5rem',
+                borderBottom: '1px solid var(--border)',
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'flex-start',
-                paddingBottom: '1rem',
-                borderBottom: '1px solid var(--border)',
-                marginBottom: '1rem'
               }}>
                 <div>
-                  <h3 style={{ fontWeight: 600, fontSize: '1.125rem', marginBottom: '0.25rem' }}>
-                    {batchDispensing.batch?.batchNumber}
-                  </h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <h3 style={{ fontWeight: 600, fontSize: '1.125rem', margin: 0 }}>
+                      {batchDispensing.batch?.batchNumber}
+                    </h3>
+                    <StatusBadge status={batchDispensing.batch?.status} size="sm" />
+                  </div>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: '0.25rem 0 0 0' }}>
                     {batchDispensing.batch?.product?.name}
                   </p>
                 </div>
-                <div style={{ 
-                  textAlign: 'right',
-                  backgroundColor: 'var(--background-secondary)',
-                  padding: '0.75rem 1rem',
-                  borderRadius: '0.5rem'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                    <Activity size={16} style={{ color: 'var(--primary)' }} />
-                    <span style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--primary)' }}>
-                      {batchDispensing.remainingActivity?.toFixed(2)} {batchDispensing.batch?.activityUnit}
-                    </span>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <div style={{ 
+                    textAlign: 'right',
+                    backgroundColor: 'var(--bg-secondary)',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '0.5rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <Activity size={14} style={{ color: 'var(--primary)' }} />
+                      <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--primary)' }}>
+                        {batchDispensing.remainingActivity?.toFixed(2)} {batchDispensing.batch?.activityUnit}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Available</div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Available Activity</div>
+                  <Link to={`/batches/${selectedBatchId}/journey`} className="btn btn-secondary btn-sm">
+                    <Eye size={14} />
+                  </Link>
                 </div>
               </div>
 
-              <h4 style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
-                Dose Units
-              </h4>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Dose #</th>
-                    <th>Patient Ref</th>
-                    <th>Activity</th>
-                    <th>Status</th>
-                    <th style={{ width: '120px' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {batchDispensing.doseUnits?.map((dose: any) => (
-                    <tr key={dose.id}>
-                      <td style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>{dose.doseNumber}</td>
-                      <td>{dose.patientReference || <span style={{ color: 'var(--text-muted)' }}>-</span>}</td>
-                      <td style={{ fontWeight: 500 }}>
-                        {dose.dispensedActivity || dose.requestedActivity} {dose.activityUnit}
-                      </td>
-                      <td>
-                        <span className={`badge badge-${getStatusColor(dose.status)}`}>
-                          {dose.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.25rem' }}>
-                          {dose.status === 'CREATED' && (
-                            <>
-                              <button
-                                className="btn btn-sm btn-outline"
-                                onClick={() => labelMutation.mutate(dose.id)}
-                                title="Print Label"
-                              >
-                                <Tag size={14} />
-                              </button>
-                              <button
-                                className="btn btn-sm btn-primary"
-                                onClick={() => dispenseMutation.mutate({ id: dose.id })}
-                                title="Dispense"
-                              >
-                                <Syringe size={14} />
-                              </button>
-                            </>
-                          )}
-                          {dose.status === 'LABELED' && (
-                            <button
-                              className="btn btn-sm btn-primary"
-                              onClick={() => dispenseMutation.mutate({ id: dose.id })}
-                              title="Dispense"
-                            >
-                              <Syringe size={14} />
-                            </button>
-                          )}
-                          {['CREATED', 'LABELED'].includes(dose.status) && (
-                            <button
-                              className="btn btn-sm btn-danger"
-                              onClick={() => {
-                                const reason = prompt('Reason for waste:');
-                                if (reason) wasteMutation.mutate({ id: dose.id, reason });
-                              }}
-                              title="Mark as Wasted"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {(!batchDispensing.doseUnits || batchDispensing.doseUnits.length === 0) && (
-                    <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-                        No dose units created for this batch
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-
-              {batchDispensing.pendingOrders?.length > 0 && (
-                <>
-                  <h4 style={{ fontWeight: 600, marginTop: '1.5rem', marginBottom: '0.75rem', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
-                    Pending Orders
+              <div style={{ padding: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <h4 style={{ fontWeight: 600, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', margin: 0 }}>
+                    Dose Units ({batchDispensing.doseUnits?.length || 0})
                   </h4>
+                  <button 
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      setCreateForm({ ...createForm, batchId: selectedBatchId });
+                      setShowCreateModal(true);
+                    }}
+                  >
+                    <Plus size={14} /> Add Dose
+                  </button>
+                </div>
+                
+                {batchDispensing.doseUnits?.length > 0 ? (
                   <table className="table">
                     <thead>
                       <tr>
-                        <th>Order #</th>
-                        <th>Customer</th>
-                        <th>Requested Activity</th>
-                        <th style={{ width: '120px' }}>Action</th>
+                        <th>Dose #</th>
+                        <th>Patient Ref</th>
+                        <th>Activity</th>
+                        <th>Status</th>
+                        <th style={{ width: '140px' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {batchDispensing.pendingOrders.map((order: any) => (
-                        <tr key={order.id}>
-                          <td style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>{order.orderNumber}</td>
-                          <td>{order.customer?.name}</td>
-                          <td style={{ fontWeight: 500 }}>{order.requestedActivity} {order.activityUnit}</td>
+                      {batchDispensing.doseUnits.map((dose: any) => (
+                        <tr key={dose.id}>
+                          <td style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>{dose.doseNumber}</td>
+                          <td>{dose.patientReference || <span style={{ color: 'var(--text-muted)' }}>-</span>}</td>
+                          <td style={{ fontWeight: 500 }}>
+                            {dose.dispensedActivity || dose.requestedActivity} {dose.activityUnit}
+                          </td>
                           <td>
-                            <button
-                              className="btn btn-sm btn-primary"
-                              onClick={() => {
-                                setCreateForm({
-                                  ...createForm,
-                                  batchId: selectedBatchId,
-                                  orderId: order.id,
-                                  requestedActivity: order.requestedActivity.toString(),
-                                });
-                                setShowCreateModal(true);
-                              }}
-                            >
-                              <Plus size={14} /> Create Dose
-                            </button>
+                            <StatusBadge status={dose.status} size="sm" />
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                              {dose.status === 'CREATED' && (
+                                <>
+                                  <button
+                                    className="btn btn-sm btn-outline"
+                                    onClick={() => labelMutation.mutate(dose.id)}
+                                    disabled={labelMutation.isPending}
+                                    title="Print Label"
+                                  >
+                                    <Tag size={14} />
+                                  </button>
+                                  <button
+                                    className="btn btn-sm btn-primary"
+                                    onClick={() => dispenseMutation.mutate({ id: dose.id })}
+                                    disabled={dispenseMutation.isPending}
+                                    title="Dispense"
+                                  >
+                                    <Syringe size={14} />
+                                  </button>
+                                </>
+                              )}
+                              {dose.status === 'LABELED' && (
+                                <button
+                                  className="btn btn-sm btn-primary"
+                                  onClick={() => dispenseMutation.mutate({ id: dose.id })}
+                                  disabled={dispenseMutation.isPending}
+                                  title="Dispense"
+                                >
+                                  <Syringe size={14} />
+                                </button>
+                              )}
+                              {['CREATED', 'LABELED'].includes(dose.status) && (
+                                <button
+                                  className="btn btn-sm btn-danger"
+                                  onClick={() => openWasteModal(dose)}
+                                  title="Mark as Wasted"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                </>
-              )}
+                ) : (
+                  <EmptyState 
+                    title="No dose units"
+                    message="Create dose units for this batch"
+                    icon="package"
+                    variant="compact"
+                    ctaLabel="Create Dose"
+                    onCta={() => {
+                      setCreateForm({ ...createForm, batchId: selectedBatchId });
+                      setShowCreateModal(true);
+                    }}
+                  />
+                )}
+
+                {batchDispensing.pendingOrders?.length > 0 && (
+                  <div style={{ marginTop: '1.5rem' }}>
+                    <h4 style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
+                      Pending Orders ({batchDispensing.pendingOrders.length})
+                    </h4>
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Order #</th>
+                          <th>Customer</th>
+                          <th>Requested Activity</th>
+                          <th style={{ width: '120px' }}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {batchDispensing.pendingOrders.map((order: any) => (
+                          <tr key={order.id}>
+                            <td style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>{order.orderNumber}</td>
+                            <td>{order.customer?.name}</td>
+                            <td style={{ fontWeight: 500 }}>{order.requestedActivity} {order.activityUnit}</td>
+                            <td>
+                              <button
+                                className="btn btn-sm btn-primary"
+                                onClick={() => {
+                                  setCreateForm({
+                                    ...createForm,
+                                    batchId: selectedBatchId,
+                                    orderId: order.id,
+                                    requestedActivity: order.requestedActivity.toString(),
+                                  });
+                                  setShowCreateModal(true);
+                                }}
+                              >
+                                <Plus size={14} /> Create Dose
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </>
+          ) : dispensingLoading ? (
+            <div style={{ padding: '4rem', textAlign: 'center' }}>
+              <div className="spinner" />
+            </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-muted)' }}>
-              <Syringe size={56} style={{ opacity: 0.2, marginBottom: '1rem' }} />
-              <h3 style={{ fontWeight: 500, marginBottom: '0.5rem', color: 'var(--text)' }}>No Batch Selected</h3>
-              <p style={{ margin: 0, fontSize: '0.875rem' }}>Select a released batch from the left to view and manage dose units</p>
+            <div style={{ padding: '1.5rem' }}>
+              <EmptyState 
+                title="No Batch Selected"
+                message="Select a released batch from the left to view and manage dose units"
+                icon="package"
+              />
             </div>
           )}
         </div>
       </div>
 
       <div className="card" style={{ marginTop: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Syringe size={18} style={{ color: 'var(--primary)' }} />
-          <h3 style={{ fontWeight: 600, fontSize: '1rem' }}>Recent Dose Units</h3>
+          <h3 style={{ fontWeight: 600, fontSize: '1rem', margin: 0 }}>Recent Dose Units</h3>
         </div>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Dose #</th>
-              <th>Batch</th>
-              <th>Product</th>
-              <th>Customer</th>
-              <th>Activity</th>
-              <th>Status</th>
-              <th>Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {doseUnits?.slice(0, 15).map((dose: any) => (
-              <tr key={dose.id}>
-                <td style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>{dose.doseNumber}</td>
-                <td>{dose.batch?.batchNumber}</td>
-                <td>{dose.batch?.product?.name}</td>
-                <td>{dose.order?.customer?.name || <span style={{ color: 'var(--text-muted)' }}>-</span>}</td>
-                <td style={{ fontWeight: 500 }}>{dose.dispensedActivity || dose.requestedActivity} {dose.activityUnit}</td>
-                <td>
-                  <span className={`badge badge-${getStatusColor(dose.status)}`}>
-                    {dose.status}
-                  </span>
-                </td>
-                <td style={{ color: 'var(--text-muted)' }}>{format(new Date(dose.createdAt), 'MMM d, HH:mm')}</td>
-              </tr>
-            ))}
-            {(!doseUnits || doseUnits.length === 0) && (
-              <tr>
-                <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-                  No dose units created yet
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <div style={{ padding: '0' }}>
+          {filteredDoseUnits?.length > 0 ? (
+            <table className="table" style={{ marginBottom: 0 }}>
+              <thead>
+                <tr>
+                  <th>Dose #</th>
+                  <th>Batch</th>
+                  <th>Product</th>
+                  <th>Customer</th>
+                  <th>Activity</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredDoseUnits.slice(0, 15).map((dose: any) => (
+                  <tr key={dose.id}>
+                    <td style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>{dose.doseNumber}</td>
+                    <td>{dose.batch?.batchNumber}</td>
+                    <td>{dose.batch?.product?.name}</td>
+                    <td>{dose.order?.customer?.name || <span style={{ color: 'var(--text-muted)' }}>-</span>}</td>
+                    <td style={{ fontWeight: 500 }}>{dose.dispensedActivity || dose.requestedActivity} {dose.activityUnit}</td>
+                    <td>
+                      <StatusBadge status={dose.status} size="sm" />
+                    </td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>{format(new Date(dose.createdAt), 'MMM d, HH:mm')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div style={{ padding: '2rem' }}>
+              <EmptyState 
+                title="No dose units"
+                message="Create dose units from released batches"
+                icon="package"
+                variant="compact"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {showCreateModal && (
@@ -429,12 +544,9 @@ export default function Dispensing() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 600, margin: 0 }}>Create Dose Unit</h3>
-              <button onClick={() => setShowCreateModal(false)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer' }}>&times;</button>
+              <button onClick={() => setShowCreateModal(false)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
             </div>
             <div className="modal-body">
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-                Create a new dose unit from a released batch
-              </p>
               <div className="form-group">
                 <label className="form-label">Batch *</label>
                 <select
@@ -514,7 +626,82 @@ export default function Dispensing() {
                 onClick={handleCreate}
                 disabled={createDoseMutation.isPending || !createForm.batchId || !createForm.requestedActivity}
               >
+                <Syringe size={16} />
                 {createDoseMutation.isPending ? 'Creating...' : 'Create Dose Unit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWasteModal && wasteTarget && (
+        <div className="modal-overlay" onClick={() => setShowWasteModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 600, margin: 0 }}>Mark Dose as Wasted</h3>
+              <button onClick={() => setShowWasteModal(false)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div
+                style={{
+                  padding: '1rem',
+                  background: '#fef2f2',
+                  borderRadius: 'var(--radius)',
+                  marginBottom: '1rem',
+                  fontSize: '0.875rem',
+                  border: '1px solid #fecaca',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <AlertTriangle size={18} color="var(--danger)" />
+                  <strong style={{ color: 'var(--danger)' }}>Dose Waste</strong>
+                </div>
+                <p style={{ margin: 0, color: '#991b1b' }}>
+                  This action will mark the dose as wasted. Please provide a reason for the waste.
+                </p>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Dose Number</label>
+                <input
+                  className="form-input"
+                  value={wasteTarget.doseNumber}
+                  disabled
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Activity</label>
+                <input
+                  className="form-input"
+                  value={`${wasteTarget.requestedActivity} ${wasteTarget.activityUnit}`}
+                  disabled
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Waste Reason *</label>
+                <textarea
+                  className="form-input"
+                  value={wasteReason}
+                  onChange={(e) => setWasteReason(e.target.value)}
+                  rows={3}
+                  required
+                  placeholder="Enter reason for waste (e.g., spillage, contamination, decay)"
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowWasteModal(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={handleWaste}
+                disabled={wasteMutation.isPending || !wasteReason.trim()}
+              >
+                <Trash2 size={16} />
+                {wasteMutation.isPending ? 'Processing...' : 'Confirm Waste'}
               </button>
             </div>
           </div>
