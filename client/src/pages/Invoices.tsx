@@ -372,18 +372,15 @@ export default function Invoices() {
   }
 
   return (
-    <div className="page">
-      <div className="page-header">
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="page-title">
-            <Receipt size={28} style={{ marginRight: '0.5rem' }} />
-            Invoicing
-          </h1>
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Invoicing</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
             Generate invoices from delivered orders and track payments
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <select
             className="form-select"
             style={{ width: 'auto', minWidth: '140px' }}
@@ -398,7 +395,7 @@ export default function Invoices() {
             <option value="OVERDUE">Overdue</option>
           </select>
           <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-            <Plus size={18} /> Generate Invoice
+            <Plus size={16} /> Generate Invoice
           </button>
         </div>
       </div>

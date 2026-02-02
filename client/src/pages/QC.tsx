@@ -151,8 +151,13 @@ export default function QC() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Quality Control</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Quality Control</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+            Execute QC tests and manage batch testing workflows
+          </p>
+        </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button 
             className={`btn ${viewMode === 'workbench' ? 'btn-primary' : 'btn-secondary'}`}

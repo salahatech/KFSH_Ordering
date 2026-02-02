@@ -141,20 +141,17 @@ export default function Availability() {
   }
 
   return (
-    <div className="page">
-      <div className="page-header">
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="page-title">
-            <Calendar size={28} style={{ marginRight: '0.5rem' }} />
-            Availability & Capacity
-          </h1>
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Availability & Capacity</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
             Manage delivery windows and track capacity utilization
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="btn btn-secondary" onClick={() => setShowGenerateModal(true)}>
-            <CalendarDays size={18} /> Generate Windows
+            <CalendarDays size={16} /> Generate Windows
           </button>
           <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
             <Plus size={18} /> Add Window

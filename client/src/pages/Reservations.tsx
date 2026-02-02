@@ -186,19 +186,16 @@ export default function Reservations() {
   }
 
   return (
-    <div className="page">
-      <div className="page-header">
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="page-title">
-            <CalendarCheck size={28} style={{ marginRight: '0.5rem' }} />
-            Reservations
-          </h1>
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Reservations</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
             Manage capacity reservations to prevent overbooking
           </p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-          <Plus size={18} /> New Reservation
+          <Plus size={16} /> New Reservation
         </button>
       </div>
 

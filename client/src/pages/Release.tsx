@@ -167,8 +167,13 @@ export default function Release() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>QP Release</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>QP Release</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+            Review and release batches with qualified person approval
+          </p>
+        </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button 
             className={`btn ${viewMode === 'pending' ? 'btn-primary' : 'btn-secondary'}`}
