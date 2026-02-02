@@ -43,6 +43,8 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
 - **Customer Self-Service Profile**: Portal customers can now edit their own profile at `/portal/profile`:
   - Company name (English/Arabic), email, mobile, phone
   - Delivery address with country/region/city dropdowns and GPS coordinates
+  - **Interactive Map Picker**: Click-to-select GPS location using Leaflet/OpenStreetMap
+  - **Location Photos**: Upload photos of delivery location with captions to help drivers
   - Delivery window preferences (start/end times, preferred time)
   - Contact persons management (add/edit/remove)
   - Logo upload with preview
