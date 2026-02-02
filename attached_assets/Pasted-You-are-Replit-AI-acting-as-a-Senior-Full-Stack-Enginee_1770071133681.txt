@@ -1,0 +1,250 @@
+You are Replit AI acting as a Senior Full-Stack Engineer + UI/UX Product Designer + Finance/ERP domain expert.
+
+Context:
+We have a RadioPharma OMS with Customer Portal, Orders, Shipments/Delivery, Finance (AR invoices, receipts), default currency SAR, RBAC, PostgreSQL+Prisma, React+TS, Node+TS.
+Enhance the Customer Portal so ALL orders can be tracked from start → delivery, invoices are viewable and payable (partial/full), invoices printable as A4 PDF including ZATCA QR, multi-currency display with exchange rates and user-selectable currency (top bar + profile), and payment receipt vouchers generated after finance/admin confirms payment.
+
+========================================================
+1) CUSTOMER PORTAL – ORDER TRACKING (MANDATORY)
+1.1 Orders List (/portal/orders)
+- Columns:
+  - Order No, Product, Delivery Date/Time, Current Status badge, Shipment Status badge, ETA, Last Update, Invoice Status (Paid/Partial/Unpaid)
+- Filters:
+  - date range, status multi-select, product, shipment status, search by order no / hospital reference
+- Each row is clickable to order detail.
+
+1.2 Order Detail + Delivery Tracking (/portal/orders/:id)
+- Show an Order Journey Stepper:
+  Submitted → Validated → Scheduled → In Production → QC → Released → Dispatched → Delivered
+- Delivery tracking block (if dispatched):
+  - Shipment number, courier name (if available), dispatch time, ETA, last checkpoint event, delivery confirmation time
+  - Proof of delivery (signature/photo) if allowed
+- Timeline (sanitized, customer-safe):
+  - show milestone events and times; hide internal-only details.
+- Linked invoice section:
+  - show invoices associated with the order, outstanding balance, and CTA “View Invoice”.
+
+========================================================
+2) INVOICES – CUSTOMER PORTAL UX (MANDATORY)
+2.1 Invoice List (/portal/invoices)
+- Show list/table with:
+  - Invoice No, Issue Date, Due Date, Order No (if linked), Total, Paid, Remaining, Status (Unpaid/Partial/Paid), Currency, Exchange rate used
+- Filters:
+  - date range, status, order no, amount range, currency
+- “Remaining value” MUST be visible as a prominent column and badge.
+
+2.2 Invoice Detail (/portal/invoices/:id) – Enhanced UI/UX
+Layout must include:
+A) Header summary (cards)
+- Status badge (Unpaid/Partial/Paid)
+- Total / Paid / Remaining (big numbers)
+- Due date + “Overdue” badge (if overdue)
+- Currency selector indicator (shows display currency + base SAR)
+
+B) Invoice items table
+- Product/service lines, qty, unit, unit price, VAT %, VAT amount, line total
+- show subtotals, VAT total, grand total
+
+C) Payment Agreement section (if applicable)
+- Show agreement rules (e.g., allowed partial payments, minimum installment, schedule)
+- Show “Next installment due” if configured
+
+D) Actions
+- “Download PDF (A4)” button
+- “Submit Payment” button (full or partial based on agreement)
+- Payment history list with statuses: Pending Confirmation / Confirmed / Rejected
+
+2.3 UX Requirements
+- Clean spacing, readable typography, consistent status badges
+- Skeleton loaders, empty states
+- Clear error messages (e.g., “Partial payment not allowed for this invoice”)
+
+========================================================
+3) PAYMENTS – PARTIAL/FULL + CONFIRMATION + RECEIPT VOUCHER (MANDATORY)
+3.1 Customer Payment Submission
+From invoice detail:
+- Allow user to choose:
+  - Pay Full
+  - Pay Partial (only if invoice/payment agreement allows)
+- Payment form fields:
+  - Amount (validate >0 and <= Remaining)
+  - Payment method (Bank transfer, card stub, cash, etc.)
+  - Reference number / transaction id
+  - Upload proof (receipt image/pdf) optional but recommended
+  - Notes
+On submit:
+- Create PaymentRequest with status = PENDING_CONFIRMATION
+- Reduce NOTHING in AR until finance confirms (no premature posting).
+
+3.2 Finance/Admin Confirmation Workflow (Internal)
+Create /finance/payment-approvals queue:
+- Filters: date, customer, status, invoice no, amount
+- Actions:
+  - Confirm payment
+  - Reject payment (reason required)
+On Confirm:
+- Create official Receipt Voucher (AR receipt)
+- Allocate receipt to invoice (support partial allocation)
+- Update invoice paid/remaining/status accordingly
+- Generate “Payment Receipt Voucher PDF” for customer download
+- Notify customer via in-app + email + SMS (based on channel activation and preferences)
+
+3.3 Payment Receipt Voucher (Customer Proof)
+Customer can view/download receipts:
+- /portal/receipts
+- Receipt PDF includes:
+  - receipt no, date, customer, invoice ref, amount, payment method, reference, remaining after payment, company details, VAT info
+
+========================================================
+4) A4 PDF INVOICE PRINTING + ZATCA QR (MANDATORY)
+4.1 Invoice PDF (A4)
+- Professional layout A4, printable
+- Includes:
+  - Seller (company) name, VAT number, CR number, address
+  - Customer name + address + VAT number (if exists)
+  - Invoice no/date/due date
+  - Line items, totals, VAT breakdown
+  - Payment terms
+  - QR code and footer
+
+4.2 ZATCA QR Requirements (Phase 1 / Simplified minimum)
+Generate QR code as Base64-encoded TLV with at least these fields (Tags 1–5):
+1) Seller name
+2) Seller VAT registration number
+3) Timestamp of invoice
+4) Invoice total (with VAT)
+5) VAT total
+Reference: ZATCA QR specs indicate TLV base64 and minimum fields for QR scanning. (Implement tags 1–5 now; keep structure extensible for Phase 2 tags 6–9 if later needed.)  [SOURCE INFO ONLY: Use ZATCA official docs]
+
+Implementation details:
+- Create a utility function buildZatcaQrBase64({sellerName, vatNo, timestampISO, totalWithVat, vatTotal})
+- Encode TLV: [Tag byte][Length byte][UTF-8 bytes of value] concatenated then base64 encode.
+- Render QR image into PDF.
+(These requirements are described in ZATCA documents: base64 TLV and minimum fields.) :contentReference[oaicite:0]{index=0}
+
+========================================================
+5) CURRENCY & EXCHANGE RATES (MANDATORY)
+5.1 Default Currency
+- System base currency is SAR (already).
+- All accounting stored in SAR base amounts.
+- Allow display currency selection:
+  - customer can choose preferred currency from:
+    - top bar currency switcher
+    - profile preference
+- Store user preference: preferredCurrencyCode
+- Pricing/invoices:
+  - Invoice header includes:
+    - invoiceCurrencyCode (can differ from SAR)
+    - fxRateToSAR (rate at invoice issue date)
+    - totalInInvoiceCurrency
+    - totalInSAR
+  - Show amounts in selected display currency:
+    - If display currency != invoice currency, convert using available FX rates (or show invoice currency + SAR side by side)
+
+5.2 Exchange Rate Management
+- Create ExchangeRate table:
+  - date, fromCurrency, toCurrency (SAR), rate
+- Admin page to manage rates (manual entry is fine for MVP).
+- Conversion logic:
+  - Use invoice issue date rate (or closest previous available rate).
+- UI:
+  - Top bar currency switch affects all portal money displays.
+  - Always show a small “Base SAR” toggle or secondary text.
+
+========================================================
+6) NOTIFICATIONS (IN-APP + EMAIL + SMS) (MANDATORY)
+Events to notify customer:
+- Invoice issued
+- Payment submitted (customer confirmation message)
+- Payment confirmed/rejected by finance
+- Invoice fully paid
+- Shipment dispatched
+- Shipment delivered
+
+Rules:
+- All events create in-app notifications (top bar + notification center).
+- Email and SMS are sent ONLY if:
+  - channel enabled in Notification Channel Config
+  - user preference enabled
+  - user has email/mobile
+- Templates:
+  - Must include invoice no, order no, amount, remaining, links
+
+========================================================
+7) EXTRA FEATURES TO ENHANCE INVOICE PROCESS (ADD THESE)
+Implement at least 5 of the following enhancements:
+1) “Pay remaining balance” quick button on invoices with partial payments
+2) Payment allocation visualization (progress bar: Paid vs Remaining)
+3) Download “Statement of Account” for a date range (PDF)
+4) Dunning reminders (email/sms) for overdue invoices (configurable)
+5) Invoice notes / attachments section (COA, delivery proof, etc.)
+6) Audit trail on invoice & payment events (read-only for customer)
+
+========================================================
+8) DB / PRISMA MODELS (MANDATORY)
+Add/ensure these models exist:
+- Invoice (AR)
+  - totals: total, vatTotal, paidAmount, remainingAmount
+  - currency: invoiceCurrencyCode, fxRateToSAR, totalSAR
+  - link: customerId, orderId optional, status
+- PaymentRequest (submitted by customer)
+  - invoiceId, amount, currencyCode, proofUrl, reference, status, submittedAt
+- ReceiptVoucher (official receipt after confirmation)
+  - receiptNo, invoiceId, amountSAR, amountInvoiceCurrency, paymentMethod, confirmedBy, confirmedAt, pdfUrl
+- ExchangeRate
+- UserPreference (preferredCurrencyCode)
+
+========================================================
+9) APIS (MANDATORY)
+Customer portal:
+- GET /portal/orders (filters)
+- GET /portal/orders/:id (with shipment tracking)
+- GET /portal/invoices (filters + remaining)
+- GET /portal/invoices/:id (detail + payment history)
+- POST /portal/invoices/:id/payments (create PaymentRequest)
+- GET /portal/receipts
+- GET /portal/receipts/:id/pdf
+- GET /portal/invoices/:id/pdf (A4)
+
+Internal finance:
+- GET /finance/payment-approvals (queue)
+- POST /finance/payment-approvals/:paymentRequestId/confirm
+- POST /finance/payment-approvals/:paymentRequestId/reject
+Admin FX:
+- CRUD /exchange-rates
+User preferences:
+- GET/PUT /me/preferences (currency)
+
+========================================================
+10) UI COMPONENTS (REUSE)
+- <Money value currency showSarEquivalent />
+- <InvoiceStatusBadge />
+- <PaymentProgressBar paid remaining />
+- <CurrencySwitcherTopBar />
+- <DownloadPdfButton />
+- <JourneyStepper />
+- <ShipmentTrackingCard />
+- <PaymentHistoryTimeline />
+
+========================================================
+11) SEED + DEMO (MANDATORY)
+Seed:
+- 1 customer portal user with preferred currency = SAR
+- 3 invoices: unpaid, partial, paid
+- 2 payment requests pending confirmation
+- 2 exchange rates (USD->SAR, EUR->SAR) for recent dates
+Provide README demo steps:
+- customer views invoice list (remaining shows)
+- customer submits partial payment
+- finance confirms payment
+- customer downloads receipt voucher PDF
+- customer downloads invoice A4 PDF with ZATCA QR
+
+Acceptance Criteria:
+- Customer can track delivery + see current order status and details.
+- Invoice list shows Remaining value and correct statuses.
+- Customer can submit full/partial payment as allowed; finance confirms.
+- Receipt voucher is generated after confirmation and available to customer.
+- Invoice PDF is A4 and includes ZATCA QR tags 1–5 TLV base64.
+- Currency switcher works; base SAR respected; conversions shown clearly.
+- Invoice UI/UX is improved with progress, history, clean layout, and filters.

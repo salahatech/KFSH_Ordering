@@ -34,6 +34,10 @@ model User {
   batchEvents      BatchEvent[]
   uploadedDocuments CustomerDocument[]
   uploadedLocationPhotos CustomerLocationPhoto[] @relation("LocationPhotoUploader")
+  submittedPaymentRequests PaymentRequest[] @relation("PaymentRequestSubmitter")
+  reviewedPaymentRequests  PaymentRequest[] @relation("PaymentRequestReviewer")
+  confirmedReceipts        ReceiptVoucher[] @relation("ReceiptConfirmer")
+  preference               UserPreference?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -122,6 +126,8 @@ model Customer {
   reservations        Reservation[]
   contracts           Contract[]
   invoices            Invoice[]
+  paymentRequests     PaymentRequest[]
+  receiptVouchers     ReceiptVoucher[]
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }
@@ -893,30 +899,39 @@ enum InvoiceStatus {
 }
 
 model Invoice {
-  id              String        @id @default(uuid())
-  invoiceNumber   String        @unique
-  customerId      String
-  customer        Customer      @relation(fields: [customerId], references: [id])
-  contractId      String?
-  contract        Contract?     @relation(fields: [contractId], references: [id])
-  invoiceDate     DateTime      @default(now())
-  dueDate         DateTime
-  subtotal        Float         @default(0)
-  taxAmount       Float         @default(0)
-  discountAmount  Float         @default(0)
-  totalAmount     Float         @default(0)
-  paidAmount      Float         @default(0)
-  currency        String        @default("USD")
-  status          InvoiceStatus @default(DRAFT)
-  notes           String?
-  items           InvoiceItem[]
-  payments        Payment[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                  String        @id @default(uuid())
+  invoiceNumber       String        @unique
+  customerId          String
+  customer            Customer      @relation(fields: [customerId], references: [id])
+  contractId          String?
+  contract            Contract?     @relation(fields: [contractId], references: [id])
+  orderId             String?
+  invoiceDate         DateTime      @default(now())
+  dueDate             DateTime
+  subtotal            Float         @default(0)
+  taxAmount           Float         @default(0)
+  discountAmount      Float         @default(0)
+  totalAmount         Float         @default(0)
+  paidAmount          Float         @default(0)
+  remainingAmount     Float         @default(0)
+  currency            String        @default("SAR")
+  fxRateToSAR         Float         @default(1)
+  totalAmountSAR      Float         @default(0)
+  allowPartialPayment Boolean       @default(true)
+  minInstallmentAmount Float?
+  status              InvoiceStatus @default(DRAFT)
+  notes               String?
+  items               InvoiceItem[]
+  payments            Payment[]
+  paymentRequests     PaymentRequest[]
+  receiptVouchers     ReceiptVoucher[]
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
   @@index([customerId])
   @@index([status])
   @@index([dueDate])
+  @@index([orderId])
 }
 
 model InvoiceItem {
@@ -942,10 +957,100 @@ model Payment {
   invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   paymentDate     DateTime @default(now())
   amount          Float
+  amountSAR       Float    @default(0)
   paymentMethod   String
   referenceNumber String?
   notes           String?
+  receiptVoucherId String?
+  receiptVoucher  ReceiptVoucher? @relation(fields: [receiptVoucherId], references: [id])
   createdAt       DateTime @default(now())
+}
+
+enum PaymentRequestStatus {
+  PENDING_CONFIRMATION
+  CONFIRMED
+  REJECTED
+}
+
+model PaymentRequest {
+  id              String               @id @default(uuid())
+  invoiceId       String
+  invoice         Invoice              @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  customerId      String
+  customer        Customer             @relation(fields: [customerId], references: [id])
+  amount          Float
+  amountSAR       Float                @default(0)
+  currency        String               @default("SAR")
+  paymentMethod   String
+  referenceNumber String?
+  proofUrl        String?
+  notes           String?
+  status          PaymentRequestStatus @default(PENDING_CONFIRMATION)
+  submittedAt     DateTime             @default(now())
+  submittedByUserId String?
+  submittedBy     User?                @relation("PaymentRequestSubmitter", fields: [submittedByUserId], references: [id])
+  reviewedAt      DateTime?
+  reviewedByUserId String?
+  reviewedBy      User?                @relation("PaymentRequestReviewer", fields: [reviewedByUserId], references: [id])
+  rejectionReason String?
+  receiptVoucherId String?             @unique
+  receiptVoucher  ReceiptVoucher?      @relation("PaymentRequestReceipt")
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([invoiceId])
+  @@index([customerId])
+  @@index([status])
+}
+
+model ReceiptVoucher {
+  id                    String          @id @default(uuid())
+  receiptNumber         String          @unique
+  invoiceId             String
+  invoice               Invoice         @relation(fields: [invoiceId], references: [id])
+  customerId            String
+  customer              Customer        @relation(fields: [customerId], references: [id])
+  paymentRequestId      String?         @unique
+  paymentRequest        PaymentRequest? @relation("PaymentRequestReceipt", fields: [paymentRequestId], references: [id])
+  amount                Float
+  amountSAR             Float
+  currency              String          @default("SAR")
+  fxRateToSAR           Float           @default(1)
+  paymentMethod         String
+  referenceNumber       String?
+  pdfUrl                String?
+  confirmedByUserId     String?
+  confirmedBy           User?           @relation("ReceiptConfirmer", fields: [confirmedByUserId], references: [id])
+  confirmedAt           DateTime        @default(now())
+  payments              Payment[]
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@index([invoiceId])
+  @@index([customerId])
+}
+
+model ExchangeRate {
+  id            String   @id @default(uuid())
+  date          DateTime @db.Date
+  fromCurrency  String
+  toCurrency    String   @default("SAR")
+  rate          Float
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([date, fromCurrency, toCurrency])
+  @@index([fromCurrency, toCurrency])
+}
+
+model UserPreference {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredCurrencyCode String   @default("SAR")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 // ==================== TIME STANDARDS ====================
