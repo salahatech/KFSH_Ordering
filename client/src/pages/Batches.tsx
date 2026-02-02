@@ -126,8 +126,8 @@ export default function Batches() {
       // Logistics stage - blue (shipping)
       PACKED: 'info',
       DISPATCHED: 'info',
-      // Completed - green
-      CLOSED: 'success',
+      // Completed - dark green (terminal state)
+      CLOSED: 'complete',
       // Exceptions - red/orange
       ON_HOLD: 'warning',
       REJECTED: 'danger',

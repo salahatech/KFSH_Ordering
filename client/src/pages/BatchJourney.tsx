@@ -71,8 +71,8 @@ const statusConfig: Record<string, { color: string; badge: string; description: 
   // Logistics stage - blue (shipping)
   PACKED: { color: '#3b82f6', badge: 'info', description: 'Packaged and ready for dispatch' },
   DISPATCHED: { color: '#3b82f6', badge: 'info', description: 'Shipped to customer' },
-  // Completed - green
-  CLOSED: { color: '#22c55e', badge: 'success', description: 'Batch completed' },
+  // Completed - dark green (terminal state)
+  CLOSED: { color: '#166534', badge: 'complete', description: 'Batch completed' },
   // Exceptions - red/orange
   ON_HOLD: { color: '#f59e0b', badge: 'warning', description: 'Batch on hold - requires investigation' },
   REJECTED: { color: '#ef4444', badge: 'danger', description: 'Batch rejected by QP' },

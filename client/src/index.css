@@ -213,6 +213,11 @@ input, select, textarea {
   color: #0d9488;
 }
 
+.badge-complete {
+  background: #166534;
+  color: #ffffff;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
