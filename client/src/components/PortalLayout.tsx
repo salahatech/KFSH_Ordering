@@ -19,6 +19,7 @@ const portalMenuItems = [
   { path: '/portal/orders', label: 'My Orders', icon: ShoppingCart },
   { path: '/portal/orders/new', label: 'Place Order', icon: Plus },
   { path: '/portal/invoices', label: 'Invoices', icon: Receipt },
+  { path: '/portal/profile', label: 'My Profile', icon: Building2 },
 ];
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {

@@ -120,7 +120,8 @@ export default function PortalProfile() {
       toast.success('Profile updated successfully');
     },
     onError: (error: any) => {
-      toast.error(parseApiError(error) || 'Failed to save profile');
+      const apiError = parseApiError(error);
+      toast.error(apiError?.userMessage || 'Failed to save profile');
     },
   });
 
@@ -187,7 +188,8 @@ export default function PortalProfile() {
       queryClient.invalidateQueries({ queryKey: ['my-profile'] });
       toast.success('Logo uploaded successfully');
     } catch (error: any) {
-      toast.error(parseApiError(error) || 'Failed to upload logo');
+      const apiError = parseApiError(error);
+      toast.error(apiError?.userMessage || 'Failed to upload logo');
     } finally {
       setIsUploadingLogo(false);
     }
@@ -200,7 +202,8 @@ export default function PortalProfile() {
       queryClient.invalidateQueries({ queryKey: ['my-profile'] });
       toast.success('Logo removed');
     } catch (error: any) {
-      toast.error(parseApiError(error) || 'Failed to remove logo');
+      const apiError = parseApiError(error);
+      toast.error(apiError?.userMessage || 'Failed to remove logo');
     }
   };
 
