@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
+import { ToastProvider } from './components/ui/Toast';
 import Layout from './components/Layout';
 import PortalLayout from './components/PortalLayout';
 import Login from './pages/Login';
@@ -107,57 +108,59 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      
-      <Route
-        path="/portal/*"
-        element={
-          <CustomerRoute>
-            <PortalLayout>
-              <Routes>
-                <Route path="/" element={<PortalDashboard />} />
-                <Route path="/orders" element={<PortalOrders />} />
-                <Route path="/orders/new" element={<PortalNewOrder />} />
-                <Route path="/invoices" element={<PortalInvoices />} />
-              </Routes>
-            </PortalLayout>
-          </CustomerRoute>
-        }
-      />
-      
-      <Route
-        path="/*"
-        element={
-          <InternalRoute>
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/customers" element={<Customers />} />
-                <Route path="/products" element={<Products />} />
-                <Route path="/orders" element={<Orders />} />
-                <Route path="/orders/new" element={<OrderForm />} />
-                <Route path="/orders/:id" element={<OrderForm />} />
-                <Route path="/planner" element={<Planner />} />
-                <Route path="/batches" element={<Batches />} />
-                <Route path="/qc" element={<QC />} />
-                <Route path="/release" element={<Release />} />
-                <Route path="/shipments" element={<Shipments />} />
-                <Route path="/users" element={<Users />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/audit" element={<AuditLog />} />
-                <Route path="/approvals" element={<Approvals />} />
-                <Route path="/dispensing" element={<Dispensing />} />
-                <Route path="/availability" element={<Availability />} />
-                <Route path="/reservations" element={<Reservations />} />
-                <Route path="/contracts" element={<Contracts />} />
-                <Route path="/invoices" element={<Invoices />} />
-                <Route path="/settings" element={<Settings />} />
-              </Routes>
-            </Layout>
-          </InternalRoute>
-        }
-      />
-    </Routes>
+    <ToastProvider>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        
+        <Route
+          path="/portal/*"
+          element={
+            <CustomerRoute>
+              <PortalLayout>
+                <Routes>
+                  <Route path="/" element={<PortalDashboard />} />
+                  <Route path="/orders" element={<PortalOrders />} />
+                  <Route path="/orders/new" element={<PortalNewOrder />} />
+                  <Route path="/invoices" element={<PortalInvoices />} />
+                </Routes>
+              </PortalLayout>
+            </CustomerRoute>
+          }
+        />
+        
+        <Route
+          path="/*"
+          element={
+            <InternalRoute>
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/customers" element={<Customers />} />
+                  <Route path="/products" element={<Products />} />
+                  <Route path="/orders" element={<Orders />} />
+                  <Route path="/orders/new" element={<OrderForm />} />
+                  <Route path="/orders/:id" element={<OrderForm />} />
+                  <Route path="/planner" element={<Planner />} />
+                  <Route path="/batches" element={<Batches />} />
+                  <Route path="/qc" element={<QC />} />
+                  <Route path="/release" element={<Release />} />
+                  <Route path="/shipments" element={<Shipments />} />
+                  <Route path="/users" element={<Users />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/audit" element={<AuditLog />} />
+                  <Route path="/approvals" element={<Approvals />} />
+                  <Route path="/dispensing" element={<Dispensing />} />
+                  <Route path="/availability" element={<Availability />} />
+                  <Route path="/reservations" element={<Reservations />} />
+                  <Route path="/contracts" element={<Contracts />} />
+                  <Route path="/invoices" element={<Invoices />} />
+                  <Route path="/settings" element={<Settings />} />
+                </Routes>
+              </Layout>
+            </InternalRoute>
+          }
+        />
+      </Routes>
+    </ToastProvider>
   );
 }

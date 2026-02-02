@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
+import { useToast } from '../components/ui/Toast';
+import { parseApiError } from '../components/ui/FormErrors';
 import {
   CalendarCheck,
   Plus,
@@ -24,6 +26,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function Reservations() {
+  const toast = useToast();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [createForm, setCreateForm] = useState({
@@ -114,11 +117,11 @@ export default function Reservations() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
-      alert(`Order ${data.order?.orderNumber || ''} created successfully!`);
+      toast.success('Order Created', `Order ${data.order?.orderNumber || ''} created successfully from reservation.`);
     },
     onError: (error: any) => {
-      const message = error.response?.data?.error || error.message || 'Failed to convert reservation';
-      alert(`Error: ${message}`);
+      const apiError = parseApiError(error);
+      toast.error('Conversion Failed', apiError?.userMessage || 'Failed to convert reservation to order.');
     },
   });
 

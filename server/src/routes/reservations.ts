@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth.js';
 import { createAuditLog } from '../middleware/audit.js';
+import { sendError, sendNotFound, ErrorCodes, handlePrismaError } from '../utils/errors.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -246,12 +247,16 @@ router.post('/:id/convert', authenticateToken, async (req: Request, res: Respons
     });
 
     if (!reservation) {
-      res.status(404).json({ error: 'Reservation not found' });
+      sendNotFound(res, 'Reservation', id);
       return;
     }
 
     if (reservation.status !== 'TENTATIVE' && reservation.status !== 'CONFIRMED') {
-      res.status(400).json({ error: 'Only tentative or confirmed reservations can be converted' });
+      sendError(res, 400, ErrorCodes.RESERVATION_INVALID_STATUS, 
+        `Cannot convert reservation with status: ${reservation.status}`, {
+          userMessage: `This reservation cannot be converted because it is ${reservation.status.toLowerCase()}. Only tentative or confirmed reservations can be converted to orders.`,
+          details: { currentStatus: reservation.status },
+        });
       return;
     }
 
@@ -289,7 +294,14 @@ router.post('/:id/convert', authenticateToken, async (req: Request, res: Respons
     res.json({ reservation: { ...reservation, status: 'CONVERTED' }, order });
   } catch (error: any) {
     console.error('Convert reservation error:', error);
-    res.status(500).json({ error: error.message || 'Failed to convert reservation to order' });
+    if (error.code?.startsWith('P')) {
+      handlePrismaError(res, error, 'Order');
+    } else {
+      sendError(res, 500, ErrorCodes.ORDER_CREATE_FAILED, 
+        error.message || 'Failed to convert reservation to order', {
+          userMessage: 'Unable to create order from this reservation. Please check all required fields and try again.',
+        });
+    }
   }
 });
 
