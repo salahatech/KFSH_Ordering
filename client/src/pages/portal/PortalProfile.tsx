@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { 
-  Save, Upload, Trash2, MapPin, Building, User, X, AlertCircle, Camera, Plus, Phone
+  Save, Upload, Trash2, MapPin, Building, User, X, AlertCircle, Camera, Plus, Phone, Image
 } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
 import { parseApiError } from '../../components/ui/FormErrors';
+import MapPicker from '../../components/MapPicker';
 
 interface Contact {
   id?: string;
@@ -17,6 +18,13 @@ interface Contact {
 
 interface FormErrors {
   [key: string]: string;
+}
+
+interface LocationPhoto {
+  id: string;
+  photoUrl: string;
+  caption: string | null;
+  createdAt: string;
 }
 
 export default function PortalProfile() {
@@ -45,7 +53,10 @@ export default function PortalProfile() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [photoCaption, setPhotoCaption] = useState('');
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['my-profile'],
@@ -80,6 +91,14 @@ export default function PortalProfile() {
       return data;
     },
     enabled: !!formData.regionId,
+  });
+
+  const { data: locationPhotos } = useQuery({
+    queryKey: ['location-photos'],
+    queryFn: async () => {
+      const { data } = await api.get('/profile/location-photos');
+      return data as LocationPhoto[];
+    },
   });
 
   useEffect(() => {
@@ -219,6 +238,62 @@ export default function PortalProfile() {
 
   const removeContact = (index: number) => {
     setContacts(contacts.filter((_, i) => i !== index));
+  };
+
+  const handleLocationSelect = (lat: number, lng: number) => {
+    setFormData({
+      ...formData,
+      latitude: lat.toFixed(6),
+      longitude: lng.toFixed(6),
+    });
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Photo must be less than 5MB');
+      return;
+    }
+
+    if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+      toast.error('Only PNG and JPG images are allowed');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    const formDataUpload = new FormData();
+    formDataUpload.append('photo', file);
+    formDataUpload.append('caption', photoCaption);
+
+    try {
+      await api.post('/profile/location-photos', formDataUpload, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      queryClient.invalidateQueries({ queryKey: ['location-photos'] });
+      setPhotoCaption('');
+      toast.success('Location photo uploaded');
+    } catch (error: any) {
+      const apiError = parseApiError(error);
+      toast.error(apiError?.userMessage || 'Failed to upload photo');
+    } finally {
+      setIsUploadingPhoto(false);
+      if (photoInputRef.current) {
+        photoInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDeletePhoto = async (photoId: string) => {
+    try {
+      await api.delete(`/profile/location-photos/${photoId}`);
+      queryClient.invalidateQueries({ queryKey: ['location-photos'] });
+      toast.success('Photo deleted');
+    } catch (error: any) {
+      const apiError = parseApiError(error);
+      toast.error(apiError?.userMessage || 'Failed to delete photo');
+    }
   };
 
   if (isLoading) {
@@ -521,7 +596,7 @@ export default function PortalProfile() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
           <div>
             <label style={labelStyle}>Postal Code</label>
             <input
@@ -555,6 +630,135 @@ export default function PortalProfile() {
             />
           </div>
         </div>
+
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={labelStyle}>Select Location on Map</label>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+            Click on the map to set your delivery location coordinates
+          </p>
+          <MapPicker
+            latitude={formData.latitude ? parseFloat(formData.latitude) : null}
+            longitude={formData.longitude ? parseFloat(formData.longitude) : null}
+            onLocationSelect={handleLocationSelect}
+            height="300px"
+          />
+        </div>
+      </div>
+
+      <div style={sectionStyle}>
+        <div style={sectionTitleStyle}>
+          <Image size={20} />
+          Location Photos
+        </div>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+          Upload photos of your delivery location to help drivers identify your building
+        </p>
+
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'flex-end' }}>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Caption (optional)</label>
+            <input
+              type="text"
+              value={photoCaption}
+              onChange={(e) => setPhotoCaption(e.target.value)}
+              style={inputStyle}
+              placeholder="e.g., Front entrance, Loading dock"
+            />
+          </div>
+          <input
+            type="file"
+            ref={photoInputRef}
+            onChange={handlePhotoUpload}
+            accept="image/png,image/jpeg,image/jpg"
+            style={{ display: 'none' }}
+          />
+          <button
+            onClick={() => photoInputRef.current?.click()}
+            disabled={isUploadingPhoto}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.625rem 1rem',
+              border: '1px solid #0d9488',
+              borderRadius: '8px',
+              background: '#0d9488',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Upload size={16} />
+            {isUploadingPhoto ? 'Uploading...' : 'Upload Photo'}
+          </button>
+        </div>
+
+        {locationPhotos && locationPhotos.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+            {locationPhotos.map((photo) => (
+              <div
+                key={photo.id}
+                style={{
+                  position: 'relative',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  border: '1px solid var(--border)',
+                  background: '#f8fafc',
+                }}
+              >
+                <img
+                  src={photo.photoUrl}
+                  alt={photo.caption || 'Location photo'}
+                  style={{
+                    width: '100%',
+                    height: '150px',
+                    objectFit: 'cover',
+                  }}
+                />
+                <button
+                  onClick={() => handleDeletePhoto(photo.id)}
+                  style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    background: 'rgba(0,0,0,0.5)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    padding: '6px',
+                    cursor: 'pointer',
+                    color: 'white',
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+                {photo.caption && (
+                  <div style={{
+                    padding: '0.5rem',
+                    fontSize: '0.75rem',
+                    color: 'var(--text-secondary)',
+                    background: 'white',
+                    borderTop: '1px solid var(--border)',
+                  }}>
+                    {photo.caption}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            textAlign: 'center',
+            padding: '2rem',
+            color: 'var(--text-muted)',
+            background: '#f8fafc',
+            borderRadius: '8px',
+            border: '1px dashed var(--border)',
+          }}>
+            <Camera size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
+            <p>No location photos uploaded yet</p>
+          </div>
+        )}
       </div>
 
       <div style={sectionStyle}>

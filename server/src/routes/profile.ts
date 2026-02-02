@@ -412,7 +412,7 @@ router.delete('/location-photos/:id', authenticateToken, async (req: Request, re
       return;
     }
 
-    const photoPath = path.join(process.cwd(), photo.photoUrl);
+    const photoPath = path.join(process.cwd(), photo.photoUrl.replace(/^\//, ''));
     if (fs.existsSync(photoPath)) {
       fs.unlinkSync(photoPath);
     }
