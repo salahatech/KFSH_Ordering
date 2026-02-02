@@ -23,6 +23,10 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
       include: {
         permittedProducts: { include: { product: true } },
         contacts: true,
+        city: true,
+        region: true,
+        country: true,
+        category: true,
       },
       orderBy: { name: 'asc' },
     });
@@ -50,12 +54,17 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
  */
 router.get('/:id', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
+    const id = req.params.id as string;
     const customer = await prisma.customer.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: {
         permittedProducts: { include: { product: true } },
         contacts: true,
         orders: { take: 10, orderBy: { createdAt: 'desc' } },
+        city: true,
+        region: true,
+        country: true,
+        category: true,
       },
     });
 
@@ -83,10 +92,12 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response): Promi
 router.post('/', authenticateToken, requireRole('Admin', 'Customer Service'), async (req: Request, res: Response): Promise<void> => {
   try {
     const {
-      name, code, address, city, state, postalCode, country,
+      name, code, address, postalCode,
+      shortAddress, buildingNo, street, secondaryNo, district,
+      cityId, regionId, countryId, categoryId,
       phone, email, licenseNumber, licenseExpiryDate,
       deliveryWindowStart, deliveryWindowEnd, preferredDeliveryTime,
-      travelTimeMinutes, region, category, permittedProductIds, contacts
+      travelTimeMinutes, permittedProductIds, contacts
     } = req.body;
 
     const existingCustomer = await prisma.customer.findUnique({ where: { code } });
@@ -100,10 +111,16 @@ router.post('/', authenticateToken, requireRole('Admin', 'Customer Service'), as
         name,
         code,
         address,
-        city,
-        state,
+        shortAddress,
+        buildingNo,
+        street,
+        secondaryNo,
+        district,
         postalCode,
-        country,
+        cityId: cityId || null,
+        regionId: regionId || null,
+        countryId: countryId || null,
+        categoryId: categoryId || null,
         phone,
         email,
         licenseNumber,
@@ -112,8 +129,6 @@ router.post('/', authenticateToken, requireRole('Admin', 'Customer Service'), as
         deliveryWindowEnd,
         preferredDeliveryTime,
         travelTimeMinutes: travelTimeMinutes || 60,
-        region,
-        category,
         permittedProducts: {
           create: permittedProductIds?.map((productId: string) => ({ productId })) || [],
         },
@@ -124,6 +139,10 @@ router.post('/', authenticateToken, requireRole('Admin', 'Customer Service'), as
       include: {
         permittedProducts: { include: { product: true } },
         contacts: true,
+        city: true,
+        region: true,
+        country: true,
+        category: true,
       },
     });
 
@@ -162,14 +181,17 @@ router.post('/', authenticateToken, requireRole('Admin', 'Customer Service'), as
 router.put('/:id', authenticateToken, requireRole('Admin', 'Customer Service'), async (req: Request, res: Response): Promise<void> => {
   try {
     const {
-      name, address, city, state, postalCode, country,
+      name, address, postalCode,
+      shortAddress, buildingNo, street, secondaryNo, district,
+      cityId, regionId, countryId, categoryId,
       phone, email, licenseNumber, licenseExpiryDate,
       deliveryWindowStart, deliveryWindowEnd, preferredDeliveryTime,
-      travelTimeMinutes, region, category, isActive, permittedProductIds
+      travelTimeMinutes, isActive, permittedProductIds
     } = req.body;
 
+    const id = req.params.id as string;
     const oldCustomer = await prisma.customer.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: { permittedProducts: true },
     });
 
@@ -179,18 +201,24 @@ router.put('/:id', authenticateToken, requireRole('Admin', 'Customer Service'), 
     }
 
     if (permittedProductIds) {
-      await prisma.customerProduct.deleteMany({ where: { customerId: req.params.id } });
+      await prisma.customerProduct.deleteMany({ where: { customerId: id } });
     }
 
     const customer = await prisma.customer.update({
-      where: { id: req.params.id },
+      where: { id },
       data: {
         name,
         address,
-        city,
-        state,
+        shortAddress,
+        buildingNo,
+        street,
+        secondaryNo,
+        district,
         postalCode,
-        country,
+        cityId: cityId || null,
+        regionId: regionId || null,
+        countryId: countryId || null,
+        categoryId: categoryId || null,
         phone,
         email,
         licenseNumber,
@@ -199,8 +227,6 @@ router.put('/:id', authenticateToken, requireRole('Admin', 'Customer Service'), 
         deliveryWindowEnd,
         preferredDeliveryTime,
         travelTimeMinutes,
-        region,
-        category,
         isActive,
         permittedProducts: permittedProductIds ? {
           create: permittedProductIds.map((productId: string) => ({ productId })),
@@ -209,6 +235,10 @@ router.put('/:id', authenticateToken, requireRole('Admin', 'Customer Service'), 
       include: {
         permittedProducts: { include: { product: true } },
         contacts: true,
+        city: true,
+        region: true,
+        country: true,
+        category: true,
       },
     });
 
@@ -232,8 +262,9 @@ router.put('/:id', authenticateToken, requireRole('Admin', 'Customer Service'), 
  */
 router.get('/:id/validate-license', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
+    const id = req.params.id as string;
     const customer = await prisma.customer.findUnique({
-      where: { id: req.params.id },
+      where: { id },
     });
 
     if (!customer) {

@@ -200,6 +200,14 @@ cd server && npx tsx prisma/seed.ts
 6. Lu-177 DOTATATE (Lu-177, half-life: 9500 min) - Therapy
 
 ## Recent Changes
+- 2026-02-02: Customer Address Form Enhancement
+  - Updated customer creation/edit form with Saudi National Address fields
+  - Fields: Short Address, Building No., Street, Secondary No., District, Postal Code
+  - Dropdown selections for Country, Region, City, Category from Settings tables
+  - Country selection filters available regions and cities
+  - Controlled state for cascading dropdowns (changing country clears region/city)
+  - Backend routes updated to handle new address field IDs (cityId, regionId, countryId, categoryId)
+  - Customer list shows location with city/region/country from settings
 - 2026-02-02: System Settings Module
   - 10 lookup tables: Countries, Cities, Regions, Categories, Couriers, Vehicles, DoseUnits, ProductTypes, ProductionMethods, Currencies
   - Settings page with tabbed interface for managing all configuration types
