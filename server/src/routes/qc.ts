@@ -147,11 +147,19 @@ router.put('/results/:resultId', authenticateToken, requireRole('Admin', 'QC Ana
 
     const result = await prisma.qCResult.findUnique({
       where: { id: req.params.resultId },
-      include: { template: true },
+      include: { template: true, batch: true },
     });
 
     if (!result) {
       res.status(404).json({ error: 'QC result not found' });
+      return;
+    }
+
+    if (['QC_PASSED', 'FAILED_QC'].includes(result.batch.status)) {
+      res.status(400).json({ 
+        error: 'Cannot modify QC results', 
+        userMessage: 'QC results cannot be modified after QC has been completed.' 
+      });
       return;
     }
 
@@ -207,6 +215,14 @@ router.post('/batches/:batchId/complete', authenticateToken, requireRole('Admin'
       return;
     }
 
+    if (['QC_PASSED', 'FAILED_QC'].includes(batch.status)) {
+      res.status(400).json({ 
+        error: 'QC already completed', 
+        userMessage: 'This batch has already completed QC testing.' 
+      });
+      return;
+    }
+
     const requiredResults = batch.qcResults.filter(r => r.template.isRequired);
     const incompleteResults = requiredResults.filter(r => r.passed === null);
 
@@ -219,7 +235,7 @@ router.post('/batches/:batchId/complete', authenticateToken, requireRole('Admin'
     }
 
     const allPassed = requiredResults.every(r => r.passed === true);
-    const newStatus: BatchStatus = allPassed ? 'QC_PASSED' : 'QC_FAILED';
+    const newStatus: BatchStatus = allPassed ? 'QC_PASSED' : 'FAILED_QC';
 
     await prisma.qCResult.updateMany({
       where: { batchId: batch.id },
@@ -263,6 +279,79 @@ router.post('/batches/:batchId/complete', authenticateToken, requireRole('Admin'
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to complete QC' });
+  }
+});
+
+/**
+ * @swagger
+ * /qc/stats:
+ *   get:
+ *     summary: Get QC statistics
+ *     tags: [QC]
+ *     responses:
+ *       200:
+ *         description: QC statistics
+ */
+router.get('/stats', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const [pending, inProgress, passedToday, failedToday] = await Promise.all([
+      prisma.batch.count({ where: { status: 'QC_PENDING' } }),
+      prisma.batch.count({ where: { status: 'QC_IN_PROGRESS' } }),
+      prisma.batch.count({ 
+        where: { 
+          status: 'QC_PASSED',
+          updatedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+        } 
+      }),
+      prisma.batch.count({ 
+        where: { 
+          status: 'FAILED_QC',
+          updatedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+        } 
+      }),
+    ]);
+
+    res.json({ pending, inProgress, passedToday, failedToday });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch QC stats' });
+  }
+});
+
+/**
+ * @swagger
+ * /qc/history:
+ *   get:
+ *     summary: Get QC history (completed batches)
+ *     tags: [QC]
+ *     responses:
+ *       200:
+ *         description: QC history
+ */
+router.get('/history', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { days = '7' } = req.query;
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - parseInt(days as string));
+
+    const batches = await prisma.batch.findMany({
+      where: {
+        status: { in: ['QC_PASSED', 'FAILED_QC'] },
+        updatedAt: { gte: fromDate },
+      },
+      include: {
+        product: true,
+        qcResults: { 
+          include: { template: true, testedBy: true },
+          orderBy: { createdAt: 'asc' },
+        },
+        orders: { select: { id: true, orderNumber: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    res.json(batches);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch QC history' });
   }
 });
 
