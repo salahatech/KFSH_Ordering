@@ -25,6 +25,7 @@ import Reservations from './pages/Reservations';
 import Contracts from './pages/Contracts';
 import Invoices from './pages/Invoices';
 import OrderJourney from './pages/OrderJourney';
+import BatchJourney from './pages/BatchJourney';
 import PortalDashboard from './pages/portal/PortalDashboard';
 import PortalOrders from './pages/portal/PortalOrders';
 import PortalNewOrder from './pages/portal/PortalNewOrder';
@@ -144,6 +145,7 @@ export default function App() {
                   <Route path="/orders/:id/journey" element={<OrderJourney />} />
                   <Route path="/planner" element={<Planner />} />
                   <Route path="/batches" element={<Batches />} />
+                  <Route path="/batches/:id/journey" element={<BatchJourney />} />
                   <Route path="/qc" element={<QC />} />
                   <Route path="/release" element={<Release />} />
                   <Route path="/shipments" element={<Shipments />} />

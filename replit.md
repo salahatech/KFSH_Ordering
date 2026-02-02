@@ -39,6 +39,10 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
 - **System Settings**: Configurable lookup tables for master data management including geographic data (Country -> Region -> City hierarchy), product classifications, couriers, currencies (SAR default with exchange rates), and Saudi National Address format support for customers.
 - **Security**: Status state machines to prevent invalid transitions, comprehensive audit logging for critical operations.
 
+## Recent Changes (2026-02-02)
+- **Enhanced Batch Management**: Extended to 19 batch statuses with full state machine, BatchEvent audit trail, role-based transition enforcement, KPI cards, filter widgets, and Batch Journey page with visual stepper/timeline
+- **Order Journey Tracking**: Visual stepper, timeline, "What happens next" panel with role-based actions
+
 ## External Dependencies
 - **PostgreSQL**: Primary database for all application data.
 - **Prisma ORM**: Used for database interaction.

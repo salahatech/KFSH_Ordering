@@ -652,7 +652,7 @@ async function main() {
     const product = products.find(p => p.id === order.productId)!;
     const batchNumber = `BTH-${new Date().getFullYear()}-${String(1001 + i).padStart(4, '0')}`;
     
-    const batchStatus = order.status === 'IN_PRODUCTION' ? 'IN_PROGRESS' :
+    const batchStatus = order.status === 'IN_PRODUCTION' ? 'IN_PRODUCTION' :
                         order.status === 'QC_PENDING' ? 'QC_PASSED' :
                         ['RELEASED', 'DISPATCHED', 'DELIVERED'].includes(order.status) ? 'RELEASED' : 'PLANNED';
     

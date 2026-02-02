@@ -207,19 +207,39 @@ router.patch('/:id/status', authenticateToken, requireRole('Admin', 'Production 
 
     let orderStatus: OrderStatus | null = null;
     switch (status as BatchStatus) {
-      case 'IN_PROGRESS':
+      case 'IN_PRODUCTION':
         orderStatus = 'IN_PRODUCTION';
         break;
       case 'QC_PENDING':
         orderStatus = 'QC_PENDING';
         break;
-      case 'QC_FAILED':
+      case 'FAILED_QC':
         orderStatus = 'FAILED_QC';
         break;
       case 'RELEASED':
         orderStatus = 'RELEASED';
         break;
+      case 'DISPATCHED':
+        orderStatus = 'DISPATCHED';
+        break;
     }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user?.userId },
+      include: { role: true },
+    });
+
+    await prisma.batchEvent.create({
+      data: {
+        batchId: batch.id,
+        eventType: 'STATUS_CHANGE',
+        fromStatus: batch.status,
+        toStatus: status as BatchStatus,
+        actorId: req.user?.userId,
+        actorRole: user?.role?.name,
+        note: notes,
+      },
+    });
 
     if (orderStatus) {
       await prisma.order.updateMany({
@@ -348,6 +368,223 @@ router.post('/:id/release', authenticateToken, requireRole('Qualified Person', '
     res.json(updatedBatch);
   } catch (error) {
     res.status(500).json({ error: 'Failed to release batch' });
+  }
+});
+
+/**
+ * @swagger
+ * /batches/{id}/events:
+ *   get:
+ *     summary: Get batch timeline events
+ *     tags: [Batches]
+ *     responses:
+ *       200:
+ *         description: Batch events
+ */
+router.get('/:id/events', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const events = await prisma.batchEvent.findMany({
+      where: { batchId: req.params.id },
+      include: {
+        actor: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch batch events' });
+  }
+});
+
+/**
+ * @swagger
+ * /batches/{id}/transition:
+ *   post:
+ *     summary: Transition batch to new status with metadata
+ *     tags: [Batches]
+ *     responses:
+ *       200:
+ *         description: Batch transitioned
+ */
+const roleAllowedTransitions: Record<string, string[]> = {
+  Admin: ['*'],
+  'Production Manager': ['IN_PRODUCTION', 'PRODUCTION_COMPLETE', 'ON_HOLD', 'DEVIATION_OPEN'],
+  'QC Analyst': ['QC_PENDING', 'QC_IN_PROGRESS', 'QC_PASSED', 'FAILED_QC', 'QP_REVIEW'],
+  'Qualified Person': ['RELEASED', 'REJECTED', 'ON_HOLD'],
+  Logistics: ['DISPATCHED', 'CLOSED'],
+  Dispensing: ['DISPENSING_IN_PROGRESS', 'DISPENSED', 'PACKED'],
+};
+
+function canRoleTransitionTo(roleName: string, targetStatus: string): boolean {
+  const allowed = roleAllowedTransitions[roleName];
+  if (!allowed) return false;
+  if (allowed.includes('*')) return true;
+  return allowed.includes(targetStatus);
+}
+
+router.post('/:id/transition', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { status, note, metadata } = req.body;
+    
+    const batch = await prisma.batch.findUnique({ 
+      where: { id: req.params.id },
+      include: { orders: true },
+    });
+    if (!batch) {
+      res.status(404).json({ error: 'Batch not found' });
+      return;
+    }
+
+    if (!canTransitionBatch(batch.status, status as BatchStatus)) {
+      res.status(400).json({ 
+        error: `Invalid status transition from ${batch.status} to ${status}`,
+        userMessage: `Cannot move batch from ${batch.status.replace('_', ' ')} to ${status.replace('_', ' ')}. This transition is not allowed.`,
+        allowedStatuses: getNextBatchStatuses(batch.status),
+      });
+      return;
+    }
+
+    if (['DISPENSING_IN_PROGRESS', 'DISPENSED', 'PACKED', 'DISPATCHED'].includes(status)) {
+      if (!['RELEASED', 'DISPENSING_IN_PROGRESS', 'DISPENSED', 'PACKED'].includes(batch.status)) {
+        res.status(400).json({ 
+          error: 'Cannot dispense before batch is released',
+          userMessage: 'This batch must be released by QP before dispensing can begin.',
+        });
+        return;
+      }
+    }
+
+    if (['ON_HOLD', 'REJECTED', 'FAILED_QC', 'CANCELLED', 'DEVIATION_OPEN'].includes(batch.status)) {
+      if (['DISPATCHED', 'DISPENSING_IN_PROGRESS', 'DISPENSED', 'PACKED'].includes(status)) {
+        res.status(400).json({ 
+          error: 'Batch is blocked from dispatch',
+          userMessage: `This batch is ${batch.status.replace('_', ' ')} and cannot proceed to dispatch.`,
+        });
+        return;
+      }
+    }
+
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.user?.userId },
+      include: { role: true },
+    });
+
+    const userRole = currentUser?.role?.name || '';
+    if (!canRoleTransitionTo(userRole, status)) {
+      res.status(403).json({
+        error: 'Permission denied',
+        userMessage: `Your role (${userRole}) does not have permission to move batches to ${status.replace(/_/g, ' ')}.`,
+      });
+      return;
+    }
+
+    const updatedBatch = await prisma.batch.update({
+      where: { id: req.params.id },
+      data: { status: status as BatchStatus },
+      include: { product: true, orders: { include: { customer: true } } },
+    });
+
+    await prisma.batchEvent.create({
+      data: {
+        batchId: batch.id,
+        eventType: 'STATUS_CHANGE',
+        fromStatus: batch.status,
+        toStatus: status as BatchStatus,
+        actorId: req.user?.userId,
+        actorRole: userRole,
+        note,
+        metadata: metadata || null,
+      },
+    });
+
+    let orderStatus: OrderStatus | null = null;
+    switch (status as BatchStatus) {
+      case 'IN_PRODUCTION':
+        orderStatus = 'IN_PRODUCTION';
+        break;
+      case 'QC_PENDING':
+        orderStatus = 'QC_PENDING';
+        break;
+      case 'FAILED_QC':
+        orderStatus = 'FAILED_QC';
+        break;
+      case 'RELEASED':
+        orderStatus = 'RELEASED';
+        break;
+      case 'DISPATCHED':
+        orderStatus = 'DISPATCHED';
+        break;
+    }
+
+    if (orderStatus) {
+      await prisma.order.updateMany({
+        where: { batchId: batch.id },
+        data: { status: orderStatus },
+      });
+    }
+
+    await createAuditLog(req.user?.userId, 'STATUS_CHANGE', 'Batch', batch.id, 
+      { status: batch.status }, { status, note }, req);
+
+    res.json(updatedBatch);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to transition batch status' });
+  }
+});
+
+/**
+ * @swagger
+ * /batches/metrics:
+ *   get:
+ *     summary: Get batch metrics for KPI cards
+ *     tags: [Batches]
+ *     responses:
+ *       200:
+ *         description: Batch metrics
+ */
+router.get('/metrics/summary', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const [
+      batchesToday,
+      awaitingQC,
+      awaitingRelease,
+      onHold,
+      exceptions,
+    ] = await Promise.all([
+      prisma.batch.count({
+        where: { plannedStartTime: { gte: today, lt: tomorrow } },
+      }),
+      prisma.batch.count({
+        where: { status: { in: ['QC_PENDING', 'QC_IN_PROGRESS'] } },
+      }),
+      prisma.batch.count({
+        where: { status: { in: ['QC_PASSED', 'QP_REVIEW'] } },
+      }),
+      prisma.batch.count({
+        where: { status: 'ON_HOLD' },
+      }),
+      prisma.batch.count({
+        where: { status: { in: ['ON_HOLD', 'REJECTED', 'FAILED_QC', 'DEVIATION_OPEN'] } },
+      }),
+    ]);
+
+    res.json({
+      batchesToday,
+      awaitingQC,
+      awaitingRelease,
+      onHold,
+      exceptions,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch batch metrics' });
   }
 });
 

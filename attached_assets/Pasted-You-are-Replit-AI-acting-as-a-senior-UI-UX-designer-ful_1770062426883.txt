@@ -1,0 +1,209 @@
+You are Replit AI acting as a senior UI/UX designer + full-stack engineer.
+
+Goal:
+Enhance the Batch Management experience so users can clearly understand the batch pathway through stages with excellent UX: a visual stage stepper, timeline logs, role-based actions, and powerful filters. It should feel like a guided workflow (similar to order tracking) with traceability and audit readiness.
+
+Tech:
+- React + TypeScript (frontend)
+- Node.js (NestJS preferred) + TypeScript (backend)
+- PostgreSQL + Prisma
+- JWT + RBAC
+- Use existing design system (cards, badges, tables, drawers/modals, toasts)
+
+========================================================
+1) BATCH STAGES (STATE MACHINE) — MUST IMPLEMENT
+Batch Statuses (main path):
+- PLANNED
+- SCHEDULED
+- IN_PRODUCTION
+- PRODUCTION_COMPLETE
+- QC_PENDING
+- QC_IN_PROGRESS
+- QC_PASSED
+- QP_REVIEW
+- RELEASED
+- DISPENSING_IN_PROGRESS
+- DISPENSED
+- PACKED
+- DISPATCHED
+- CLOSED
+
+Exception statuses:
+- ON_HOLD
+- REJECTED
+- FAILED_QC
+- CANCELLED
+- DEVIATION_OPEN
+
+Rules:
+- Only valid transitions allowed.
+- Each transition creates BatchEvent (audit-safe), with who/when/role/comments/metadata.
+- Enforce gate: DISPENSING states only allowed after RELEASED.
+- If ON_HOLD/REJECTED/FAILED_QC: block dispensing, packing, dispatch.
+
+========================================================
+2) BATCH MANAGEMENT LIST PAGE — UX + FILTER WIDGETS
+Create /batches page with:
+
+A) Filter Bar (widgets)
+- Date range (planned date / production date / release date)
+- Status multi-select (show main + exceptions)
+- Product multi-select
+- Facility/Site (optional)
+- Customer (searchable)
+- Assigned hot cell / synthesis module (optional)
+- QC status (Pending/In progress/Passed/Failed)
+- QP disposition (Released/Hold/Rejected)
+- Courier/shipment status (if shipped)
+- Search box: batch number, order number, hospital order reference
+- Toggle: “My batches” (assigned/owned by me)
+- Toggle: “Show exceptions only”
+
+B) KPI Summary Cards (above table)
+- Batches today
+- Awaiting QC
+- Awaiting QP release
+- On hold / exceptions
+- Average release lead time (last 7 days)
+- Utilization: reserved vs committed minutes (if enabled)
+
+C) Batch Table
+Columns:
+- Batch No
+- Product
+- Planned time
+- Current status badge
+- QC status badge
+- QP disposition badge
+- DoseUnits count (planned/dispensed/shipped)
+- Orders count
+- Delivery window (if linked)
+- Last updated (timestamp)
+Row actions:
+- View (opens Batch Journey)
+- Quick actions (role-based): Start production, Mark complete, Enter QC, Release, Start dispensing, Pack, Dispatch
+
+Must support:
+- Sorting by planned time, status, updated time
+- Pagination
+- Saved Views (Phase 2 optional but structure in UI)
+
+========================================================
+3) BATCH DETAILS “BATCH JOURNEY” PAGE — THE KEY UX
+Create /batches/:id with a single “Journey” experience:
+
+A) Header Summary Card
+- Batch number + Product + Activity plan (optional)
+- Current status large badge
+- Planned vs actual timestamps (start/end)
+- DoseUnits progress: planned / dispensed / packed / shipped
+- Linked Orders count + link
+- Linked Shipment (if any)
+- Next step panel: “What’s next” + owner role + action button
+
+B) Visual Stage Stepper (Pathway)
+- Horizontal stepper for main milestones:
+  Planned → Production → QC → QP Release → Dispensing → Packing → Dispatch → Closed
+- Each step shows:
+  - icon (done/current/pending)
+  - timestamp + user
+  - if blocked: show reason (e.g., “Blocked: QP Release pending”)
+
+C) Timeline / Logs (Traceability)
+- Chronological timeline of events (BatchEvent + related events):
+  - status transitions
+  - material lot additions
+  - QC sample taken + QC results entered + pass/fail
+  - deviations opened/closed
+  - QP e-signature release/hold/reject
+  - DoseUnits created/dispensed
+  - packing and shipment events
+- Each event displays:
+  - title (e.g., “QC Results Submitted”)
+  - actor + role
+  - timestamp
+  - notes
+  - expandable metadata (for internal roles only)
+- Include “Export logs” to PDF/CSV (basic ok)
+
+D) Tabs (keep journey always visible at top)
+Tabs:
+1) Overview (default, shows stepper + timeline)
+2) Orders (linked orders table)
+3) Dose Units (table + print labels stub)
+4) Materials / Genealogy (lots used + supplier)
+5) QC (samples + results + COA upload)
+6) Release (QP signature, disposition)
+7) Logistics (shipment details)
+8) Audit (admin-only)
+
+========================================================
+4) ROLE-BASED ACTIONS WITH GUIDED UX
+On the Batch Journey page, show only actions user can do:
+- Production role:
+  - Start Production → sets IN_PRODUCTION
+  - Mark Production Complete → sets PRODUCTION_COMPLETE, triggers QC_PENDING
+- QC role:
+  - Create Sample
+  - Enter Results
+  - Mark QC Passed/Failed (QC_PASSED / FAILED_QC)
+- QP role:
+  - Review batch (QP_REVIEW)
+  - Release / Hold / Reject with e-signature
+- Dispensing role:
+  - Create DoseUnits (only if RELEASED)
+  - Start Dispensing → DISPENSING_IN_PROGRESS
+  - Mark Dispensed
+- Logistics role:
+  - Pack
+  - Create Shipment
+  - Dispatch
+- Admin:
+  - view full audit metadata, override paths only if explicitly configured
+
+UX: Each action opens a modal with:
+- checklist + validations
+- required notes (for exceptions)
+- confirmation text and impact summary (“This will unlock Dispensing.”)
+
+========================================================
+5) DATA + API REQUIREMENTS
+A) DB Tables (Prisma)
+- Batch
+- BatchEvent (append-only)
+  - batchId, fromStatus, toStatus, actorUserId, actorRole, occurredAt, note, metadata JSON, traceId
+- Deviation (optional minimal):
+  - batchId, reason, status, openedBy, openedAt, closedAt
+Ensure events are immutable (append-only).
+
+B) APIs
+- GET /batches (supports all filters)
+- GET /batches/:id (summary + computed fields)
+- GET /batches/:id/events (timeline)
+- POST /batches/:id/transition (toStatus, note, metadata)
+- GET /batches/metrics (cards: awaiting QC, awaiting release, etc.)
+All endpoints must enforce RBAC and state machine rules.
+
+========================================================
+6) UI/UX QUALITY REQUIREMENTS
+- Strong empty states (e.g., “No QC results yet” with CTA)
+- Skeleton loading for stepper, table, timeline
+- Consistent badges and icons for statuses
+- Search and filter must feel fast (debounce, show applied filters chips)
+- Error messaging must be user-friendly:
+  - “You can’t start dispensing before QP releases the batch.”
+  - “QC failed — batch is blocked from dispatch.”
+- Show timestamps in local time; store UTC in DB
+
+========================================================
+7) SEED DATA FOR DEMO
+- Seed 8 batches across different stages including:
+  - one waiting QC, one waiting QP release, one on hold, one released and dispensing, one dispatched
+- For each seeded batch, insert BatchEvents to populate timeline and show pathway clearly.
+
+Implementation Order:
+1) Create BatchEvent table + state machine + transition endpoint
+2) Build /batches list with filter widgets + KPI cards
+3) Build /batches/:id journey page with stepper + timeline
+4) Add tabs for QC, DoseUnits, Logistics (simple first, then enhance)
+5) Add export logs + saved filters (optional)

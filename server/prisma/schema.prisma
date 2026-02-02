@@ -31,6 +31,7 @@ model User {
   approvalActions  ApprovalAction[]  @relation("ApprovalActor")
   dispensedDoses   DoseUnit[]        @relation("DoseDispenser")
   orderHistories   OrderHistory[]
+  batchEvents      BatchEvent[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -265,14 +266,43 @@ model OrderHistory {
 
 enum BatchStatus {
   PLANNED
-  IN_PROGRESS
-  COMPLETED
+  SCHEDULED
+  IN_PRODUCTION
+  PRODUCTION_COMPLETE
   QC_PENDING
   QC_IN_PROGRESS
   QC_PASSED
-  QC_FAILED
+  QP_REVIEW
   RELEASED
+  DISPENSING_IN_PROGRESS
+  DISPENSED
+  PACKED
+  DISPATCHED
+  CLOSED
+  ON_HOLD
+  REJECTED
+  FAILED_QC
   CANCELLED
+  DEVIATION_OPEN
+}
+
+model BatchEvent {
+  id          String      @id @default(uuid())
+  batchId     String
+  batch       Batch       @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  eventType   String      @default("STATUS_CHANGE")
+  fromStatus  BatchStatus?
+  toStatus    BatchStatus?
+  actorId     String?
+  actor       User?       @relation(fields: [actorId], references: [id])
+  actorRole   String?
+  note        String?
+  metadata    Json?
+  traceId     String?
+  createdAt   DateTime    @default(now())
+
+  @@index([batchId])
+  @@index([createdAt])
 }
 
 model Batch {
@@ -300,6 +330,7 @@ model Batch {
   qcResults           QCResult[]
   batchReleases       BatchRelease[]
   doseUnits           DoseUnit[]
+  events              BatchEvent[]
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 }
