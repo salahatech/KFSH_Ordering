@@ -18,6 +18,11 @@ import auditRoutes from './routes/audit.js';
 import notificationRoutes from './routes/notifications.js';
 import configRoutes from './routes/config.js';
 import approvalRoutes from './routes/approvals.js';
+import dispensingRoutes from './routes/dispensing.js';
+import availabilityRoutes from './routes/availability.js';
+import reservationRoutes from './routes/reservations.js';
+import contractRoutes from './routes/contracts.js';
+import invoiceRoutes from './routes/invoices.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -43,6 +48,11 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/approvals', approvalRoutes);
+app.use('/api/dispensing', dispensingRoutes);
+app.use('/api/availability', availabilityRoutes);
+app.use('/api/reservations', reservationRoutes);
+app.use('/api/contracts', contractRoutes);
+app.use('/api/invoices', invoiceRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
