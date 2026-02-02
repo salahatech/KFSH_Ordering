@@ -380,12 +380,18 @@ router.patch('/:id/status', authenticateToken, requireRole('Admin', 'Production 
       include: { customer: true, product: true },
     });
 
+    const user = await prisma.user.findUnique({
+      where: { id: req.user?.userId },
+      include: { role: true },
+    });
+
     await prisma.orderHistory.create({
       data: {
         orderId: order.id,
         fromStatus: order.status,
         toStatus: status as OrderStatus,
         changedBy: req.user?.userId,
+        role: user?.role?.name,
         changeNotes: notes,
       },
     });
@@ -479,6 +485,95 @@ router.get('/:id/calculate-activity', authenticateToken, async (req: Request, re
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to calculate activity' });
+  }
+});
+
+/**
+ * @swagger
+ * /orders/{id}/events:
+ *   get:
+ *     summary: Get order timeline events
+ *     tags: [Orders]
+ *     responses:
+ *       200:
+ *         description: Order events
+ */
+router.get('/:id/events', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const events = await prisma.orderHistory.findMany({
+      where: { orderId: req.params.id },
+      include: {
+        changedByUser: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch order events' });
+  }
+});
+
+/**
+ * @swagger
+ * /orders/{id}/transition:
+ *   post:
+ *     summary: Transition order to new status with metadata
+ *     tags: [Orders]
+ *     responses:
+ *       200:
+ *         description: Order transitioned
+ */
+router.post('/:id/transition', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { status, comment, metadata } = req.body;
+    
+    const order = await prisma.order.findUnique({ where: { id: req.params.id } });
+    if (!order) {
+      res.status(404).json({ error: 'Order not found' });
+      return;
+    }
+
+    if (!canTransitionOrder(order.status, status as OrderStatus)) {
+      res.status(400).json({ 
+        error: `Invalid status transition from ${order.status} to ${status}`,
+        userMessage: `Cannot move order from ${order.status.replace('_', ' ')} to ${status.replace('_', ' ')}. This transition is not allowed.`,
+        allowedStatuses: getNextOrderStatuses(order.status),
+      });
+      return;
+    }
+
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.user?.userId },
+      include: { role: true },
+    });
+
+    const updatedOrder = await prisma.order.update({
+      where: { id: req.params.id },
+      data: { status: status as OrderStatus },
+      include: { customer: true, product: true },
+    });
+
+    await prisma.orderHistory.create({
+      data: {
+        orderId: order.id,
+        fromStatus: order.status,
+        toStatus: status as OrderStatus,
+        changedBy: req.user?.userId,
+        role: currentUser?.role?.name,
+        changeNotes: comment,
+        metadata: metadata || null,
+      },
+    });
+
+    await createAuditLog(req.user?.userId, 'STATUS_CHANGE', 'Order', order.id, 
+      { status: order.status }, { status, comment }, req);
+
+    res.json(updatedOrder);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to transition order status' });
   }
 });
 

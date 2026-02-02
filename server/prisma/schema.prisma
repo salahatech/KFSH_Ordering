@@ -30,6 +30,7 @@ model User {
   approvalRequests ApprovalRequest[] @relation("ApprovalRequester")
   approvalActions  ApprovalAction[]  @relation("ApprovalActor")
   dispensedDoses   DoseUnit[]        @relation("DoseDispenser")
+  orderHistories   OrderHistory[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -244,15 +245,20 @@ model Order {
 }
 
 model OrderHistory {
-  id          String      @id @default(uuid())
+  id          String       @id @default(uuid())
   orderId     String
-  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order       Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
   fromStatus  OrderStatus?
   toStatus    OrderStatus
   changedBy   String?
+  changedByUser User?      @relation(fields: [changedBy], references: [id])
+  role        String?
   changeNotes String?
+  metadata    Json?
   snapshot    Json?
-  createdAt   DateTime    @default(now())
+  createdAt   DateTime     @default(now())
+
+  @@index([orderId])
 }
 
 // ==================== BATCH & LOT MANAGEMENT ====================

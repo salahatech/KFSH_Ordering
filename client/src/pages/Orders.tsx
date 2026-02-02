@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import { format } from 'date-fns';
-import { Plus, Eye, ArrowRight, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Eye, ArrowRight, HelpCircle, ChevronDown, ChevronUp, Route } from 'lucide-react';
 import { useToast } from '../components/ui/Toast';
 import { parseApiError } from '../components/ui/FormErrors';
 
@@ -298,7 +298,10 @@ export default function Orders() {
                 </td>
                 <td>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <Link to={`/orders/${order.id}`} className="btn btn-secondary btn-sm">
+                    <Link to={`/orders/${order.id}/journey`} className="btn btn-secondary btn-sm" title="View Journey">
+                      <Route size={14} />
+                    </Link>
+                    <Link to={`/orders/${order.id}`} className="btn btn-secondary btn-sm" title="Edit Order">
                       <Eye size={14} />
                     </Link>
                     {getNextStatus(order.status) && (

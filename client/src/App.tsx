@@ -24,6 +24,7 @@ import Availability from './pages/Availability';
 import Reservations from './pages/Reservations';
 import Contracts from './pages/Contracts';
 import Invoices from './pages/Invoices';
+import OrderJourney from './pages/OrderJourney';
 import PortalDashboard from './pages/portal/PortalDashboard';
 import PortalOrders from './pages/portal/PortalOrders';
 import PortalNewOrder from './pages/portal/PortalNewOrder';
@@ -140,6 +141,7 @@ export default function App() {
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/orders/new" element={<OrderForm />} />
                   <Route path="/orders/:id" element={<OrderForm />} />
+                  <Route path="/orders/:id/journey" element={<OrderJourney />} />
                   <Route path="/planner" element={<Planner />} />
                   <Route path="/batches" element={<Batches />} />
                   <Route path="/qc" element={<QC />} />
