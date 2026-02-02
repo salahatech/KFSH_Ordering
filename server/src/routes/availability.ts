@@ -111,7 +111,7 @@ router.post('/windows/generate', authenticateToken, async (req: Request, res: Re
 
 router.put('/windows/:id', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { name, capacityMinutes, isActive } = req.body;
 
     const window = await prisma.deliveryWindow.update({
