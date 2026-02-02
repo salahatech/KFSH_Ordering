@@ -1,10 +1,10 @@
 # RadioPharma OMS - Order Management System
 
 ## Overview
-A comprehensive web application for managing radiopharmaceutical manufacturing operations, including ordering, production planning, QC testing, batch release, and delivery. The system handles time-critical, decay-based products (PET and SPECT radiopharmaceuticals) with GMP-style traceability, radioactive decay calculations, and backward scheduling based on delivery times and product half-lives.
+A comprehensive web application for managing radiopharmaceutical manufacturing operations, including ordering, production planning, QC testing, batch release, delivery, dose dispensing, capacity management, contracts/pricing, and invoicing. The system handles time-critical, decay-based products (PET and SPECT radiopharmaceuticals) with GMP-style traceability, radioactive decay calculations, and backward scheduling based on delivery times and product half-lives.
 
 ## Project Status
-**Current State**: Fully functional MVP with all core features implemented
+**Current State**: Fully functional MVP with all core features implemented including financial and capacity modules
 
 ## Architecture
 
@@ -33,6 +33,11 @@ Key entities:
 - **QCResults**: Quality control test results
 - **BatchReleases**: QP (Qualified Person) release records
 - **Shipments**: Delivery tracking
+- **DoseUnit**: Individual dose dispensing from batches
+- **DeliveryWindow**: Capacity windows for deliveries
+- **Reservation**: Capacity reservations
+- **Contract** & **ContractPriceItem**: Customer-specific pricing
+- **Invoice**, **InvoiceItem**, **Payment**: Accounts receivable
 - **AuditLogs**: GMP-compliant audit trail
 - **Notifications** & **SystemConfig**: System settings
 
@@ -57,22 +62,53 @@ Key entities:
 - Electronic signature with GMP compliance
 - Full batch release workflow
 
-### 5. Logistics
+### 5. Dose Dispensing
+- Create dose units from released batches
+- Patient reference tracking
+- Label generation workflow
+- Activity tracking and waste management
+- Container type and volume tracking
+
+### 6. Logistics
 - Shipment creation and tracking
 - Delivery confirmation with receiver signature
 - On-time delivery reporting
 
-### 6. Audit Trail
+### 7. Audit Trail
 - All operations logged with user, timestamp, and changes
 - Filterable by entity type, action, date range
 
-### 7. Multi-Level Approval Workflows
+### 8. Multi-Level Approval Workflows
 - Configurable role-based approval chains for critical processes
 - 5 default workflows: Order Approval, Batch Release, Shipment Dispatch, Customer Onboarding, Product Changes
 - Email notifications via Resend for pending approvals, approvals, and rejections
 - Approval inbox with filtering, expandable details, and action history
 - ApprovalStatus component integrated into Orders and Batches pages
-- Triggered automatically on: order submission (SUBMITTED), batch QC pass (QC_PASSED), shipment dispatch, customer creation
+
+### 9. Availability & Capacity Management
+- Delivery windows with minutes-based capacity tracking
+- Weekly calendar view with utilization visualization
+- Capacity generation for date ranges (exclude weekends option)
+- Real-time utilization percentages
+
+### 10. Reservations
+- Reserve capacity in delivery windows
+- Tentative and confirmed reservation statuses
+- Convert reservations to orders
+- Overbooking prevention
+
+### 11. Contracts & Pricing
+- Customer-specific contracts with payment terms
+- Credit limits and contract discounts
+- Per-product pricing with custom rates
+- Contract lifecycle management (Draft, Active, Expired, Terminated)
+
+### 12. Invoicing & Accounts Receivable
+- Generate invoices from delivered orders
+- Invoice line items with product details
+- Payment tracking (Bank Transfer, Check, Credit Card, Cash)
+- Financial summary dashboard (Total, Paid, Outstanding, Overdue)
+- Invoice status workflow (Draft, Sent, Paid, Partially Paid, Overdue)
 
 ## Demo Credentials
 - **Admin**: admin@radiopharma.com / admin123
@@ -115,6 +151,13 @@ cd server && npx tsx prisma/seed.ts
 - /api/audit - Audit logs
 - /api/approvals - Multi-level approval workflows
 
+### New Modules
+- /api/dispensing - Dose unit management
+- /api/availability - Delivery windows and capacity
+- /api/reservations - Capacity reservations
+- /api/contracts - Customer contracts and pricing
+- /api/invoices - Invoicing and payments
+
 ## Products (Seeded)
 1. FDG-18 (F-18, half-life: 109.8 min) - PET
 2. NaF-18 (F-18, half-life: 109.8 min) - PET  
@@ -124,6 +167,14 @@ cd server && npx tsx prisma/seed.ts
 6. Lu-177 DOTATATE (Lu-177, half-life: 9500 min) - Therapy
 
 ## Recent Changes
+- 2026-02-02: Financial and Capacity Modules
+  - Dose Dispensing: DoseUnit management with labeling, dispensing, and waste tracking
+  - Availability Calendar: Minutes-based capacity with weekly view and utilization
+  - Reservations: Capacity booking with tentative/confirmed statuses
+  - Contracts & Pricing: Customer-specific rates, payment terms, credit limits
+  - Invoicing & AR: Invoice generation, payment tracking, financial summaries
+  - New frontend pages: Dispensing, Availability, Contracts, Invoices
+  - Seed data: 22 delivery windows, 5 invoices, contracts with pricing
 - 2026-01-21: Multi-level approval workflow system
   - WorkflowDefinition, WorkflowStep, ApprovalRequest, ApprovalAction database tables
   - Workflow service with role-based routing and email notifications via Resend
@@ -142,4 +193,5 @@ cd server && npx tsx prisma/seed.ts
 ## Notes
 - Status state machines prevent invalid transitions for orders and batches
 - All critical operations include audit logging
-- Frontend uses responsive design with sidebar navigation
+- Frontend uses responsive design with sidebar navigation (17 menu items)
+- Navigation organized by workflow: Sales, Planning, Production, QC, Dispensing, Logistics, Finance

@@ -775,6 +775,156 @@ async function main() {
     });
   }
 
+  // Create contracts for customers (skip if already exist)
+  const existingContracts = await prisma.contract.findMany();
+  const contractsData = [];
+  if (existingContracts.length === 0) {
+    for (let i = 0; i < customers.length; i++) {
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 3);
+      const endDate = new Date();
+      endDate.setFullYear(endDate.getFullYear() + 1);
+      
+      const contract = await prisma.contract.create({
+        data: {
+          contractNumber: `CTR-${String(i + 1).padStart(4, '0')}`,
+          name: `Annual Supply Agreement - ${customers[i].name}`,
+          customerId: customers[i].id,
+          startDate,
+          endDate,
+          status: 'ACTIVE',
+          paymentTermsDays: [15, 30, 45, 60][i % 4],
+          creditLimit: [50000, 100000, 200000, null][i % 4],
+          discountPercent: [0, 5, 10, 15][i % 4],
+        },
+      });
+      contractsData.push(contract);
+
+      // Add product pricing for this contract
+      for (let j = 0; j < Math.min(3, products.length); j++) {
+        const basePrice = products[j].defaultPrice || 500;
+        await prisma.contractPriceItem.create({
+          data: {
+            contract: { connect: { id: contract.id } },
+            product: { connect: { id: products[j].id } },
+            unitPrice: basePrice * (1 - contract.discountPercent / 100),
+            priceUnit: 'per_dose',
+            discountPercent: 0,
+          },
+        });
+      }
+    }
+    console.log(`Created ${contractsData.length} contracts with pricing`);
+  } else {
+    console.log(`Contracts already exist (${existingContracts.length}), skipping...`);
+    contractsData.push(...existingContracts);
+  }
+
+  // Create delivery windows for the next 30 days (skip if already exist)
+  const existingWindows = await prisma.deliveryWindow.findMany();
+  const deliveryWindowsData = [];
+  if (existingWindows.length === 0) {
+    for (let day = 0; day < 30; day++) {
+      const windowDate = new Date();
+      windowDate.setDate(windowDate.getDate() + day);
+      windowDate.setHours(0, 0, 0, 0);
+      
+      // Skip weekends
+      if (windowDate.getDay() === 0 || windowDate.getDay() === 6) continue;
+      
+      const startTime = new Date(windowDate);
+      startTime.setHours(8, 0, 0, 0);
+      
+      const endTime = new Date(windowDate);
+      endTime.setHours(17, 0, 0, 0);
+      
+      const window = await prisma.deliveryWindow.create({
+        data: {
+          name: `Delivery Window - ${windowDate.toISOString().split('T')[0]}`,
+          date: windowDate,
+          startTime,
+          endTime,
+          capacityMinutes: 480, // 8 hours
+          usedMinutes: 0,
+          isActive: true,
+        },
+      });
+      deliveryWindowsData.push(window);
+    }
+    console.log(`Created ${deliveryWindowsData.length} delivery windows`);
+  } else {
+    console.log(`Delivery windows already exist (${existingWindows.length}), skipping...`);
+  }
+
+  // Create invoices for delivered orders (skip if already exist)
+  const existingInvoices = await prisma.invoice.findMany();
+  const deliveredOrders = orders.filter(o => o.status === 'DELIVERED');
+  const invoicesData = [];
+  if (existingInvoices.length === 0 && deliveredOrders.length > 0) {
+    for (let i = 0; i < Math.min(5, deliveredOrders.length); i++) {
+      const order = deliveredOrders[i];
+      const invoiceDate = new Date();
+      invoiceDate.setDate(invoiceDate.getDate() - (i * 7)); // Stagger invoice dates
+      
+      const dueDate = new Date(invoiceDate);
+      dueDate.setDate(dueDate.getDate() + 30);
+
+      const product = products.find(p => p.id === order.productId);
+      const unitPrice = product?.defaultPrice || 500;
+      const lineTotal = order.requestedActivity * unitPrice;
+      const taxRate = 0;
+      const taxAmount = lineTotal * taxRate;
+      const totalAmount = lineTotal + taxAmount;
+      
+      const customerContract = contractsData.find(c => c.customerId === order.customerId);
+
+      const invoice = await prisma.invoice.create({
+        data: {
+          invoiceNumber: `INV-${String(i + 1).padStart(5, '0')}`,
+          customerId: order.customerId,
+          contractId: customerContract?.id || null,
+          invoiceDate,
+          dueDate,
+          status: i === 0 ? 'PAID' : (i === 1 ? 'SENT' : 'DRAFT'),
+          subtotal: lineTotal,
+          taxAmount,
+          discountAmount: 0,
+          totalAmount,
+          paidAmount: i === 0 ? totalAmount : 0,
+          currency: 'USD',
+          items: {
+            create: {
+              orderId: order.id,
+              productId: product?.id,
+              description: `${product?.name} - ${order.requestedActivity} ${order.activityUnit}`,
+              quantity: order.requestedActivity,
+              unitPrice,
+              lineTotal,
+            },
+          },
+        },
+      });
+
+      // Add payment for paid invoice
+      if (i === 0) {
+        await prisma.payment.create({
+          data: {
+            invoiceId: invoice.id,
+            amount: totalAmount,
+            paymentDate: new Date(),
+            paymentMethod: 'BANK_TRANSFER',
+            referenceNumber: `PAY-${Date.now()}`,
+          },
+        });
+      }
+
+      invoicesData.push(invoice);
+    }
+    console.log(`Created ${invoicesData.length} invoices`);
+  } else {
+    console.log(`Invoices already exist (${existingInvoices.length}), skipping...`);
+  }
+
   // Create workflow definitions with approval steps
   const workflowDefinitions = [
     {
