@@ -37,7 +37,13 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
 - **Invoicing & Accounts Receivable**: Invoice generation from delivered orders, payment tracking, financial summaries, and PDF generation with ZATCA-compliant QR codes.
 - **Client Ordering Portal**: A self-service portal for customers to place orders, track history, and view invoices, featuring a separate UI/UX.
 - **System Settings**: Configurable lookup tables for master data management including geographic data (Country -> Region -> City hierarchy), product classifications, couriers, currencies (SAR default with exchange rates), and Saudi National Address format support for customers.
-- **Security**: Status state machines to prevent invalid transitions, comprehensive audit logging for critical operations.
+- **Security**: Status state machines to prevent invalid transitions, comprehensive audit logging for critical operations, customer-user linking enforcement for portal access.
+- **Customer-User Linking**: Secure portal access with mandatory customer association:
+  - Users with Customer role must be linked to a customer record
+  - Portal middleware (requireCustomer) blocks unlinked users with CUSTOMER_NOT_LINKED error
+  - Backend validation prevents saving Customer role users without customerId
+  - Frontend User management shows validation warnings for Customer role
+  - Portal pages display customer context (e.g., "Ordering as: [Customer Name]")
 
 ## Recent Changes (2026-02-02)
 - **Customer Payment Workflow**: Complete payment submission and approval system:
