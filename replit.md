@@ -40,6 +40,12 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
 - **Security**: Status state machines to prevent invalid transitions, comprehensive audit logging for critical operations.
 
 ## Recent Changes (2026-02-02)
+- **Customer Self-Service Profile**: Portal customers can now edit their own profile at `/portal/profile`:
+  - Company name (English/Arabic), email, mobile, phone
+  - Delivery address with country/region/city dropdowns and GPS coordinates
+  - Delivery window preferences (start/end times, preferred time)
+  - Contact persons management (add/edit/remove)
+  - Logo upload with preview
 - **Enhanced Customer Module**: Comprehensive customer management with:
   - Bilingual support (nameEn/nameAr) for i18n readiness
   - Saudi business identifiers (CR Number, Tax Number)
