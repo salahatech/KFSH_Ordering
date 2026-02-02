@@ -61,10 +61,10 @@ const statusConfig: Record<string, { color: string; badge: string; description: 
   // QC stage - orange (testing)
   QC_PENDING: { color: '#f59e0b', badge: 'warning', description: 'Awaiting quality control testing' },
   QC_IN_PROGRESS: { color: '#f59e0b', badge: 'warning', description: 'Quality control tests in progress' },
-  QC_PASSED: { color: '#22c55e', badge: 'success', description: 'All QC tests passed' },
+  QC_PASSED: { color: '#15803d', badge: 'qc-passed', description: 'All QC tests passed' },
   // Release stage - purple (review)
   QP_REVIEW: { color: '#8b5cf6', badge: 'purple', description: 'Awaiting Qualified Person review' },
-  RELEASED: { color: '#22c55e', badge: 'success', description: 'Released by QP for dispensing' },
+  RELEASED: { color: '#15803d', badge: 'qc-passed', description: 'Released by QP for dispensing' },
   // Dispensing stage - teal (fulfillment)
   DISPENSING_IN_PROGRESS: { color: '#14b8a6', badge: 'teal', description: 'Dose units being dispensed' },
   DISPENSED: { color: '#14b8a6', badge: 'teal', description: 'All doses dispensed' },

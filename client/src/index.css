@@ -218,6 +218,11 @@ input, select, textarea {
   color: #ffffff;
 }
 
+.badge-qc-passed {
+  background: #bbf7d0;
+  color: #15803d;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

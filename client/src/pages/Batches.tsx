@@ -116,10 +116,10 @@ export default function Batches() {
       // QC stage - orange/warning (testing)
       QC_PENDING: 'warning',
       QC_IN_PROGRESS: 'warning',
-      QC_PASSED: 'success',
+      QC_PASSED: 'qc-passed',
       // Release stage - purple (review)
       QP_REVIEW: 'purple',
-      RELEASED: 'success',
+      RELEASED: 'qc-passed',
       // Dispensing stage - teal (fulfillment)
       DISPENSING_IN_PROGRESS: 'teal',
       DISPENSED: 'teal',
