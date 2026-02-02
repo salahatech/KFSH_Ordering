@@ -50,6 +50,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
         hotCell: true,
         qcResults: true,
         batchReleases: true,
+        doseUnits: true,
       },
       orderBy: { plannedStartTime: 'asc' },
     });
@@ -83,6 +84,7 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response): Promi
         hotCell: true,
         qcResults: { include: { template: true, testedBy: true } },
         batchReleases: { include: { releasedBy: true } },
+        doseUnits: true,
       },
     });
 
