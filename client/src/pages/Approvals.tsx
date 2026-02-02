@@ -6,12 +6,16 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  AlertCircle,
   FileCheck,
   ChevronDown,
   ChevronRight,
   Send,
+  Inbox,
+  Filter,
+  Eye,
 } from 'lucide-react';
+import { KpiCard, StatusBadge, FilterBar, EmptyState, type FilterWidget } from '../components/shared';
+import { useToast } from '../components/ui/Toast';
 
 interface ApprovalRequest {
   id: string;
@@ -49,11 +53,14 @@ interface ApprovalRequest {
 
 export default function Approvals() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [expandedRequest, setExpandedRequest] = useState<string | null>(null);
   const [filter, setFilter] = useState<'PENDING' | 'APPROVED' | 'REJECTED' | 'all'>('PENDING');
+  const [searchFilters, setSearchFilters] = useState<Record<string, any>>({});
   const [actionModal, setActionModal] = useState<{
     requestId: string;
     action: 'APPROVED' | 'REJECTED';
+    workflowName: string;
   } | null>(null);
   const [comments, setComments] = useState('');
   const [signature, setSignature] = useState('');
@@ -94,44 +101,33 @@ export default function Approvals() {
       });
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       setActionModal(null);
       setComments('');
       setSignature('');
+      if (variables.action === 'APPROVED') {
+        toast.success('Request Approved', 'The approval request has been approved successfully');
+      } else {
+        toast.warning('Request Rejected', 'The approval request has been rejected');
+      }
+    },
+    onError: (error: any) => {
+      toast.error('Action Failed', error.response?.data?.error || 'Failed to process approval action');
     },
   });
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return <span className="badge" style={{ background: '#fef3c7', color: '#92400e' }}>Pending</span>;
-      case 'APPROVED':
-        return <span className="badge" style={{ background: '#dcfce7', color: '#166534' }}>Approved</span>;
-      case 'REJECTED':
-        return <span className="badge" style={{ background: '#fee2e2', color: '#991b1b' }}>Rejected</span>;
-      default:
-        return <span className="badge">{status}</span>;
-    }
-  };
-
-  const getPriorityBadge = (priority: string) => {
+  const getPriorityColor = (priority: string): 'danger' | 'warning' | 'info' | 'default' => {
     switch (priority) {
-      case 'URGENT':
-        return <span className="badge" style={{ background: '#fee2e2', color: '#991b1b' }}>Urgent</span>;
-      case 'HIGH':
-        return <span className="badge" style={{ background: '#fed7aa', color: '#9a3412' }}>High</span>;
-      case 'NORMAL':
-        return <span className="badge" style={{ background: '#e0e7ff', color: '#3730a3' }}>Normal</span>;
-      case 'LOW':
-        return <span className="badge" style={{ background: '#f3f4f6', color: '#374151' }}>Low</span>;
-      default:
-        return <span className="badge">{priority}</span>;
+      case 'URGENT': return 'danger';
+      case 'HIGH': return 'warning';
+      case 'NORMAL': return 'info';
+      default: return 'default';
     }
   };
 
-  const handleAction = (requestId: string, action: 'APPROVED' | 'REJECTED') => {
-    setActionModal({ requestId, action });
+  const handleAction = (requestId: string, action: 'APPROVED' | 'REJECTED', workflowName: string) => {
+    setActionModal({ requestId, action, workflowName });
   };
 
   const submitAction = () => {
@@ -144,6 +140,40 @@ export default function Approvals() {
     });
   };
 
+  const filterWidgets: FilterWidget[] = [
+    { key: 'search', label: 'Search', type: 'search', placeholder: 'Search workflows...' },
+  ];
+
+  const filteredPending = pendingApprovals.filter((req) => {
+    if (searchFilters.search) {
+      const q = searchFilters.search.toLowerCase();
+      if (!req.workflow.name.toLowerCase().includes(q) &&
+          !req.entityType.toLowerCase().includes(q) &&
+          !`${req.requestedBy.firstName} ${req.requestedBy.lastName}`.toLowerCase().includes(q)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  const filteredAll = allRequests.filter((req) => {
+    if (searchFilters.search) {
+      const q = searchFilters.search.toLowerCase();
+      if (!req.workflow.name.toLowerCase().includes(q) &&
+          !req.entityType.toLowerCase().includes(q)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  const stats = {
+    pending: pendingApprovals.length,
+    approved: allRequests.filter(r => r.status === 'APPROVED').length,
+    rejected: allRequests.filter(r => r.status === 'REJECTED').length,
+    urgent: pendingApprovals.filter(r => r.priority === 'URGENT').length,
+  };
+
   if (loadingPending || loadingAll) {
     return (
       <div className="loading-overlay">
@@ -154,92 +184,128 @@ export default function Approvals() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h1 style={{ margin: 0 }}>Approval Inbox</h1>
-      </div>
-
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{
-            width: '3rem',
-            height: '3rem',
-            background: '#dbeafe',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <FileCheck size={24} color="#2563eb" />
-          </div>
-          <div>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#2563eb' }}>
-              {pendingApprovals.length}
-            </div>
-            <div style={{ color: '#6b7280' }}>Pending Approvals Requiring Your Action</div>
-          </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Approval Inbox</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+            Review and process pending approval requests
+          </p>
         </div>
       </div>
 
-      {pendingApprovals.length > 0 && (
-        <div style={{ marginBottom: '2rem' }}>
-          <h2 style={{ marginBottom: '1rem' }}>Awaiting Your Approval</h2>
-          <div className="table-container">
-            <table>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <KpiCard 
+          title="Pending Approvals" 
+          value={stats.pending} 
+          icon={<Clock size={20} />}
+          color="warning"
+        />
+        <KpiCard 
+          title="Urgent" 
+          value={stats.urgent} 
+          icon={<FileCheck size={20} />}
+          color="danger"
+        />
+        <KpiCard 
+          title="Approved" 
+          value={stats.approved} 
+          icon={<CheckCircle size={20} />}
+          color="success"
+        />
+        <KpiCard 
+          title="Rejected" 
+          value={stats.rejected} 
+          icon={<XCircle size={20} />}
+          color="default"
+        />
+      </div>
+
+      <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
+        <FilterBar 
+          widgets={filterWidgets}
+          values={searchFilters}
+          onChange={(key, value) => setSearchFilters(prev => ({ ...prev, [key]: value }))}
+          onReset={() => setSearchFilters({})}
+        />
+      </div>
+
+      {filteredPending.length > 0 && (
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
+          <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Inbox size={18} style={{ color: 'var(--warning)' }} />
+            <h3 style={{ fontWeight: 600, fontSize: '1rem', margin: 0 }}>
+              Awaiting Your Approval ({filteredPending.length})
+            </h3>
+          </div>
+          <div style={{ padding: 0 }}>
+            <table className="table" style={{ marginBottom: 0 }}>
               <thead>
                 <tr>
-                  <th></th>
+                  <th style={{ width: '40px' }}></th>
                   <th>Workflow</th>
                   <th>Entity</th>
                   <th>Priority</th>
                   <th>Current Step</th>
                   <th>Requested By</th>
                   <th>Date</th>
-                  <th>Actions</th>
+                  <th style={{ width: '200px', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {pendingApprovals.map((request) => (
+                {filteredPending.map((request) => (
                   <>
                     <tr key={request.id}>
                       <td>
                         <button
-                          className="btn-ghost"
+                          className="btn btn-sm btn-outline"
+                          style={{ padding: '0.25rem' }}
                           onClick={() => setExpandedRequest(expandedRequest === request.id ? null : request.id)}
                         >
-                          {expandedRequest === request.id ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                          {expandedRequest === request.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         </button>
                       </td>
                       <td>
                         <div style={{ fontWeight: 500 }}>{request.workflow.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{request.entityType}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{request.entityType}</div>
                       </td>
-                      <td style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
+                      <td style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>
                         {request.entityId.slice(0, 8)}...
                       </td>
-                      <td>{getPriorityBadge(request.priority)}</td>
+                      <td>
+                        <StatusBadge status={request.priority} size="sm" />
+                      </td>
                       <td>
                         {request.workflow.steps.find(s => s.stepOrder === request.currentStep)?.stepName || 'Unknown'}
                       </td>
                       <td>
                         {request.requestedBy.firstName} {request.requestedBy.lastName}
                       </td>
-                      <td>{format(new Date(request.createdAt), 'MMM d, HH:mm')}</td>
+                      <td style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                        {format(new Date(request.createdAt), 'MMM d, HH:mm')}
+                      </td>
                       <td>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                           <button
-                            className="btn-primary"
-                            style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem' }}
-                            onClick={() => handleAction(request.id, 'APPROVED')}
+                            className="btn btn-sm btn-outline"
+                            onClick={() => setExpandedRequest(expandedRequest === request.id ? null : request.id)}
+                            title="View Details"
                           >
-                            <CheckCircle size={14} style={{ marginRight: '0.25rem' }} />
+                            <Eye size={14} />
+                          </button>
+                          <button
+                            className="btn btn-sm btn-primary"
+                            onClick={() => handleAction(request.id, 'APPROVED', request.workflow.name)}
+                            style={{ minWidth: '80px' }}
+                          >
+                            <CheckCircle size={14} />
                             Approve
                           </button>
                           <button
-                            className="btn-secondary"
-                            style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem' }}
-                            onClick={() => handleAction(request.id, 'REJECTED')}
+                            className="btn btn-sm btn-danger"
+                            onClick={() => handleAction(request.id, 'REJECTED', request.workflow.name)}
+                            style={{ minWidth: '70px' }}
                           >
-                            <XCircle size={14} style={{ marginRight: '0.25rem' }} />
+                            <XCircle size={14} />
                             Reject
                           </button>
                         </div>
@@ -247,10 +313,10 @@ export default function Approvals() {
                     </tr>
                     {expandedRequest === request.id && (
                       <tr key={`${request.id}-details`}>
-                        <td colSpan={8} style={{ background: '#f9fafb', padding: '1rem' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <td colSpan={8} style={{ background: 'var(--bg-secondary)', padding: '1.5rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                             <div>
-                              <h4 style={{ marginBottom: '0.5rem' }}>Workflow Steps</h4>
+                              <h4 style={{ marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Workflow Steps</h4>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 {request.workflow.steps.map((step) => (
                                   <div
@@ -258,24 +324,24 @@ export default function Approvals() {
                                     style={{
                                       display: 'flex',
                                       alignItems: 'center',
-                                      gap: '0.5rem',
-                                      padding: '0.5rem',
-                                      background: step.stepOrder === request.currentStep ? '#dbeafe' : '#fff',
-                                      borderRadius: '4px',
-                                      border: '1px solid #e5e7eb',
+                                      gap: '0.75rem',
+                                      padding: '0.75rem',
+                                      background: step.stepOrder === request.currentStep ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg)',
+                                      borderRadius: 'var(--radius)',
+                                      border: step.stepOrder === request.currentStep ? '1px solid var(--primary)' : '1px solid var(--border)',
                                     }}
                                   >
                                     {step.stepOrder < request.currentStep ? (
-                                      <CheckCircle size={16} color="#22c55e" />
+                                      <CheckCircle size={18} color="var(--success)" />
                                     ) : step.stepOrder === request.currentStep ? (
-                                      <Clock size={16} color="#2563eb" />
+                                      <Clock size={18} color="var(--primary)" />
                                     ) : (
-                                      <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid #d1d5db' }} />
+                                      <div style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid var(--border)' }} />
                                     )}
-                                    <span style={{ fontWeight: step.stepOrder === request.currentStep ? 500 : 400 }}>
+                                    <span style={{ fontWeight: step.stepOrder === request.currentStep ? 500 : 400, flex: 1 }}>
                                       {step.stepOrder}. {step.stepName}
                                     </span>
-                                    <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#6b7280' }}>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                       {step.approverRole.name}
                                     </span>
                                   </div>
@@ -283,37 +349,39 @@ export default function Approvals() {
                               </div>
                             </div>
                             <div>
-                              <h4 style={{ marginBottom: '0.5rem' }}>Approval History</h4>
+                              <h4 style={{ marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Approval History</h4>
                               {request.actions.length === 0 ? (
-                                <div style={{ color: '#6b7280', fontStyle: 'italic' }}>No actions yet</div>
+                                <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', padding: '1rem', background: 'var(--bg)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                                  No actions taken yet
+                                </div>
                               ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                   {request.actions.map((action) => (
                                     <div
                                       key={action.id}
                                       style={{
-                                        padding: '0.5rem',
-                                        background: '#fff',
-                                        borderRadius: '4px',
-                                        border: '1px solid #e5e7eb',
+                                        padding: '0.75rem',
+                                        background: 'var(--bg)',
+                                        borderRadius: 'var(--radius)',
+                                        border: '1px solid var(--border)',
                                       }}
                                     >
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         {action.action === 'APPROVED' ? (
-                                          <CheckCircle size={14} color="#22c55e" />
+                                          <CheckCircle size={16} color="var(--success)" />
                                         ) : (
-                                          <XCircle size={14} color="#ef4444" />
+                                          <XCircle size={16} color="var(--danger)" />
                                         )}
                                         <span style={{ fontWeight: 500 }}>{action.step.stepName}</span>
-                                        <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#6b7280' }}>
+                                        <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                           {format(new Date(action.createdAt), 'MMM d, HH:mm')}
                                         </span>
                                       </div>
-                                      <div style={{ fontSize: '0.875rem', color: '#374151', marginTop: '0.25rem' }}>
+                                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
                                         by {action.actionBy.firstName} {action.actionBy.lastName}
                                       </div>
                                       {action.comments && (
-                                        <div style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.5rem', fontStyle: 'italic', paddingLeft: '1.5rem' }}>
                                           "{action.comments}"
                                         </div>
                                       )}
@@ -324,8 +392,9 @@ export default function Approvals() {
                             </div>
                           </div>
                           {request.notes && (
-                            <div style={{ marginTop: '1rem' }}>
-                              <strong>Notes:</strong> {request.notes}
+                            <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                              <strong style={{ fontSize: '0.8125rem' }}>Notes:</strong>
+                              <span style={{ marginLeft: '0.5rem', color: 'var(--text-secondary)' }}>{request.notes}</span>
                             </div>
                           )}
                         </td>
@@ -339,76 +408,71 @@ export default function Approvals() {
         </div>
       )}
 
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2 style={{ margin: 0 }}>All Approval Requests</h2>
-          <div className="btn-group">
-            <button
-              className={filter === 'PENDING' ? 'btn-primary' : 'btn-secondary'}
-              onClick={() => setFilter('PENDING')}
-            >
-              <Clock size={14} /> Pending
-            </button>
-            <button
-              className={filter === 'APPROVED' ? 'btn-primary' : 'btn-secondary'}
-              onClick={() => setFilter('APPROVED')}
-            >
-              <CheckCircle size={14} /> Approved
-            </button>
-            <button
-              className={filter === 'REJECTED' ? 'btn-primary' : 'btn-secondary'}
-              onClick={() => setFilter('REJECTED')}
-            >
-              <XCircle size={14} /> Rejected
-            </button>
-            <button
-              className={filter === 'all' ? 'btn-primary' : 'btn-secondary'}
-              onClick={() => setFilter('all')}
-            >
-              All
-            </button>
+      <div className="card">
+        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Filter size={18} style={{ color: 'var(--text-muted)' }} />
+            <h3 style={{ fontWeight: 600, fontSize: '1rem', margin: 0 }}>All Approval Requests</h3>
+          </div>
+          <div style={{ display: 'flex', gap: '0.25rem' }}>
+            {(['PENDING', 'APPROVED', 'REJECTED', 'all'] as const).map((f) => (
+              <button
+                key={f}
+                className={`btn btn-sm ${filter === f ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setFilter(f)}
+              >
+                {f === 'PENDING' && <Clock size={14} />}
+                {f === 'APPROVED' && <CheckCircle size={14} />}
+                {f === 'REJECTED' && <XCircle size={14} />}
+                {f === 'all' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
+              </button>
+            ))}
           </div>
         </div>
-
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Workflow</th>
-                <th>Entity Type</th>
-                <th>Status</th>
-                <th>Priority</th>
-                <th>Current Step</th>
-                <th>Requested By</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allRequests.length === 0 ? (
+        <div style={{ padding: 0 }}>
+          {filteredAll.length > 0 ? (
+            <table className="table" style={{ marginBottom: 0 }}>
+              <thead>
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', color: '#6b7280', padding: '2rem' }}>
-                    No approval requests found
-                  </td>
+                  <th>Workflow</th>
+                  <th>Entity Type</th>
+                  <th>Status</th>
+                  <th>Priority</th>
+                  <th>Current Step</th>
+                  <th>Requested By</th>
+                  <th>Date</th>
                 </tr>
-              ) : (
-                allRequests.map((request) => (
+              </thead>
+              <tbody>
+                {filteredAll.map((request) => (
                   <tr key={request.id}>
-                    <td>{request.workflow.name}</td>
+                    <td style={{ fontWeight: 500 }}>{request.workflow.name}</td>
                     <td>{request.entityType}</td>
-                    <td>{getStatusBadge(request.status)}</td>
-                    <td>{getPriorityBadge(request.priority)}</td>
+                    <td><StatusBadge status={request.status} size="sm" /></td>
+                    <td><StatusBadge status={request.priority} size="sm" /></td>
                     <td>
                       {request.workflow.steps.find(s => s.stepOrder === request.currentStep)?.stepName || '-'}
                     </td>
                     <td>
                       {request.requestedBy.firstName} {request.requestedBy.lastName}
                     </td>
-                    <td>{format(new Date(request.createdAt), 'MMM d, yyyy HH:mm')}</td>
+                    <td style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                      {format(new Date(request.createdAt), 'MMM d, yyyy HH:mm')}
+                    </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div style={{ padding: '2rem' }}>
+              <EmptyState 
+                title="No approval requests"
+                message={`No ${filter === 'all' ? '' : filter.toLowerCase()} approval requests found`}
+                icon="package"
+                variant="compact"
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -419,37 +483,52 @@ export default function Approvals() {
               <h3 style={{ margin: 0, fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {actionModal.action === 'APPROVED' ? (
                   <>
-                    <CheckCircle color="#22c55e" size={20} /> Approve Request
+                    <CheckCircle color="var(--success)" size={20} /> Approve Request
                   </>
                 ) : (
                   <>
-                    <XCircle color="#ef4444" size={20} /> Reject Request
+                    <XCircle color="var(--danger)" size={20} /> Reject Request
                   </>
                 )}
               </h3>
               <button onClick={() => setActionModal(null)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
             </div>
             <div className="modal-body">
+              <div
+                style={{
+                  padding: '1rem',
+                  background: actionModal.action === 'APPROVED' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                  borderRadius: 'var(--radius)',
+                  marginBottom: '1rem',
+                  border: actionModal.action === 'APPROVED' ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
+                }}
+              >
+                <p style={{ margin: 0, fontSize: '0.875rem' }}>
+                  You are about to <strong>{actionModal.action === 'APPROVED' ? 'approve' : 'reject'}</strong> the request for <strong>{actionModal.workflowName}</strong>.
+                </p>
+              </div>
+
               <div className="form-group">
-                <label className="form-label">Comments (optional)</label>
+                <label className="form-label">Comments {actionModal.action === 'REJECTED' ? '*' : '(optional)'}</label>
                 <textarea
                   className="form-input"
                   value={comments}
                   onChange={(e) => setComments(e.target.value)}
-                  placeholder="Add any comments or notes..."
+                  placeholder={actionModal.action === 'REJECTED' ? 'Please provide a reason for rejection...' : 'Add any comments or notes...'}
                   rows={3}
+                  required={actionModal.action === 'REJECTED'}
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Electronic Signature</label>
+                <label className="form-label">Electronic Signature *</label>
                 <input
                   type="text"
                   className="form-input"
                   value={signature}
                   onChange={(e) => setSignature(e.target.value)}
-                  placeholder="Type your name to sign"
+                  placeholder="Type your full name to sign"
                 />
-                <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>
+                <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '0.5rem', fontSize: '0.75rem' }}>
                   By signing, you confirm this action is in compliance with GMP requirements.
                 </small>
               </div>
@@ -459,12 +538,12 @@ export default function Approvals() {
                 Cancel
               </button>
               <button
-                className={`btn ${actionModal.action === 'APPROVED' ? 'btn-primary' : ''}`}
-                style={actionModal.action === 'REJECTED' ? { background: '#ef4444', color: 'white' } : {}}
+                className={`btn ${actionModal.action === 'APPROVED' ? 'btn-primary' : 'btn-danger'}`}
                 onClick={submitAction}
-                disabled={processActionMutation.isPending}
+                disabled={processActionMutation.isPending || !signature.trim() || (actionModal.action === 'REJECTED' && !comments.trim())}
+                style={{ minWidth: '140px' }}
               >
-                <Send size={14} style={{ marginRight: '0.25rem' }} />
+                <Send size={16} />
                 {processActionMutation.isPending ? 'Processing...' : `Confirm ${actionModal.action === 'APPROVED' ? 'Approval' : 'Rejection'}`}
               </button>
             </div>
