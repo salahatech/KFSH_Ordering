@@ -3,9 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import { format } from 'date-fns';
-import { Plus, Eye, ArrowRight, HelpCircle, ChevronDown, ChevronUp, Route } from 'lucide-react';
+import { Plus, Eye, ArrowRight, HelpCircle, ChevronDown, ChevronUp, Route, ShoppingCart, Clock, CheckCircle, Truck, Package } from 'lucide-react';
 import { useToast } from '../components/ui/Toast';
 import { parseApiError } from '../components/ui/FormErrors';
+import { KpiCard, StatusBadge, FilterBar, EmptyState, type FilterWidget } from '../components/shared';
 
 const statusDescriptions: Record<string, { label: string; description: string; nextAction: string }> = {
   DRAFT: { 
@@ -77,19 +78,18 @@ const statusDescriptions: Record<string, { label: string; description: string; n
 
 export default function Orders() {
   const toast = useToast();
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [dateFilter, setDateFilter] = useState<string>('');
+  const [filters, setFilters] = useState<Record<string, any>>({});
   const [showStatusGuide, setShowStatusGuide] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ['orders', statusFilter, dateFilter],
+    queryKey: ['orders', filters.status, filters.date],
     queryFn: async () => {
       const params: any = {};
-      if (statusFilter) params.status = statusFilter;
-      if (dateFilter) {
-        params.fromDate = dateFilter;
-        params.toDate = dateFilter;
+      if (filters.status) params.status = filters.status;
+      if (filters.date) {
+        params.fromDate = filters.date;
+        params.toDate = filters.date;
       }
       const { data } = await api.get('/orders', { params });
       return data;
@@ -138,6 +138,47 @@ export default function Orders() {
     return transitions[currentStatus] || null;
   };
 
+  const filterWidgets: FilterWidget[] = [
+    { key: 'search', label: 'Search', type: 'search', placeholder: 'Search orders...' },
+    { 
+      key: 'status', 
+      label: 'Status', 
+      type: 'select', 
+      options: [
+        { value: '', label: 'All Statuses' },
+        { value: 'DRAFT', label: 'Draft' },
+        { value: 'SUBMITTED', label: 'Submitted' },
+        { value: 'VALIDATED', label: 'Validated' },
+        { value: 'SCHEDULED', label: 'Scheduled' },
+        { value: 'IN_PRODUCTION', label: 'In Production' },
+        { value: 'QC_PENDING', label: 'QC Pending' },
+        { value: 'RELEASED', label: 'Released' },
+        { value: 'DISPATCHED', label: 'Dispatched' },
+        { value: 'DELIVERED', label: 'Delivered' },
+      ]
+    },
+  ];
+
+  const filteredOrders = orders?.filter((order: any) => {
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      if (!order.orderNumber.toLowerCase().includes(q) &&
+          !order.customer?.name?.toLowerCase().includes(q) &&
+          !order.product?.name?.toLowerCase().includes(q)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  const stats = {
+    total: orders?.length || 0,
+    pending: orders?.filter((o: any) => ['DRAFT', 'SUBMITTED', 'VALIDATED'].includes(o.status)).length || 0,
+    inProgress: orders?.filter((o: any) => ['SCHEDULED', 'IN_PRODUCTION', 'QC_PENDING'].includes(o.status)).length || 0,
+    ready: orders?.filter((o: any) => ['RELEASED', 'DISPATCHED'].includes(o.status)).length || 0,
+    delivered: orders?.filter((o: any) => o.status === 'DELIVERED').length || 0,
+  };
+
   if (isLoading) {
     return (
       <div className="loading-overlay">
@@ -148,49 +189,80 @@ export default function Orders() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Orders</h2>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <select
-              className="form-select"
-              style={{ width: 'auto' }}
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="">All Statuses</option>
-              <option value="DRAFT">Draft</option>
-              <option value="SUBMITTED">Submitted</option>
-              <option value="VALIDATED">Validated</option>
-              <option value="SCHEDULED">Scheduled</option>
-              <option value="IN_PRODUCTION">In Production</option>
-              <option value="QC_PENDING">QC Pending</option>
-              <option value="RELEASED">Released</option>
-              <option value="DISPATCHED">Dispatched</option>
-              <option value="DELIVERED">Delivered</option>
-            </select>
-            <input
-              type="date"
-              className="form-input"
-              style={{ width: 'auto' }}
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-            />
-          </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Orders</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+            Manage radiopharmaceutical orders from creation to delivery
+          </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button 
             className="btn btn-secondary"
             onClick={() => setShowStatusGuide(!showStatusGuide)}
           >
-            <HelpCircle size={18} />
+            <HelpCircle size={16} />
             Status Guide
-            {showStatusGuide ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            {showStatusGuide ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
           <Link to="/orders/new" className="btn btn-primary">
-            <Plus size={18} />
+            <Plus size={16} />
             New Order
           </Link>
+        </div>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <KpiCard 
+          title="Total Orders" 
+          value={stats.total} 
+          icon={<ShoppingCart size={20} />}
+          color="primary"
+        />
+        <KpiCard 
+          title="Pending" 
+          value={stats.pending} 
+          icon={<Clock size={20} />}
+          color="warning"
+        />
+        <KpiCard 
+          title="In Progress" 
+          value={stats.inProgress} 
+          icon={<Package size={20} />}
+          color="info"
+        />
+        <KpiCard 
+          title="Ready/Dispatched" 
+          value={stats.ready} 
+          icon={<Truck size={20} />}
+          color="success"
+        />
+        <KpiCard 
+          title="Delivered" 
+          value={stats.delivered} 
+          icon={<CheckCircle size={20} />}
+          color="default"
+        />
+      </div>
+
+      <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <FilterBar 
+            widgets={filterWidgets}
+            values={filters}
+            onChange={(key, value) => setFilters(prev => ({ ...prev, [key]: value }))}
+            onReset={() => setFilters({})}
+          />
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label" style={{ fontSize: '0.75rem' }}>Delivery Date</label>
+            <input
+              type="date"
+              className="form-input"
+              style={{ width: '160px' }}
+              value={filters.date || ''}
+              onChange={(e) => setFilters(prev => ({ ...prev, date: e.target.value }))}
+            />
+          </div>
         </div>
       </div>
 
@@ -214,9 +286,7 @@ export default function Orders() {
           }}>
             {['DRAFT', 'SUBMITTED', 'VALIDATED', 'SCHEDULED', 'IN_PRODUCTION', 'QC_PENDING', 'RELEASED', 'DISPATCHED', 'DELIVERED'].map((status, idx, arr) => (
               <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span className={`badge badge-${getStatusColor(status)}`} style={{ fontSize: '0.75rem' }}>
-                  {statusDescriptions[status]?.label}
-                </span>
+                <StatusBadge status={status} size="sm" />
                 {idx < arr.length - 1 && <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />}
               </div>
             ))}
@@ -230,9 +300,7 @@ export default function Orders() {
                 borderLeft: `3px solid var(--${getStatusColor(status) === 'default' ? 'secondary' : getStatusColor(status)})`,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                  <span className={`badge badge-${getStatusColor(status)}`} style={{ fontSize: '0.7rem' }}>
-                    {info.label}
-                  </span>
+                  <StatusBadge status={status} size="sm" />
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
                   {info.description}
@@ -247,79 +315,92 @@ export default function Orders() {
       )}
 
       <div className="card">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Order #</th>
-              <th>Customer</th>
-              <th>Product</th>
-              <th>Delivery</th>
-              <th>Activity</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders?.map((order: any) => (
-              <tr key={order.id}>
-                <td style={{ fontWeight: 500 }}>{order.orderNumber}</td>
-                <td>
-                  <div>{order.customer?.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {order.customer?.city}
-                  </div>
-                </td>
-                <td>
-                  <div>{order.product?.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {order.product?.radionuclide}
-                  </div>
-                </td>
-                <td>
-                  <div>{format(new Date(order.deliveryDate), 'MMM dd, yyyy')}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {format(new Date(order.deliveryTimeStart), 'HH:mm')} - {format(new Date(order.deliveryTimeEnd), 'HH:mm')}
-                  </div>
-                </td>
-                <td>
-                  <div style={{ fontWeight: 500 }}>
-                    {order.requestedActivity} {order.activityUnit}
-                  </div>
-                  {order.calculatedProductionActivity && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Prod: {order.calculatedProductionActivity.toFixed(1)} {order.activityUnit}
-                    </div>
-                  )}
-                </td>
-                <td>
-                  <span className={`badge badge-${getStatusColor(order.status)}`}>
-                    {order.status.replace('_', ' ')}
-                  </span>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <Link to={`/orders/${order.id}/journey`} className="btn btn-secondary btn-sm" title="View Journey">
-                      <Route size={14} />
-                    </Link>
-                    <Link to={`/orders/${order.id}`} className="btn btn-secondary btn-sm" title="Edit Order">
-                      <Eye size={14} />
-                    </Link>
-                    {getNextStatus(order.status) && (
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => updateStatusMutation.mutate({ id: order.id, status: getNextStatus(order.status)! })}
-                        disabled={updateStatusMutation.isPending}
-                      >
-                        <ArrowRight size={14} />
-                      </button>
-                    )}
-                  </div>
-                </td>
+        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 style={{ fontWeight: 600, fontSize: '1rem', margin: 0 }}>
+            Order List ({filteredOrders?.length || 0})
+          </h3>
+        </div>
+        {filteredOrders?.length > 0 ? (
+          <table className="table" style={{ marginBottom: 0 }}>
+            <thead>
+              <tr>
+                <th>Order #</th>
+                <th>Customer</th>
+                <th>Product</th>
+                <th>Delivery</th>
+                <th>Activity</th>
+                <th>Status</th>
+                <th style={{ width: '150px', textAlign: 'right' }}>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {orders?.length === 0 && <div className="empty-state">No orders found</div>}
+            </thead>
+            <tbody>
+              {filteredOrders.map((order: any) => (
+                <tr key={order.id}>
+                  <td style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '0.8125rem' }}>{order.orderNumber}</td>
+                  <td>
+                    <div style={{ fontWeight: 500 }}>{order.customer?.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {order.customer?.city}
+                    </div>
+                  </td>
+                  <td>
+                    <div>{order.product?.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {order.product?.radionuclide}
+                    </div>
+                  </td>
+                  <td>
+                    <div>{format(new Date(order.deliveryDate), 'MMM dd, yyyy')}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {format(new Date(order.deliveryTimeStart), 'HH:mm')} - {format(new Date(order.deliveryTimeEnd), 'HH:mm')}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 500 }}>
+                      {order.requestedActivity} {order.activityUnit}
+                    </div>
+                    {order.calculatedProductionActivity && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Prod: {order.calculatedProductionActivity.toFixed(1)} {order.activityUnit}
+                      </div>
+                    )}
+                  </td>
+                  <td>
+                    <StatusBadge status={order.status} size="sm" />
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <Link to={`/orders/${order.id}/journey`} className="btn btn-sm btn-outline" title="View Journey">
+                        <Route size={14} />
+                      </Link>
+                      <Link to={`/orders/${order.id}`} className="btn btn-sm btn-outline" title="Edit Order">
+                        <Eye size={14} />
+                      </Link>
+                      {getNextStatus(order.status) && (
+                        <button
+                          className="btn btn-sm btn-primary"
+                          onClick={() => updateStatusMutation.mutate({ id: order.id, status: getNextStatus(order.status)! })}
+                          disabled={updateStatusMutation.isPending}
+                          title={`Move to ${statusDescriptions[getNextStatus(order.status)!]?.label}`}
+                        >
+                          <ArrowRight size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div style={{ padding: '2rem' }}>
+            <EmptyState 
+              title="No orders found"
+              message="Create your first order to get started"
+              icon="package"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
