@@ -40,6 +40,17 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
 - **Security**: Status state machines to prevent invalid transitions, comprehensive audit logging for critical operations.
 
 ## Recent Changes (2026-02-02)
+- **Dashboard Command Center**: Complete operations dashboard overhaul with:
+  - End-to-end journey funnel stepper showing order flow from Submitted → Delivered
+  - KPI cards with deep-link routing to filtered pages
+  - Work queues (Validation, QC, QP Release, Logistics) with clickable items
+  - Exceptions & Alerts panel for QC failures, delays, and on-hold items
+  - Capacity utilization widget showing 7-day capacity overview
+  - Recent activity timeline with status change events
+- **Department Dashboards**: Role-specific views at `/dashboard/qc`, `/dashboard/qp`, `/dashboard/dispensing`, `/dashboard/logistics`
+- **Customer Portal Dashboard**: Enhanced with journey funnel, arriving today queue, in-transit tracking
+- **Reusable Dashboard Components**: DashboardHeader, JourneyFunnelStepper, QueueList, ExceptionPanel, RecentActivityTimeline, CapacityWidget
+- **Backend Dashboard API**: Aggregated endpoints at `/dashboard/overview`, `/dashboard/qc`, `/dashboard/qp`, `/dashboard/dispensing`, `/dashboard/logistics`, `/dashboard/portal`
 - **Enhanced Batch Management**: Extended to 19 batch statuses with full state machine, BatchEvent audit trail, role-based transition enforcement, KPI cards, filter widgets, and Batch Journey page with visual stepper/timeline
 - **Order Journey Tracking**: Visual stepper, timeline, "What happens next" panel with role-based actions
 

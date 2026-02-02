@@ -1,7 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
-interface KpiCardProps {
+export interface KpiCardProps {
   title: string;
   value: number | string;
   subtext?: string;
@@ -12,6 +13,7 @@ interface KpiCardProps {
   onClick?: () => void;
   loading?: boolean;
   active?: boolean;
+  linkTo?: string;
 }
 
 const colorStyles: Record<string, { bg: string; text: string; accent: string }> = {
@@ -33,16 +35,27 @@ export function KpiCard({
   color = 'default',
   onClick,
   loading = false,
-  active = false
+  active = false,
+  linkTo
 }: KpiCardProps) {
+  const navigate = useNavigate();
   const styles = colorStyles[color];
+  const isClickable = onClick || linkTo;
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    } else if (linkTo) {
+      navigate(linkTo);
+    }
+  };
 
   return (
     <div 
       className="card"
       style={{ 
         backgroundColor: styles.bg,
-        cursor: onClick ? 'pointer' : 'default',
+        cursor: isClickable ? 'pointer' : 'default',
         transition: 'transform 0.2s, box-shadow 0.2s',
         minWidth: '180px',
         minHeight: '100px',
@@ -51,9 +64,9 @@ export function KpiCard({
         boxShadow: active ? `0 0 0 3px ${styles.accent}20` : '0 1px 3px rgba(0,0,0,0.05)',
         borderRadius: '12px',
       }}
-      onClick={onClick}
-      onMouseEnter={(e) => onClick && (e.currentTarget.style.transform = 'translateY(-2px)')}
-      onMouseLeave={(e) => onClick && (e.currentTarget.style.transform = 'translateY(0)')}
+      onClick={handleClick}
+      onMouseEnter={(e) => isClickable && (e.currentTarget.style.transform = 'translateY(-2px)')}
+      onMouseLeave={(e) => isClickable && (e.currentTarget.style.transform = 'translateY(0)')}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', height: '100%' }}>
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>

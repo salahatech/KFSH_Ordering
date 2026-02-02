@@ -1,0 +1,214 @@
+You are Replit AI acting as a Senior UI/UX Designer + Full-Stack Engineer.
+
+Context:
+We already have a RadioPharma OMS with Orders, Planner, Batches, QC, QP Release, Dispensing, Shipments, Customer Portal, Finance, Product Catalog, Notifications.
+Enhance the MAIN DASHBOARD to be the single operational “command center” that:
+1) Has excellent UI/UX (clear, modern, readable)
+2) Covers the full end-to-end process from Order start → Delivery
+3) Includes more detail and actionable insights (not just counts)
+4) Every widget/list item is clickable and deep-links to the relevant page with filters applied
+5) Supports role-based dashboards (internal roles + customer portal dashboard)
+6) Shows a unified “journey” monitoring view that ties everything together
+
+Tech:
+- React + TypeScript (frontend)
+- Node.js (NestJS preferred) + TypeScript (backend)
+- PostgreSQL + Prisma
+- JWT + RBAC
+- Use existing design system and create reusable dashboard widgets
+
+========================================================
+1) DASHBOARD UX PRINCIPLES (MANDATORY)
+- Dashboard must be action-oriented (every widget navigates to next step list).
+- Use clear status badges and color meaning consistently.
+- Include “Last refreshed at” and “Refresh” action.
+- Show applied filters as chips.
+- Provide empty states and skeleton loaders.
+- No dead widgets: every card, row, and chart must be clickable.
+
+========================================================
+2) DASHBOARD INFORMATION ARCHITECTURE (MANDATORY)
+Create 3 dashboard modes (role-based):
+A) Internal Operations Dashboard (Admin/Ops/Planner)
+B) Department Dashboards (QC, QP, Dispensing, Logistics, Finance)
+C) Customer Portal Dashboard (Customer users)
+
+Add a dashboard switcher:
+- “Operations Overview”
+- “QC”
+- “QP Release”
+- “Dispensing”
+- “Logistics”
+- “Finance”
+- “Customer” (for customer portal users only)
+
+========================================================
+3) OPERATIONS OVERVIEW DASHBOARD (END-TO-END PROCESS)
+Create a dashboard layout with these sections:
+
+3.1 End-to-End Journey Funnel (Top)
+A horizontal journey stepper with counts:
+Submitted → Validated → Scheduled → In Production → QC Pending → Released → Dispensing → Packed → Dispatched → Delivered
+Each step:
+- shows count of orders currently in that stage
+- shows “late” count badge if SLA exceeded
+- is clickable:
+  - navigates to /orders with status filter applied
+  - OR navigates to the department queue page if that stage belongs to a module (QC queue, QP queue, etc.)
+
+3.2 KPI Cards (Actionable)
+Cards:
+- Orders due today (click → /orders?due=today)
+- Orders late / at risk (click → /orders?risk=high)
+- Batches awaiting QC (click → /qc?status=QC_PENDING)
+- Batches awaiting QP release (click → /release?status=AWAITING_QP)
+- Ready to dispense (released) (click → /dispensing?ready=true)
+- Shipments ready to dispatch (click → /shipments?status=READY_TO_DISPATCH)
+- Shipments delayed (click → /shipments?delay=true)
+- Delivered today (click → /shipments?delivered=today)
+
+3.3 “Work Queues” Lists (Most important)
+Four side-by-side lists with max 8 rows each (View all link):
+- Validation Queue (orders awaiting validation)
+- QC Queue (batches awaiting QC)
+- QP Queue (batches awaiting release)
+- Logistics Queue (shipments to pack/dispatch)
+Each row shows:
+- identifier (Order No / Batch No / Shipment No)
+- customer
+- delivery ETA
+- status badge
+- “Next action” label (e.g., “Enter QC results”)
+Row click deep-links to its detail page.
+
+3.4 Exceptions & Alerts (Operational)
+A panel that groups exceptions:
+- Failed QC
+- On Hold batches
+- Expired reservations
+- Capacity full days
+- Delivery delays
+Each alert is clickable to a filtered page.
+
+3.5 Capacity & Utilization (if minutes-based scheduling exists)
+- “Reserved vs Committed minutes” for next 7 days (table or chart)
+- Each day row clickable → /planner?date=YYYY-MM-DD
+
+3.6 “Recent Activity” Timeline (Audit-friendly)
+Show last 20 system events (status changes):
+- “Order validated”, “Batch released”, “Shipment dispatched”, etc.
+Each event row clickable to open the related entity detail.
+
+========================================================
+4) DEPARTMENT DASHBOARDS (DEEPER DETAIL)
+Each department dashboard should have:
+- KPI cards relevant to that department
+- Filters (date range, status, product, customer)
+- A prioritized queue list with “next action” CTA
+- An “exceptions” section
+- All items clickable to module pages with filters
+
+4.1 QC Dashboard
+- KPIs: awaiting samples, QC in progress, QC failed, nearing delivery deadlines
+- Queue list: batches sorted by delivery urgency
+- Click → /qc or /qc/batches/:id
+
+4.2 QP Dashboard
+- KPIs: awaiting QP, on hold, released today, rejected
+- Queue list with risk flags
+- Click → /release or /release/batches/:id
+
+4.3 Dispensing Dashboard
+- KPIs: ready to dispense, blocked (not released), dispensing in progress, dispensed today
+- Queue list with dose unit progress
+- Click → /dispensing or /dispensing/batches/:id
+
+4.4 Logistics Dashboard
+- KPIs: ready to pack, ready to dispatch, in transit, delayed, delivered today
+- Queue list with ETA and last checkpoint
+- Click → /shipments or /shipments/:id
+
+4.5 Finance Dashboard (if enabled)
+- KPIs: invoices due, overdue AR, AP due, cash collected today
+- Click → /finance/ar, /finance/ap, /finance/reports
+
+========================================================
+5) CUSTOMER PORTAL DASHBOARD (MANDATORY)
+For customer users create /portal/dashboard:
+- “My Orders Journey” stepper with counts:
+  Submitted → Confirmed → Scheduled → In production → Dispatched → Delivered
+- “Orders arriving today” list
+- “In transit” list with ETA and last update
+- “Delivered recently” list
+- Notification preferences widget:
+  - Email on/off, SMS on/off, and what events they want
+Every list item clickable to /portal/orders/:id journey page.
+
+========================================================
+6) CLICKABLE WIDGETS / DEEP LINKS (CRITICAL)
+Implement a standard deep-link format across the app:
+- /orders?status=VALIDATED&from=YYYY-MM-DD&to=YYYY-MM-DD&customerId=...
+- /qc?status=QC_PENDING&productId=...
+- /release?status=AWAITING_QP
+- /dispensing?ready=true
+- /shipments?status=IN_TRANSIT&delay=true
+
+On dashboard widgets:
+- clicking card navigates with preset filters
+- clicking “View all” navigates to module list with same filters
+- clicking row navigates to entity details
+
+========================================================
+7) BACKEND SUPPORT (APIs) (MANDATORY)
+Create aggregated dashboard endpoints for performance:
+- GET /dashboard/overview?dateRange=...&site=...
+Returns:
+- journey counts per stage
+- KPIs counts
+- top queues (validation, QC, QP, logistics)
+- exceptions summary
+- capacity summary (7 days)
+- recent activity events
+
+Also create:
+- GET /dashboard/qc
+- GET /dashboard/qp
+- GET /dashboard/dispensing
+- GET /dashboard/logistics
+- GET /portal/dashboard
+
+All endpoints must apply RBAC + customer scoping.
+
+========================================================
+8) REUSABLE DASHBOARD COMPONENTS (MANDATORY)
+Create shared components:
+- <DashboardHeader title lastRefreshed onRefresh />
+- <JourneyFunnelStepper stages onClickStage />
+- <KpiCard linkTo />
+- <QueueList title rows viewAllLink />
+- <ExceptionPanel items />
+- <CapacityWidget />
+- <RecentActivityTimeline />
+
+========================================================
+9) UX QUALITY REQUIREMENTS
+- Provide skeleton loaders for dashboard
+- Show friendly error states and retry
+- Keep layout responsive
+- Use consistent StatusBadge everywhere
+- Allow “pin” favorite widgets (optional Phase 2)
+
+========================================================
+10) SEED DATA + DEMO
+Seed diverse orders/batches/shipments so dashboard shows meaningful content.
+Update README:
+- explain how dashboard links to each module
+- show how to monitor an order end-to-end from dashboard click → delivered
+
+Implementation order:
+1) Build reusable dashboard components + deep-link routing
+2) Add backend aggregated endpoints
+3) Implement Operations Overview dashboard with journey funnel
+4) Add department dashboards
+5) Add customer portal dashboard
+6) Add recent activity timeline and exceptions panel

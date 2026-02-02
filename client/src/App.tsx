@@ -32,6 +32,10 @@ import PortalNewOrder from './pages/portal/PortalNewOrder';
 import PortalInvoices from './pages/portal/PortalInvoices';
 import PortalOrderJourney from './pages/portal/PortalOrderJourney';
 import Settings from './pages/Settings';
+import DashboardQC from './pages/DashboardQC';
+import DashboardQP from './pages/DashboardQP';
+import DashboardDispensing from './pages/DashboardDispensing';
+import DashboardLogistics from './pages/DashboardLogistics';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -139,6 +143,10 @@ export default function App() {
               <Layout>
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
+                  <Route path="/dashboard/qc" element={<DashboardQC />} />
+                  <Route path="/dashboard/qp" element={<DashboardQP />} />
+                  <Route path="/dashboard/dispensing" element={<DashboardDispensing />} />
+                  <Route path="/dashboard/logistics" element={<DashboardLogistics />} />
                   <Route path="/customers" element={<Customers />} />
                   <Route path="/products" element={<Products />} />
                   <Route path="/orders" element={<Orders />} />
