@@ -29,6 +29,7 @@ model User {
   batchReleases BatchRelease[]
   approvalRequests ApprovalRequest[] @relation("ApprovalRequester")
   approvalActions  ApprovalAction[]  @relation("ApprovalActor")
+  dispensedDoses   DoseUnit[]        @relation("DoseDispenser")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -89,6 +90,9 @@ model Customer {
   orders              Order[]
   users               User[]
   shipments           Shipment[]
+  reservations        Reservation[]
+  contracts           Contract[]
+  invoices            Invoice[]
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }
@@ -158,6 +162,10 @@ model Product {
   customerProducts      CustomerProduct[]
   orders                Order[]
   batches               Batch[]
+  reservations          Reservation[]
+  contractPriceItems    ContractPriceItem[]
+  invoiceItems          InvoiceItem[]
+  timeStandards         TimeStandard[]
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
 }
@@ -222,6 +230,7 @@ model Order {
   shipmentId            String?
   shipment              Shipment?   @relation(fields: [shipmentId], references: [id])
   orderHistory          OrderHistory[]
+  doseUnits             DoseUnit[]
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
 }
@@ -276,6 +285,7 @@ model Batch {
   materialLots        BatchMaterialLot[]
   qcResults           QCResult[]
   batchReleases       BatchRelease[]
+  doseUnits           DoseUnit[]
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 }
@@ -304,6 +314,7 @@ model Equipment {
   maintenanceNotes  String?
   synthesisBatches  Batch[]  @relation("SynthesisModule")
   hotCellBatches    Batch[]  @relation("HotCell")
+  resourceCalendars ResourceCalendar[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -410,6 +421,7 @@ model Shipment {
   status              ShipmentStatus @default(CREATED)
   notes               String?
   orders              Order[]
+  doseUnits           DoseUnit[]
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 }
@@ -572,4 +584,278 @@ model ApprovalAction {
   actionAt          DateTime        @default(now())
 
   @@index([approvalRequestId])
+}
+
+// ==================== DOSE DISPENSING ====================
+
+enum DoseUnitStatus {
+  CREATED
+  LABELED
+  DISPENSED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  WASTED
+}
+
+model DoseUnit {
+  id                  String         @id @default(uuid())
+  doseNumber          String         @unique
+  batchId             String
+  batch               Batch          @relation(fields: [batchId], references: [id])
+  orderId             String?
+  order               Order?         @relation(fields: [orderId], references: [id])
+  patientReference    String?
+  requestedActivity   Float
+  dispensedActivity   Float?
+  calibrationTime     DateTime?
+  activityUnit        String         @default("mCi")
+  volume              Float?
+  volumeUnit          String         @default("mL")
+  containerType       String?
+  labelPrinted        Boolean        @default(false)
+  labelPrintedAt      DateTime?
+  dispensedById       String?
+  dispensedBy         User?          @relation("DoseDispenser", fields: [dispensedById], references: [id])
+  dispensedAt         DateTime?
+  status              DoseUnitStatus @default(CREATED)
+  notes               String?
+  shipmentId          String?
+  shipment            Shipment?      @relation(fields: [shipmentId], references: [id])
+  invoiceItemId       String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+}
+
+// ==================== CAPACITY & SLOT MANAGEMENT ====================
+
+enum ResourceType {
+  CYCLOTRON
+  SYNTHESIS_MODULE
+  HOT_CELL
+  DISPENSING_CELL
+  QC_LAB
+}
+
+model ResourceCalendar {
+  id              String       @id @default(uuid())
+  resourceId      String
+  resource        Equipment    @relation(fields: [resourceId], references: [id])
+  date            DateTime     @db.Date
+  startTime       DateTime
+  endTime         DateTime
+  capacityMinutes Int
+  usedMinutes     Int          @default(0)
+  isAvailable     Boolean      @default(true)
+  notes           String?
+  slots           DeliverySlot[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([resourceId, date])
+}
+
+model DeliveryWindow {
+  id              String         @id @default(uuid())
+  name            String
+  date            DateTime       @db.Date
+  startTime       DateTime
+  endTime         DateTime
+  capacityMinutes Int
+  usedMinutes     Int            @default(0)
+  isActive        Boolean        @default(true)
+  slots           DeliverySlot[]
+  reservations    Reservation[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([date, startTime, endTime])
+}
+
+model DeliverySlot {
+  id                String           @id @default(uuid())
+  windowId          String
+  window            DeliveryWindow   @relation(fields: [windowId], references: [id], onDelete: Cascade)
+  resourceCalendarId String?
+  resourceCalendar  ResourceCalendar? @relation(fields: [resourceCalendarId], references: [id])
+  slotTime          DateTime
+  durationMinutes   Int
+  capacityMinutes   Int
+  usedMinutes       Int              @default(0)
+  isAvailable       Boolean          @default(true)
+  reservations      Reservation[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([windowId, slotTime])
+}
+
+// ==================== RESERVATIONS ====================
+
+enum ReservationStatus {
+  TENTATIVE
+  CONFIRMED
+  CONVERTED
+  CANCELLED
+  EXPIRED
+}
+
+model Reservation {
+  id                String            @id @default(uuid())
+  reservationNumber String            @unique
+  customerId        String
+  customer          Customer          @relation(fields: [customerId], references: [id])
+  productId         String
+  product           Product           @relation(fields: [productId], references: [id])
+  windowId          String?
+  window            DeliveryWindow?   @relation(fields: [windowId], references: [id])
+  slotId            String?
+  slot              DeliverySlot?     @relation(fields: [slotId], references: [id])
+  requestedDate     DateTime
+  requestedActivity Float
+  activityUnit      String            @default("mCi")
+  estimatedMinutes  Int
+  numberOfDoses     Int               @default(1)
+  status            ReservationStatus @default(TENTATIVE)
+  convertedOrderId  String?
+  expiresAt         DateTime?
+  notes             String?
+  createdById       String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([customerId, requestedDate])
+  @@index([status])
+}
+
+// ==================== CONTRACTS & PRICING ====================
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+model Contract {
+  id              String         @id @default(uuid())
+  contractNumber  String         @unique
+  customerId      String
+  customer        Customer       @relation(fields: [customerId], references: [id])
+  name            String
+  startDate       DateTime
+  endDate         DateTime
+  paymentTermsDays Int           @default(30)
+  creditLimit     Float?
+  discountPercent Float          @default(0)
+  status          ContractStatus @default(DRAFT)
+  notes           String?
+  priceItems      ContractPriceItem[]
+  invoices        Invoice[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([customerId])
+  @@index([status])
+}
+
+model ContractPriceItem {
+  id              String   @id @default(uuid())
+  contractId      String
+  contract        Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id])
+  unitPrice       Float
+  priceUnit       String   @default("per mCi")
+  minimumQuantity Float?
+  discountPercent Float    @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([contractId, productId])
+}
+
+// ==================== INVOICING & AR ====================
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  CANCELLED
+  DISPUTED
+}
+
+model Invoice {
+  id              String        @id @default(uuid())
+  invoiceNumber   String        @unique
+  customerId      String
+  customer        Customer      @relation(fields: [customerId], references: [id])
+  contractId      String?
+  contract        Contract?     @relation(fields: [contractId], references: [id])
+  invoiceDate     DateTime      @default(now())
+  dueDate         DateTime
+  subtotal        Float         @default(0)
+  taxAmount       Float         @default(0)
+  discountAmount  Float         @default(0)
+  totalAmount     Float         @default(0)
+  paidAmount      Float         @default(0)
+  currency        String        @default("USD")
+  status          InvoiceStatus @default(DRAFT)
+  notes           String?
+  items           InvoiceItem[]
+  payments        Payment[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([customerId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model InvoiceItem {
+  id              String   @id @default(uuid())
+  invoiceId       String
+  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  orderId         String?
+  doseUnitId      String?
+  description     String
+  productId       String?
+  product         Product? @relation(fields: [productId], references: [id])
+  quantity        Float
+  unitPrice       Float
+  discountPercent Float    @default(0)
+  taxPercent      Float    @default(0)
+  lineTotal       Float
+  createdAt       DateTime @default(now())
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  invoiceId       String
+  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  paymentDate     DateTime @default(now())
+  amount          Float
+  paymentMethod   String
+  referenceNumber String?
+  notes           String?
+  createdAt       DateTime @default(now())
+}
+
+// ==================== TIME STANDARDS ====================
+
+model TimeStandard {
+  id              String   @id @default(uuid())
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id])
+  processType     String
+  standardMinutes Int
+  description     String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([productId, processType])
 }
