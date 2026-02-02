@@ -32,6 +32,7 @@ model User {
   dispensedDoses   DoseUnit[]        @relation("DoseDispenser")
   orderHistories   OrderHistory[]
   batchEvents      BatchEvent[]
+  uploadedDocuments CustomerDocument[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -69,14 +70,24 @@ model RefreshToken {
 
 model Customer {
   id                  String    @id @default(uuid())
-  name                String
   code                String    @unique
+  name                String
+  nameEn              String?
+  nameAr              String?
+  email               String?
+  mobile              String?
+  phone               String?
+  
+  crNumber            String?
+  taxNumber           String?
+  
+  fullAddress         String?
   shortAddress        String?
   buildingNo          String?
   street              String?
   secondaryNo         String?
   district            String?
-  postalCode          String
+  postalCode          String?
   cityId              String?
   city                SettingCity?   @relation(fields: [cityId], references: [id])
   regionId            String?
@@ -84,8 +95,12 @@ model Customer {
   countryId           String?
   country             SettingCountry? @relation(fields: [countryId], references: [id])
   address             String?
-  phone               String
-  email               String
+  
+  latitude            Decimal?  @db.Decimal(9, 6)
+  longitude           Decimal?  @db.Decimal(9, 6)
+  
+  logoUrl             String?
+  
   licenseNumber       String?
   licenseExpiryDate   DateTime?
   deliveryWindowStart String?
@@ -95,8 +110,10 @@ model Customer {
   categoryId          String?
   category            SettingCategory? @relation(fields: [categoryId], references: [id])
   isActive            Boolean   @default(true)
+  
   permittedProducts   CustomerProduct[]
   contacts            CustomerContact[]
+  documents           CustomerDocument[]
   orders              Order[]
   users               User[]
   shipments           Shipment[]
@@ -105,6 +122,31 @@ model Customer {
   invoices            Invoice[]
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+}
+
+enum DocumentType {
+  CR
+  TAX_CERT
+  LICENSE
+  CONTRACT
+  NDA
+  OTHER
+}
+
+model CustomerDocument {
+  id              String       @id @default(uuid())
+  customerId      String
+  customer        Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  docType         DocumentType
+  docName         String
+  fileUrl         String
+  fileSizeBytes   Int
+  mimeType        String
+  uploadedByUserId String?
+  uploadedBy      User?        @relation(fields: [uploadedByUserId], references: [id])
+  uploadedAt      DateTime     @default(now())
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 }
 
 model CustomerContact {

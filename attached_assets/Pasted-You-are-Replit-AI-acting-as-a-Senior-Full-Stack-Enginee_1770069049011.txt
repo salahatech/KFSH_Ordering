@@ -1,0 +1,154 @@
+You are Replit AI acting as a Senior Full-Stack Engineer + UX-focused Product Designer.
+
+Context:
+We already have a RadioPharma OMS app with Customers module (create/edit/list), RBAC, PostgreSQL+Prisma, React+TypeScript frontend, Node+TypeScript backend.
+Enhance the Customer Create/Edit experience with better UX + additional fields + validations + document management.
+
+========================================================
+1) CUSTOMER MASTER DATA ENHANCEMENTS (DATABASE + API)
+Update Customer model to include:
+
+Core fields:
+- nameEn (string, required)
+- nameAr (string, required)  // Arabic name
+- email (string, optional but if provided must be valid email format)
+- mobile (string, required)  // store E.164 preferred or enforce KSA format
+- phone (string, optional)
+
+Business identifiers:
+- crNumber (string, required)        // Commercial Registration
+- taxNumber (string, required)       // VAT/Tax number
+
+Address (enhanced):
+- fullAddress (string, required) // large text area
+- city (string, required)
+- region (string, optional)
+- country (string, default "Saudi Arabia")
+- postalCode (string, optional)
+
+GPS Location:
+- latitude (Decimal(9,6), optional)
+- longitude (Decimal(9,6), optional)
+
+Logo:
+- logoUrl (string, optional)  // store uploaded file URL/path
+
+========================================================
+2) CUSTOMER DOCUMENTS (MULTIPLE FILES WITH TYPE + SIZE LIMIT)
+Add CustomerDocument table:
+- id
+- customerId
+- docType (enum/string)  // e.g., CR, TAX_CERT, LICENSE, CONTRACT, NDA, OTHER
+- docName (string)
+- fileUrl (string)
+- fileSizeBytes (int)
+- mimeType (string)
+- uploadedByUserId
+- uploadedAt (UTC)
+
+Rules:
+- Allow multiple documents per customer.
+- Maximum size per document = 5 MB (5 * 1024 * 1024 bytes).
+- Accept only common safe types: PDF, PNG, JPG, DOC/DOCX (configurable).
+- Validate size server-side AND client-side.
+- Provide meaningful error:
+  - FILE_TOO_LARGE: “File exceeds 5 MB. Please upload a smaller document.”
+  - INVALID_FILE_TYPE: “Unsupported file type. Allowed: PDF, PNG, JPG, DOCX.”
+
+========================================================
+3) FRONTEND UI/UX ENHANCEMENTS (CUSTOMER CREATE/EDIT PAGE)
+Page: /customers/new and /customers/:id/edit
+
+3.1 Layout & Usability
+- Use a clean, sectioned form with headings:
+  A) Basic Info
+  B) Address & Location
+  C) Business IDs
+  D) Branding
+  E) Documents
+- Make the Full Address control wide:
+  - Use full-width layout and a multi-line textarea (min 3-4 rows)
+  - Ensure responsive spacing and alignment
+- Add “Save” and “Save & Close” buttons (disable while saving)
+- Show field-level inline errors + top form summary for multiple errors
+
+3.2 Validations (Client + Server)
+Email:
+- If email is provided, validate format and show inline error “Enter a valid email.”
+Mobile:
+- Validate Saudi format or E.164:
+  - Prefer E.164 (+9665xxxxxxxx)
+  - Also accept 05xxxxxxxx and normalize to +966 format
+- Show meaningful error: “Enter a valid Saudi mobile number.”
+
+Required fields:
+- nameEn, nameAr, mobile, city, fullAddress, crNumber, taxNumber
+- Add helpful placeholder examples for CR/Tax
+
+3.3 GPS Location UX
+Add GPS inputs with good UX:
+- Two numeric inputs (lat/lng) with validation range:
+  - lat: -90..90
+  - lng: -180..180
+- Add button “Pick on Map” (use simple map modal stub if full maps integration is heavy)
+  - If maps not available now, create a modal that accepts lat/lng and stores them
+- Add button “Use current location” (optional; if not possible in environment, keep as stub)
+
+3.4 Customer Logo Upload
+- Add logo upload control with preview (thumbnail)
+- Validate file type (PNG/JPG) and max size (5 MB)
+- Upload to backend and store logoUrl
+- Allow remove/replace logo
+
+3.5 Customer Documents Manager (Multiple Docs)
+Create a Documents section:
+- Upload multiple documents with:
+  - Doc Type dropdown (CR, TAX_CERT, LICENSE, CONTRACT, NDA, OTHER)
+  - File picker
+  - Display list/table of uploaded docs:
+    columns: type, name, size, uploadedAt, uploadedBy, actions (download, delete)
+- Enforce max 5 MB per file
+- Show progress indicator during upload
+
+========================================================
+4) BACKEND FILE UPLOAD (MANDATORY)
+Implement endpoints:
+- POST /customers/:id/logo
+- POST /customers/:id/documents
+- GET /customers/:id/documents
+- DELETE /customers/:id/documents/:docId
+
+Implementation requirements:
+- Use multipart/form-data uploads
+- Validate file type + size server-side
+- Store files locally in dev (e.g., /uploads) and abstract storage interface so it can be swapped for S3 later.
+- Return fileUrl and metadata.
+- Ensure RBAC:
+  - Only Admin / Order Desk / Finance Admin roles can create/edit customer and upload docs
+  - Customer portal users cannot edit master data unless explicitly allowed.
+
+========================================================
+5) CUSTOMER LIST PAGE (SMALL ENHANCEMENTS)
+On /customers list:
+- Show columns: Name (EN/AR), City, Mobile, Email, CR, Tax, Status
+- Add search: nameEn/nameAr/mobile/email/cr/tax
+- Add filter chips: “Missing Docs”, “License expired” (optional if license module exists)
+
+========================================================
+6) SEED DATA + MIGRATION
+- Update Prisma schema + migrations
+- Seed 3 customers with nameAr and sample docs metadata (files can be empty placeholders)
+- Update README with steps:
+  - Create customer
+  - Upload logo
+  - Upload multiple documents and validate 5MB limit
+
+========================================================
+7) ACCEPTANCE CRITERIA
+- Customer form has Arabic name field and is required.
+- Full Address input is visually wide and easy to use (full-width textarea).
+- GPS lat/lng stored and validated.
+- Email and mobile validated with meaningful errors.
+- Logo upload works with preview.
+- Multiple documents upload works, doc type required, max 5MB each, with list and delete.
+- Server-side validation prevents invalid uploads even if frontend bypassed.
