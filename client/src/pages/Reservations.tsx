@@ -12,6 +12,7 @@ import {
   Calendar,
   Building2,
   Package,
+  Copy,
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -126,6 +127,19 @@ export default function Reservations() {
       numberOfDoses: '1',
       notes: '',
     });
+  };
+
+  const handleCopyReservation = (reservation: any) => {
+    setCreateForm({
+      customerId: reservation.customerId || '',
+      productId: reservation.productId || '',
+      windowId: '',
+      requestedDate: new Date().toISOString().split('T')[0],
+      requestedActivity: reservation.requestedActivity?.toString() || '',
+      numberOfDoses: reservation.numberOfDoses?.toString() || '1',
+      notes: reservation.notes || '',
+    });
+    setShowCreateModal(true);
   };
 
   const handleCreate = async () => {
@@ -277,6 +291,13 @@ export default function Reservations() {
                 </td>
                 <td>
                   <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <button
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => handleCopyReservation(reservation)}
+                      title="Copy as New"
+                    >
+                      <Copy size={14} />
+                    </button>
                     {reservation.status === 'TENTATIVE' && (
                       <>
                         <button
