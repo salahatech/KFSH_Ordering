@@ -287,9 +287,9 @@ router.post('/:id/convert', authenticateToken, async (req: Request, res: Respons
       { status: reservation.status }, { status: 'CONVERTED', orderId: order.id }, req);
 
     res.json({ reservation: { ...reservation, status: 'CONVERTED' }, order });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Convert reservation error:', error);
-    res.status(500).json({ error: 'Failed to convert reservation to order' });
+    res.status(500).json({ error: error.message || 'Failed to convert reservation to order' });
   }
 });
 

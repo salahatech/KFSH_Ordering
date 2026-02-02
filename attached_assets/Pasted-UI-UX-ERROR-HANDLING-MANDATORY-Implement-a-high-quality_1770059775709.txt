@@ -1,0 +1,51 @@
+UI/UX ERROR HANDLING (MANDATORY)
+
+Implement a high-quality error handling and messaging system that is meaningful for end users and consistent across the app.
+
+1) Error Strategy (Backend → Frontend)
+- Backend must return standardized error responses:
+  {
+    "code": "ORDER_TIME_NOT_FEASIBLE",
+    "message": "Delivery time is not feasible for this product’s shelf life.",
+    "userMessage": "We can’t deliver this dose at the selected time. Please choose an earlier delivery/injection time or reduce requested activity.",
+    "details": { ... },
+    "fieldErrors": [{ "field": "deliveryTime", "message": "Select an earlier time." }],
+    "traceId": "uuid"
+  }
+- Never expose stack traces or internal DB errors to end users.
+- Log technical error details server-side with traceId for support.
+
+2) Frontend UX Rules
+- Show errors in a user-friendly tone: what happened, why, and how to fix it.
+- Use inline validation for form fields (field-level errors).
+- Use a top-of-form summary for multiple errors (with jump-to-field).
+- Use non-blocking toast/snackbar for transient errors (e.g., “Failed to load orders. Retry”).
+- Use dedicated empty/error states for pages (with Retry button).
+- Use confirmation dialogs for destructive actions (cancel order, reject batch, etc.).
+- On success, show concise confirmation (toast) and update UI immediately.
+
+3) Validation Layers
+- Client-side validation: required fields, date/time format, numeric ranges.
+- Server-side validation: licensing, product permission, scheduling feasibility, status transitions.
+- Prevent invalid state transitions with clear messages (e.g., “You can’t dispatch before QP release.”)
+
+4) Meaningful Domain-Specific Errors (Examples to Implement)
+- LICENSE_EXPIRED:
+  "Customer license expired on {date}. Renew license to place orders."
+- PRODUCT_NOT_PERMITTED:
+  "This customer is not authorized to order {product}."
+- ORDER_TIME_NOT_FEASIBLE:
+  "Selected injection/delivery time is too late for {product}. Choose an earlier time."
+- CAPACITY_FULL:
+  "Production capacity is full for {date}. Try another slot or split the order."
+- QC_FAILED:
+  "QC failed for this batch. Orders cannot be dispatched. Create rework if time allows."
+- INVALID_STATUS_TRANSITION:
+  "This action isn’t allowed right now. Current status: {status}."
+
+5) Error Component System (Frontend)
+- Create reusable components:
+  - <InlineFieldError />
+  - <FormErrorSummary />
+  - <Toast /> notifications
+  - <ErrorStatePage title messa
