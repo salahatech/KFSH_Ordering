@@ -374,6 +374,14 @@ router.patch('/:id/status', authenticateToken, requireRole('Admin', 'Production 
       return;
     }
 
+    if (status === 'SCHEDULED' && !order.batchId) {
+      res.status(400).json({ 
+        error: 'Cannot set status to SCHEDULED without assigning to a batch',
+        userMessage: 'Please assign this order to a production batch first using the Planner.',
+      });
+      return;
+    }
+
     const updatedOrder = await prisma.order.update({
       where: { id: req.params.id },
       data: { status: status as OrderStatus },
