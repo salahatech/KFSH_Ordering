@@ -414,19 +414,56 @@ export default function Approvals() {
             <Filter size={18} style={{ color: 'var(--text-muted)' }} />
             <h3 style={{ fontWeight: 600, fontSize: '1rem', margin: 0 }}>All Approval Requests</h3>
           </div>
-          <div style={{ display: 'flex', gap: '0.25rem' }}>
-            {(['PENDING', 'APPROVED', 'REJECTED', 'all'] as const).map((f) => (
-              <button
-                key={f}
-                className={`btn btn-sm ${filter === f ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => setFilter(f)}
-              >
-                {f === 'PENDING' && <Clock size={14} />}
-                {f === 'APPROVED' && <CheckCircle size={14} />}
-                {f === 'REJECTED' && <XCircle size={14} />}
-                {f === 'all' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
-              </button>
-            ))}
+          <div style={{ 
+            display: 'inline-flex', 
+            background: 'var(--bg)', 
+            borderRadius: '8px', 
+            padding: '4px',
+            border: '1px solid var(--border)'
+          }}>
+            {([
+              { key: 'PENDING', label: 'Pending', icon: Clock, color: 'var(--warning)' },
+              { key: 'APPROVED', label: 'Approved', icon: CheckCircle, color: 'var(--success)' },
+              { key: 'REJECTED', label: 'Rejected', icon: XCircle, color: 'var(--danger)' },
+              { key: 'all', label: 'All', icon: null, color: 'var(--primary)' },
+            ] as const).map((f, idx, arr) => {
+              const isActive = filter === f.key;
+              const Icon = f.icon;
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => setFilter(f.key as typeof filter)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    fontSize: '0.8125rem',
+                    fontWeight: isActive ? 600 : 500,
+                    color: isActive ? '#fff' : 'var(--text-secondary)',
+                    background: isActive ? f.color : 'transparent',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = 'var(--bg-hover)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = 'transparent';
+                    }
+                  }}
+                >
+                  {Icon && <Icon size={14} />}
+                  {f.label}
+                </button>
+              );
+            })}
           </div>
         </div>
         <div style={{ padding: 0 }}>
