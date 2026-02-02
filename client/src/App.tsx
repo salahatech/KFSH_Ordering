@@ -20,6 +20,7 @@ import AuditLog from './pages/AuditLog';
 import Approvals from './pages/Approvals';
 import Dispensing from './pages/Dispensing';
 import Availability from './pages/Availability';
+import Reservations from './pages/Reservations';
 import Contracts from './pages/Contracts';
 import Invoices from './pages/Invoices';
 import PortalDashboard from './pages/portal/PortalDashboard';
@@ -148,6 +149,7 @@ export default function App() {
                 <Route path="/approvals" element={<Approvals />} />
                 <Route path="/dispensing" element={<Dispensing />} />
                 <Route path="/availability" element={<Availability />} />
+                <Route path="/reservations" element={<Reservations />} />
                 <Route path="/contracts" element={<Contracts />} />
                 <Route path="/invoices" element={<Invoices />} />
                 <Route path="/settings" element={<Settings />} />

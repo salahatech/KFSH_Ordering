@@ -200,6 +200,15 @@ cd server && npx tsx prisma/seed.ts
 6. Lu-177 DOTATATE (Lu-177, half-life: 9500 min) - Therapy
 
 ## Recent Changes
+- 2026-02-02: Reservations Page - Capacity Reservation System
+  - New Reservations page for managing capacity reservations
+  - Prevents overbooking based on dispensing/production time estimates
+  - Features: Create, confirm, cancel, convert to order
+  - Capacity checking with real-time availability display
+  - Estimated time calculation based on product time standards
+  - Stats dashboard: total, tentative, confirmed, converted
+  - Filter by status (Tentative, Confirmed, Cancelled, Converted, Expired)
+  - Window utilization visualization in create modal
 - 2026-02-02: Unified Modal Design Across All Pages
   - All popup modals now use consistent structure: modal-header, modal-body, modal-footer
   - Smooth animations (fade in backdrop + slide up modal) with backdrop blur
