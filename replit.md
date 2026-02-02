@@ -1,290 +1,46 @@
 # RadioPharma OMS - Order Management System
 
 ## Overview
-A comprehensive web application for managing radiopharmaceutical manufacturing operations, including ordering, production planning, QC testing, batch release, delivery, dose dispensing, capacity management, contracts/pricing, and invoicing. The system handles time-critical, decay-based products (PET and SPECT radiopharmaceuticals) with GMP-style traceability, radioactive decay calculations, and backward scheduling based on delivery times and product half-lives.
+RadioPharma OMS is a comprehensive web application designed for managing radiopharmaceutical manufacturing operations. It covers the entire lifecycle from ordering and production planning to quality control, batch release, delivery, and dose dispensing. The system specializes in handling time-critical, decay-based products (PET and SPECT radiopharmaceuticals), ensuring GMP-style traceability, precise radioactive decay calculations, and backward scheduling based on delivery times and product half-lives. This project aims to streamline complex operations, enhance efficiency, and ensure regulatory compliance in radiopharmaceutical production.
 
-## Project Status
-**Current State**: Fully functional MVP with all core features implemented including financial modules, capacity management, and Client Ordering Portal
+## User Preferences
+- No specific preferences recorded yet
 
-## Architecture
+## System Architecture
 
-### Backend (server/)
+### Backend
 - **Framework**: Express.js with TypeScript
-- **Database**: PostgreSQL with Prisma ORM (v5.22.0)
-- **Auth**: JWT with refresh tokens, RBAC (Role-Based Access Control)
-- **Port**: 3001
-- **API Docs**: Swagger available at /api-docs
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: JWT with refresh tokens and Role-Based Access Control (RBAC)
+- **API Documentation**: Swagger available at `/api-docs`
 
-### Frontend (client/)
+### Frontend
 - **Framework**: React 19 with TypeScript
 - **Build Tool**: Vite
 - **State Management**: Zustand
 - **Data Fetching**: TanStack React Query
 - **Routing**: React Router v7
-- **Port**: 5000 (proxies /api to backend)
+- **UI/UX**: Responsive design with a sidebar navigation, consistent modal design, and role-based routing for internal vs. client portal interfaces. The client portal features a distinct teal color scheme.
 
-### Database Schema
-Key entities:
-- **Users** & **Roles**: Authentication and RBAC
-- **Customers**: Hospital/clinic clients with license tracking
-- **Products**: Radiopharmaceuticals with half-life, synthesis times
-- **Orders**: Customer orders with activity requirements
-- **Batches**: Production batches linked to orders
-- **QCResults**: Quality control test results
-- **BatchReleases**: QP (Qualified Person) release records
-- **Shipments**: Delivery tracking
-- **DoseUnit**: Individual dose dispensing from batches
-- **DeliveryWindow**: Capacity windows for deliveries
-- **Reservation**: Capacity reservations
-- **Contract** & **ContractPriceItem**: Customer-specific pricing
-- **Invoice**, **InvoiceItem**, **Payment**: Accounts receivable
-- **AuditLogs**: GMP-compliant audit trail
-- **Notifications** & **SystemConfig**: System settings
-- **Settings Tables**: Countries, Cities, Regions, Categories, Couriers, Vehicles, DoseUnits, ProductTypes, ProductionMethods, Currencies
+### Core Architectural Decisions & Features
+- **Radioactive Decay Calculations**: Implements `A(t) = A0 * exp(-λt)` for backward scheduling and activity overage compensation.
+- **Production Planning**: Automated batch grouping, equipment scheduling, and conflict detection.
+- **Quality Control**: Product-specific QC test templates, numeric and pass/fail test types, automatic batch status updates.
+- **QP Release**: GMP-compliant electronic signature workflow.
+- **Dose Dispensing**: Management of individual dose units, patient reference tracking, label generation, activity tracking, and waste management.
+- **Logistics**: Shipment creation, tracking, delivery confirmation, and on-time delivery reporting.
+- **Audit Trail**: GMP-compliant logging of all operations with user, timestamp, and changes.
+- **Multi-Level Approval Workflows**: Configurable role-based approval chains (Order, Batch Release, Shipment, Customer Onboarding, Product Changes) with email notifications and an approval inbox.
+- **Availability & Capacity Management**: Delivery windows with minute-based capacity tracking, weekly calendar view, and real-time utilization visualization.
+- **Reservations**: Capacity reservation system with tentative/confirmed statuses and overbooking prevention.
+- **Contracts & Pricing**: Customer-specific contracts, payment terms, credit limits, and per-product pricing.
+- **Invoicing & Accounts Receivable**: Invoice generation from delivered orders, payment tracking, financial summaries, and PDF generation with ZATCA-compliant QR codes.
+- **Client Ordering Portal**: A self-service portal for customers to place orders, track history, and view invoices, featuring a separate UI/UX.
+- **System Settings**: Configurable lookup tables for master data management including geographic data (Country -> Region -> City hierarchy), product classifications, couriers, currencies (SAR default with exchange rates), and Saudi National Address format support for customers.
+- **Security**: Status state machines to prevent invalid transitions, comprehensive audit logging for critical operations.
 
-## Key Features
-
-### 1. Radioactive Decay Calculations
-- Formula: A(t) = A0 * exp(-λt) where λ = ln(2) / half_life
-- Backward scheduling: Calculate production start time based on delivery time
-- Activity overage calculations for decay compensation
-
-### 2. Production Planning
-- Automatic batch grouping by product and delivery window
-- Equipment scheduling (cyclotrons, synthesis modules, hot cells)
-- Conflict detection
-
-### 3. Quality Control
-- QC test templates per product
-- Numeric and pass/fail test types
-- Automatic batch status updates
-
-### 4. QP Release
-- Electronic signature with GMP compliance
-- Full batch release workflow
-
-### 5. Dose Dispensing
-- Create dose units from released batches
-- Patient reference tracking
-- Label generation workflow
-- Activity tracking and waste management
-- Container type and volume tracking
-
-### 6. Logistics
-- Shipment creation and tracking
-- Delivery confirmation with receiver signature
-- On-time delivery reporting
-
-### 7. Audit Trail
-- All operations logged with user, timestamp, and changes
-- Filterable by entity type, action, date range
-
-### 8. Multi-Level Approval Workflows
-- Configurable role-based approval chains for critical processes
-- 5 default workflows: Order Approval, Batch Release, Shipment Dispatch, Customer Onboarding, Product Changes
-- Email notifications via Resend for pending approvals, approvals, and rejections
-- Approval inbox with filtering, expandable details, and action history
-- ApprovalStatus component integrated into Orders and Batches pages
-
-### 9. Availability & Capacity Management
-- Delivery windows with minutes-based capacity tracking
-- Weekly calendar view with utilization visualization
-- Capacity generation for date ranges (exclude weekends option)
-- Real-time utilization percentages
-
-### 10. Reservations
-- Reserve capacity in delivery windows
-- Tentative and confirmed reservation statuses
-- Convert reservations to orders
-- Overbooking prevention
-
-### 11. Contracts & Pricing
-- Customer-specific contracts with payment terms
-- Credit limits and contract discounts
-- Per-product pricing with custom rates
-- Contract lifecycle management (Draft, Active, Expired, Terminated)
-
-### 12. Invoicing & Accounts Receivable
-- Generate invoices from delivered orders
-- Invoice line items with product details
-- Payment tracking (Bank Transfer, Check, Credit Card, Cash)
-- Financial summary dashboard (Total, Paid, Outstanding, Overdue)
-- Invoice status workflow (Draft, Sent, Paid, Partially Paid, Overdue)
-
-### 13. Client Ordering Portal
-- Self-service portal for hospitals to place orders directly
-- Separate customer-facing interface with teal color scheme
-- Portal Dashboard with order statistics and quick actions
-- Order History page with status tracking
-- 3-step New Order wizard (product selection, delivery scheduling, review)
-- Invoice viewing with payment history
-- Automatic role-based routing (Customer role -> portal, others -> internal system)
-
-### 14. System Settings
-- 10 configurable lookup tables for master data management
-- **Countries/Cities/Regions**: Geographic data with Arabic name support
-- **Categories**: Customer classification (Government, Private, University, Military, Clinic)
-- **Couriers/Vehicles**: Delivery fleet management with vehicle tracking
-- **Dose Units**: Radioactivity units (mCi, MBq, GBq, Ci, kBq)
-- **Product Types**: Classification (PET, SPECT, Therapeutic, Diagnostic)
-- **Production Methods**: Manufacturing processes (Cyclotron, Generator, Reactor, Synthesis)
-- **Currencies**: Multi-currency with SAR as default, exchange rate management
-- Saudi National Address format support for customers
-- Admin-only access for settings management
-
-## Demo Credentials
-All accounts use password: **admin123**
-
-| Role | Email | Permissions |
-|------|-------|-------------|
-| Admin | admin@radiopharma.com | Full system access |
-| Sales | sales@radiopharma.com | Create/approve orders, manage customers, view reports |
-| Production Planner | planner@radiopharma.com | Schedule batches, view reports |
-| QC Analyst | qc@radiopharma.com | Enter QC results, view reports |
-| Qualified Person | qp@radiopharma.com | Release batches, enter QC, view reports |
-| Logistics | logistics@radiopharma.com | Dispatch shipments, view reports |
-| Customer | customer@radiopharma.com | Create orders (portal access) |
-
-## Running the Application
-
-### Workflows
-- **Backend Server**: `cd server && npx tsx src/index.ts`
-- **Frontend**: `cd client && npx vite`
-
-### Database Commands
-```bash
-# Generate Prisma client
-cd server && npx prisma generate
-
-# Push schema to database
-cd server && npx prisma db push
-
-# Seed demo data
-cd server && npx tsx prisma/seed.ts
-```
-
-## API Endpoints
-
-### Authentication
-- POST /api/auth/login
-- POST /api/auth/logout
-- POST /api/auth/refresh
-- GET /api/auth/me
-
-### Core Resources
-- /api/customers - Customer management
-- /api/products - Product catalog
-- /api/orders - Order management
-- /api/batches - Batch management
-- /api/qc - Quality control
-- /api/shipments - Logistics
-- /api/planner - Production planning
-- /api/reports - Analytics
-- /api/audit - Audit logs
-- /api/approvals - Multi-level approval workflows
-
-### New Modules
-- /api/dispensing - Dose unit management
-- /api/availability - Delivery windows and capacity
-- /api/reservations - Capacity reservations
-- /api/contracts - Customer contracts and pricing
-- /api/invoices - Invoicing and payments
-- /api/settings - System settings and lookup tables
-
-## Products (Seeded)
-1. FDG-18 (F-18, half-life: 109.8 min) - PET
-2. NaF-18 (F-18, half-life: 109.8 min) - PET  
-3. Tc-99m MDP (Tc-99m, half-life: 360 min) - SPECT
-4. Tc-99m DTPA (Tc-99m, half-life: 360 min) - SPECT
-5. I-131 Sodium Iodide (I-131, half-life: 11520 min) - Therapy
-6. Lu-177 DOTATATE (Lu-177, half-life: 9500 min) - Therapy
-
-## Recent Changes
-- 2026-02-02: Enhanced Invoicing with PDF Generation and ZATCA QR
-  - Redesigned Invoice page UI with tabbed detail panel (Details, Payments)
-  - PDF invoice generation in A4 format using jsPDF library
-  - ZATCA-compliant QR code with TLV-encoded data (seller, VAT, date, totals)
-  - Professional invoice layout: header with company info, line items table, totals
-  - Download PDF button on invoice list and detail panel
-  - Enhanced stats cards with icons and better visual hierarchy
-  - Improved payment recording modal and payment history display
-  - VAT rate defaults to Saudi Arabia standard 15%
-- 2026-02-02: Enhanced Contracts Page UI
-  - Tabbed detail panel (Contract Info, Product Pricing)
-  - Contract period progress bar with days remaining indicator
-  - Add/delete product pricing for draft contracts
-  - "Expiring Soon" warning stat for contracts within 30 days
-  - Better visual hierarchy with icons and improved styling
-- 2026-02-02: Reservations Page - Capacity Reservation System
-  - New Reservations page for managing capacity reservations
-  - Prevents overbooking based on dispensing/production time estimates
-  - Features: Create, confirm, cancel, convert to order
-  - Capacity checking with real-time availability display
-  - Estimated time calculation based on product time standards
-  - Stats dashboard: total, tentative, confirmed, converted
-  - Filter by status (Tentative, Confirmed, Cancelled, Converted, Expired)
-  - Window utilization visualization in create modal
-- 2026-02-02: Unified Modal Design Across All Pages
-  - All popup modals now use consistent structure: modal-header, modal-body, modal-footer
-  - Smooth animations (fade in backdrop + slide up modal) with backdrop blur
-  - Unified close button styling with gray background and rounded corners
-  - Form fields use consistent form-label and form-input classes
-  - Footer buttons use consistent btn btn-secondary and btn btn-primary classes
-  - Updated pages: Settings, Users, Products, Customers, Release, Dispensing, Approvals, Invoices, Availability, Contracts
-- 2026-02-02: Cascading Location Hierarchy (Country -> Region -> City)
-  - Cities now belong to regions (Country -> Region -> City hierarchy)
-  - Added regionId field to SettingCity model
-  - Backend routes updated to filter cities by regionId
-  - Customer form updated: selecting a region loads only its cities
-  - Settings page updated to require region when adding/editing cities
-  - Seed data updated to link Saudi cities to their respective regions
-  - Customer form labels now in English only (removed mixed Arabic/English)
-- 2026-02-02: Customer Address Form Enhancement
-  - Updated customer creation/edit form with Saudi National Address fields
-  - Fields: Short Address, Building No., Street, Secondary No., District, Postal Code
-  - Dropdown selections for Country, Region, City, Category from Settings tables
-  - Controlled state for cascading dropdowns
-  - Backend routes updated to handle new address field IDs (cityId, regionId, countryId, categoryId)
-  - Customer list shows location with city/region/country from settings
-- 2026-02-02: System Settings Module
-  - 10 lookup tables: Countries, Cities, Regions, Categories, Couriers, Vehicles, DoseUnits, ProductTypes, ProductionMethods, Currencies
-  - Settings page with tabbed interface for managing all configuration types
-  - Saudi National Address format for customers (shortAddress, buildingNo, street, district, postalCode)
-  - Currency management with SAR as default, exchange rate tracking
-  - Arabic name support (nameAr) for geographic and classification data
-  - Seed data: 4 countries, 8 Saudi cities, 5 regions, 5 categories, 2 couriers, 3 vehicles, 5 dose units, 4 product types, 4 production methods, 4 currencies
-- 2026-02-02: Client Ordering Portal
-  - PortalLayout component with teal theme for customer-facing interface
-  - PortalDashboard: Order stats, quick actions, recent orders/invoices
-  - PortalOrders: Order history with status filtering
-  - PortalNewOrder: 3-step wizard for placing orders
-  - PortalInvoices: Invoice viewing with payment history
-  - Role-based routing: Customer role auto-redirects to /portal
-- 2026-02-02: Financial and Capacity Modules
-  - Dose Dispensing: DoseUnit management with labeling, dispensing, and waste tracking
-  - Availability Calendar: Minutes-based capacity with weekly view and utilization
-  - Reservations: Capacity booking with tentative/confirmed statuses
-  - Contracts & Pricing: Customer-specific rates, payment terms, credit limits
-  - Invoicing & AR: Invoice generation, payment tracking, financial summaries
-  - New frontend pages: Dispensing, Availability, Contracts, Invoices
-  - Seed data: 22 delivery windows, 5 invoices, contracts with pricing
-- 2026-01-21: Multi-level approval workflow system
-  - WorkflowDefinition, WorkflowStep, ApprovalRequest, ApprovalAction database tables
-  - Workflow service with role-based routing and email notifications via Resend
-  - Approval triggers integrated into orders, batches, QC, shipments, customers
-  - Frontend Approvals page with pending inbox, filtering, and action history
-  - ApprovalStatus component for real-time visibility on entity pages
-- 2026-01-20: Initial complete implementation
-  - Full backend API with all routes
-  - Complete React frontend with 13 pages
-  - Database schema and seed data
-  - Authentication and RBAC
-
-## User Preferences
-- No specific preferences recorded yet
-
-## Notes
-- Status state machines prevent invalid transitions for orders and batches
-- All critical operations include audit logging
-- Frontend uses responsive design with sidebar navigation (17 menu items)
-- Navigation organized by workflow: Sales, Planning, Production, QC, Dispensing, Logistics, Finance
+## External Dependencies
+- **PostgreSQL**: Primary database for all application data.
+- **Prisma ORM**: Used for database interaction.
+- **Resend**: For email notifications related to approval workflows.
+- **jsPDF library**: For generating PDF invoices.
