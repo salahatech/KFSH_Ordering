@@ -1,12 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { Plus, Edit2, UserCheck, UserX } from 'lucide-react';
+import { Plus, Edit2, UserCheck, UserX, AlertTriangle, Link2 } from 'lucide-react';
+import { useToast } from '../components/ui/Toast';
 
 export default function Users() {
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedRoleId, setSelectedRoleId] = useState<string>('');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['users'],
@@ -32,6 +36,19 @@ export default function Users() {
     },
   });
 
+  const isCustomerRole = roles?.find((r: any) => r.id === selectedRoleId)?.name === 'Customer';
+  const isDriverRole = roles?.find((r: any) => r.id === selectedRoleId)?.name === 'Driver';
+
+  useEffect(() => {
+    if (selectedUser) {
+      setSelectedRoleId(selectedUser.roleId || '');
+      setSelectedCustomerId(selectedUser.customerId || '');
+    } else {
+      setSelectedRoleId('');
+      setSelectedCustomerId('');
+    }
+  }, [selectedUser]);
+
   const saveMutation = useMutation({
     mutationFn: async (data: any) => {
       if (selectedUser) {
@@ -49,14 +66,23 @@ export default function Users() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const roleId = formData.get('roleId') as string;
+    const customerId = formData.get('customerId') as string;
+    
+    const roleName = roles?.find((r: any) => r.id === roleId)?.name;
+    if (roleName === 'Customer' && !customerId) {
+      toast.error('Customer Required', 'Users with Customer role must be linked to a customer record.');
+      return;
+    }
+    
     saveMutation.mutate({
       email: formData.get('email'),
       password: formData.get('password') || undefined,
       firstName: formData.get('firstName'),
       lastName: formData.get('lastName'),
       phone: formData.get('phone'),
-      roleId: formData.get('roleId'),
-      customerId: formData.get('customerId') || null,
+      roleId,
+      customerId: customerId || null,
       isActive: formData.get('isActive') === 'true',
     });
   };
@@ -186,7 +212,13 @@ export default function Users() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Role *</label>
-                  <select name="roleId" className="form-select" defaultValue={selectedUser?.roleId} required>
+                  <select 
+                    name="roleId" 
+                    className="form-select" 
+                    value={selectedRoleId}
+                    onChange={(e) => setSelectedRoleId(e.target.value)}
+                    required
+                  >
                     <option value="">Select Role</option>
                     {roles?.map((role: any) => (
                       <option key={role.id} value={role.id}>{role.name}</option>
@@ -194,13 +226,53 @@ export default function Users() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Customer (for customer portal users)</label>
-                  <select name="customerId" className="form-select" defaultValue={selectedUser?.customerId || ''}>
-                    <option value="">None</option>
+                  <label className="form-label">
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Link2 size={14} />
+                      Linked Customer {isCustomerRole && <span style={{ color: 'var(--danger)' }}>*</span>}
+                    </span>
+                  </label>
+                  <select 
+                    name="customerId" 
+                    className="form-select" 
+                    value={selectedCustomerId}
+                    onChange={(e) => setSelectedCustomerId(e.target.value)}
+                    required={isCustomerRole}
+                    style={isCustomerRole && !selectedCustomerId ? { borderColor: 'var(--warning)' } : {}}
+                  >
+                    <option value="">None (Internal User)</option>
                     {customers?.map((customer: any) => (
-                      <option key={customer.id} value={customer.id}>{customer.name}</option>
+                      <option key={customer.id} value={customer.id}>{customer.nameEn || customer.name} ({customer.code})</option>
                     ))}
                   </select>
+                  {isCustomerRole && !selectedCustomerId && (
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.5rem',
+                      marginTop: '0.5rem',
+                      padding: '0.5rem 0.75rem',
+                      backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                      borderRadius: 'var(--radius)',
+                      fontSize: '0.75rem',
+                      color: 'var(--warning)'
+                    }}>
+                      <AlertTriangle size={14} />
+                      Customer role requires linking to a customer record
+                    </div>
+                  )}
+                  {!isCustomerRole && !isDriverRole && selectedCustomerId && (
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.5rem',
+                      marginTop: '0.5rem',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-muted)'
+                    }}>
+                      Note: Only Customer role users can access the customer portal
+                    </div>
+                  )}
                 </div>
                 {selectedUser && (
                   <div className="form-group">

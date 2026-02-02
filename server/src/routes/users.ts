@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { createAuditLog } from '../middleware/audit.js';
+import { sendError, sendValidationError, ErrorCodes } from '../utils/errors.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -108,9 +109,24 @@ router.post('/', authenticateToken, requireRole('Admin'), async (req: Request, r
   try {
     const { email, password, firstName, lastName, phone, roleId, customerId } = req.body;
 
+    const role = await prisma.role.findUnique({ where: { id: roleId } });
+    if (!role) {
+      sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'Invalid role');
+      return;
+    }
+
+    if (role.name === 'Customer' && !customerId) {
+      sendError(res, 400, ErrorCodes.CUSTOMER_ROLE_REQUIRES_CUSTOMER, 
+        'Customer role requires a linked customer', {
+          userMessage: 'Users with Customer role must be linked to a customer record.',
+          fieldErrors: [{ field: 'customerId', message: 'Customer is required for Customer role' }]
+        });
+      return;
+    }
+
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      res.status(400).json({ error: 'Email already exists' });
+      sendValidationError(res, [{ field: 'email', message: 'Email already exists' }]);
       return;
     }
 
@@ -124,7 +140,7 @@ router.post('/', authenticateToken, requireRole('Admin'), async (req: Request, r
         lastName,
         phone,
         roleId,
-        customerId,
+        customerId: role.name === 'Customer' ? customerId : (customerId || null),
       },
       include: { role: true },
     });
@@ -164,13 +180,28 @@ router.put('/:id', authenticateToken, requireRole('Admin'), async (req: Request,
       return;
     }
 
+    const role = await prisma.role.findUnique({ where: { id: roleId } });
+    if (!role) {
+      sendError(res, 400, ErrorCodes.VALIDATION_ERROR, 'Invalid role');
+      return;
+    }
+
+    if (role.name === 'Customer' && !customerId) {
+      sendError(res, 400, ErrorCodes.CUSTOMER_ROLE_REQUIRES_CUSTOMER, 
+        'Customer role requires a linked customer', {
+          userMessage: 'Users with Customer role must be linked to a customer record.',
+          fieldErrors: [{ field: 'customerId', message: 'Customer is required for Customer role' }]
+        });
+      return;
+    }
+
     const updateData: any = {
       email,
       firstName,
       lastName,
       phone,
       roleId,
-      customerId,
+      customerId: role.name === 'Customer' ? customerId : (customerId || null),
       isActive,
     };
 
