@@ -560,7 +560,7 @@ export default function PortalProfile() {
             >
               <option value="">Select Country</option>
               {countries?.map((c: any) => (
-                <option key={c.id} value={c.id}>{c.nameEn}</option>
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
@@ -575,7 +575,7 @@ export default function PortalProfile() {
             >
               <option value="">Select Region</option>
               {regions?.map((r: any) => (
-                <option key={r.id} value={r.id}>{r.nameEn}</option>
+                <option key={r.id} value={r.id}>{r.name}</option>
               ))}
             </select>
           </div>
@@ -590,7 +590,7 @@ export default function PortalProfile() {
             >
               <option value="">Select City</option>
               {cities?.map((c: any) => (
-                <option key={c.id} value={c.id}>{c.nameEn}</option>
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>

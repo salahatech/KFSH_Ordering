@@ -214,7 +214,7 @@ router.post('/logo', authenticateToken, (req: Request, res: Response): void => {
       });
 
       if (oldCustomer?.logoUrl) {
-        const oldPath = path.join(process.cwd(), oldCustomer.logoUrl);
+        const oldPath = path.join(process.cwd(), oldCustomer.logoUrl.replace(/^\//, ''));
         if (fs.existsSync(oldPath)) {
           fs.unlinkSync(oldPath);
         }
