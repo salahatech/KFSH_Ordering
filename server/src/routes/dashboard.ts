@@ -129,7 +129,7 @@ async function getKPIs(today: Date, tomorrow: Date) {
       where: { status: 'RELEASED' },
     }),
     prisma.shipment.count({
-      where: { status: 'ASSIGNED' },
+      where: { status: 'PACKED' },
     }),
     prisma.shipment.count({
       where: { status: 'DELAYED' },
@@ -219,7 +219,7 @@ async function getQPQueue() {
 
 async function getLogisticsQueue() {
   const shipments = await prisma.shipment.findMany({
-    where: { status: { in: ['CREATED', 'ASSIGNED'] } },
+    where: { status: { in: ['DRAFT', 'READY_TO_PACK', 'PACKED', 'ASSIGNED_TO_DRIVER'] } },
     include: { orders: { include: { customer: true } }, customer: true },
     orderBy: { expectedArrivalTime: 'asc' },
     take: 10,
@@ -232,7 +232,7 @@ async function getLogisticsQueue() {
     subtitle: shipment.courierName || 'No courier',
     eta: shipment.expectedArrivalTime,
     status: shipment.status,
-    nextAction: shipment.status === 'CREATED' ? 'Assign Courier' : 'Dispatch',
+    nextAction: shipment.status === 'DRAFT' ? 'Pack Shipment' : shipment.status === 'PACKED' ? 'Assign Driver' : 'Dispatch',
     isLate: shipment.expectedArrivalTime ? shipment.expectedArrivalTime < new Date() : false,
     linkTo: `/shipments/${shipment.id}`,
   }));
@@ -507,8 +507,8 @@ router.get('/logistics', authenticateToken, async (req: Request, res: Response):
     const tomorrow = addDays(today, 1);
 
     const [readyToPack, readyToDispatch, inTransit, delayed, deliveredToday] = await Promise.all([
-      prisma.shipment.count({ where: { status: 'CREATED' } }),
-      prisma.shipment.count({ where: { status: 'ASSIGNED' } }),
+      prisma.shipment.count({ where: { status: 'READY_TO_PACK' } }),
+      prisma.shipment.count({ where: { status: 'PACKED' } }),
       prisma.shipment.count({ where: { status: 'IN_TRANSIT' } }),
       prisma.shipment.count({ where: { status: 'DELAYED' } }),
       prisma.shipment.count({
