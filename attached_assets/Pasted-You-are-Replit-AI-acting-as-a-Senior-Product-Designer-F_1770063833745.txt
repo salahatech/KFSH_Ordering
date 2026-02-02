@@ -1,0 +1,273 @@
+You are Replit AI acting as a Senior Product Designer + Full-Stack Engineer.
+
+Context:
+We already have a working RadioPharma OMS (Orders → Planning → Batch → QC → QP Release → Dose Dispensing → Logistics/Shipments → Delivery) with RBAC, PostgreSQL + Prisma, React + TS, Node + TS.
+Your task is to ENHANCE UI/UX for the following modules:
+- Quality Control
+- QP Release
+- Dose Dispensing
+- Logistics & Shipments
+And ensure the entire journey from order creation to delivery is LINKED end-to-end, visible in both internal portal and customer portal, with Notifications via in-app + Email + SMS (each channel configurable).
+
+========================================================
+1) GLOBAL UX PATTERN (MANDATORY): “Journey + Status Widgets + Filters”
+Implement a consistent pattern across ALL modules:
+A) Summary KPI Widgets (cards)
+- counts by key statuses (today, pending, exceptions, completed)
+- show filters applied and last refresh time
+
+B) Filter Bar Widgets (must be consistent across pages)
+- Date range selector (planned/actual based on module)
+- Status multi-select
+- Product multi-select
+- Customer searchable
+- Batch number / Order number search
+- Exceptions-only toggle
+- “My items” toggle (assigned to me)
+- Quick filters chips (e.g., “Awaiting QP”, “Failed QC”, “Delayed shipments”)
+
+C) Pathway Visualization
+Each entity page (Order, Batch, Shipment, Dispensing session) must have:
+- a Stepper (milestones) + a Timeline (logs/events)
+- “What happens next” panel with owner role and CTA button
+- block reasons when next step is gated (e.g., “Dispensing blocked until batch RELEASED”)
+
+D) Logs/Traceability
+Every status change/action creates an immutable event:
+- actor, role, timestamp UTC, note, metadata, traceId
+Timeline shows these events with expand/collapse metadata (internal roles only).
+Customer portal shows sanitized timeline (no sensitive internal metadata).
+
+========================================================
+2) END-TO-END LINKAGE (MANDATORY)
+Make sure these entities are linked everywhere with cross-navigation:
+- Order ↔ Batch ↔ DoseUnits ↔ Shipment ↔ Delivery proof
+Requirements:
+- Order detail page shows linked Batch(es), DoseUnits, Shipment and delivery confirmation.
+- Batch page shows linked Orders, DoseUnits, Shipment.
+- Shipment page shows linked DoseUnits + Orders.
+- Dose Dispensing page shows Batch, Orders, and Shipment status.
+Add “Linked Records” sidebar on every detail page with clickable chips.
+
+Also create a unified “Journey Graph” endpoint that returns a single stitched timeline:
+- order events + batch events + QC + release + dispensing + shipment + delivery
+so the UI can show “One Journey” without the user jumping between modules.
+
+========================================================
+3) ENHANCED PAGES (MANDATORY)
+
+3.1 QUALITY CONTROL (QC) UI/UX ENHANCEMENT
+Pages:
+- /qc (QC Workbench list)
+- /qc/batches/:id (QC Detail)
+
+QC Workbench list must include:
+- KPI cards: Awaiting Samples, QC In Progress, QC Failed, Awaiting QP, Completed Today
+- Filters: date range, product, batch status, QC status, analyst, exceptions only, search
+- Table columns:
+  - Batch No, Product, Status, QC Status badge, Priority, Due by (based on delivery), Linked orders count, Last updated
+- Row actions (role-based):
+  - Open QC detail
+  - Create sample
+  - Enter results
+  - Mark QC Passed/Failed (if allowed)
+
+QC Detail (/qc/batches/:id) must show:
+- Batch milestone stepper (Production → QC → QP Release)
+- QC sub-stepper: Sample Taken → Tests Entered → Review → QC Disposition
+- Tests table with pass/fail highlight + acceptance criteria
+- Attach COA/Report
+- OOS / deviation capture:
+  - Open deviation (requires note + optional attachment)
+- Timeline with QC events
+
+3.2 QP RELEASE UI/UX ENHANCEMENT
+Pages:
+- /release (QP Queue)
+- /release/batches/:id (QP Release detail)
+
+QP Queue must include:
+- KPI cards: Awaiting QP, On Hold, Released Today, Rejected, Exceptions
+- Filters: date range, status, product, customer, batch no search, “urgent by delivery time”
+- Table: Batch No, QC status, Delivery ETA, Orders count, Risk flags, Last QC update, Current disposition
+
+QP Release detail must show:
+- Stepper: QC Passed → QP Review → Disposition (Hold/Release/Reject)
+- Clear “Release Gate” panel that explains what will unlock (Dispensing, Packing, Dispatch)
+- E-signature modal:
+  - sign meaning, comment required for Hold/Reject
+  - enforce SoD: if user also QC analyst for this batch, block with meaningful message
+- Timeline includes signature event and disposition changes
+- Print/Export “Batch Release Summary” (PDF basic ok)
+
+3.3 DOSE DISPENSING UI/UX ENHANCEMENT
+Pages:
+- /dispensing (Dispensing Workbench)
+- /dispensing/batches/:id (Dispensing detail)
+
+Dispensing Workbench must include:
+- KPI cards: Ready to Dispense (Released), Dispensing In Progress, Blocked (Not Released), Dispensed Today
+- Filters: date range, product, batch status, disposition, customer, delivery window, search
+- Table: Batch No, Disposition, DoseUnits planned/created/dispensed, Linked shipment, Delivery ETA, Block reason if any
+- Actions:
+  - Create DoseUnits (only if RELEASED)
+  - Start dispensing, Mark dispensed
+  - Print labels stub (PDF/ZPL generation)
+Dispensing Detail:
+- Stepper: Released → DoseUnits Created → Dispensed → Packed → Dispatched
+- DoseUnits list with statuses (PLANNED, DISPENSED, PACKED, SHIPPED)
+- Label preview and print action
+- Packing handoff CTA to Logistics
+- Timeline includes each dose unit event (aggregate view + expand)
+
+3.4 LOGISTICS & SHIPMENTS UI/UX ENHANCEMENT
+Pages:
+- /shipments (Shipment Workbench)
+- /shipments/:id (Shipment detail)
+
+Shipment Workbench must include:
+- KPI cards: Ready to Pack, Ready to Dispatch, In Transit, Delivered Today, Delayed
+- Filters: date range, status, courier, customer, city/region, product, search
+- Table: Shipment No, Status badge, Customer, Route, ETA, Orders count, DoseUnits count, Last event time, Delay flag
+- Row actions:
+  - Open, Pack, Dispatch, Confirm delivery, Report exception
+
+Shipment Detail must show:
+- Stepper: Packed → Dispatched → In Transit → Delivered (or Exception)
+- Route details + courier + timestamps
+- Proof of delivery upload (signature/photo)
+- Order list inside shipment with quick links
+- Timeline: packing events, dispatch, checkpoints, delivery confirmation
+- Exception flow:
+  - Delayed/Returned/Damaged with reason codes and notifications triggered
+
+========================================================
+4) CUSTOMER PORTAL ENHANCEMENTS (MANDATORY)
+Goal: customer can monitor “Start → Delivered” easily with one journey.
+Pages:
+- /portal/orders (customer order list)
+- /portal/orders/:id (Order Journey)
+
+Customer Order List:
+- Filters: date range, status, product, search
+- Cards/KPIs: Pending validation, Scheduled, In production, Released, In transit, Delivered
+- Table columns:
+  - Order No, Product, Delivery time, Current status, ETA, Shipment status (if exists)
+
+Customer Order Journey (/portal/orders/:id):
+- Simple milestone stepper:
+  Submitted → Validated → Scheduled → In Production → QC → Released → Dispatched → Delivered
+- Shipment tracking block (if dispatched): ETA, last checkpoint, delivery proof (if allowed)
+- Timeline (sanitized): show who/when at “department level” (e.g., “QC completed”) without internal details
+- Download documents (optional): COA (if allowed)
+- Notification preferences settings (Email/SMS toggle per customer user)
+
+========================================================
+5) NOTIFICATIONS (IN-APP + EMAIL + SMS) WITH CONFIGURATION (MANDATORY)
+
+5.1 Notification Engine
+Create a unified notification service that can send:
+- In-app notifications (always supported)
+- Email (configurable)
+- SMS (configurable)
+
+Notifications triggered on key events:
+- Order submitted / validated / rejected
+- Schedule assigned or changed
+- Batch QC passed/failed
+- Batch released/held/rejected
+- Dispensing started/completed
+- Shipment packed/dispatched/delivered
+- Exceptions (delay, failed QC, hold)
+
+Each notification stores:
+- id, type, entityType, entityId, recipientUserId, channels used, title, body, status (SENT/FAILED/PENDING), createdAt, sentAt, providerMessageId, errorMessage, metadata
+
+5.2 Channel Configuration (IMPORTANT)
+Email configuration must have its own admin page:
+- SMTP settings OR provider API key (allow either)
+- sender name/email
+- enable/disable email channel
+SMS configuration must have its own admin page:
+- provider selection (generic interface)
+- api key/secret
+- sender id
+- enable/disable sms channel
+Both must support:
+- per environment settings (dev/stage/prod)
+- “Test send” button
+- validation messages with good UX
+Do NOT hardcode provider keys.
+
+5.3 Notification Templates
+Create template table:
+- eventType (ORDER_SUBMITTED, BATCH_RELEASED, SHIPMENT_DISPATCHED, etc.)
+- channel (IN_APP, EMAIL, SMS)
+- subject (email only)
+- body template with variables: {orderNo}, {batchNo}, {deliveryTime}, {eta}, {customerName}
+- localization-ready (en only now, structure for ar later)
+
+5.4 Preferences
+- user-level preference: enable/disable Email and SMS
+- customer-level default preferences
+- ensure consent check for SMS (simple checkbox with timestamp)
+
+========================================================
+6) BACKEND/APIs (MANDATORY)
+Implement/extend endpoints:
+- GET /orders/:id/journey  (stitched timeline across modules)
+- GET /batches/:id/journey
+- GET /shipments/:id/journey
+- GET /events?entityType=&entityId=  (generic events)
+- POST /notify/test-email
+- POST /notify/test-sms
+- CRUD /notification-config/email
+- CRUD /notification-config/sms
+- CRUD /notification-templates
+- GET /notifications (for in-app inbox)
+- PATCH /notifications/:id/read
+
+All list endpoints must support filters via query params.
+
+========================================================
+7) UI COMPONENTS (REUSABLE) — MUST BUILD ONCE, USE EVERYWHERE
+- <StatusBadge status />
+- <KpiCard title value subtext />
+- <FilterBar widgets... />
+- <Stepper milestones... />
+- <Timeline events... />
+- <NextStepPanel nextAction ownerRole blockedReason />
+- <LinkedRecordsSidebar />
+- <EmptyState title message cta />
+- <ExportButton to PDF/CSV />
+
+========================================================
+8) UX QUALITY + ERROR MESSAGING (MANDATORY)
+- No raw errors; show userMessage with “what to do next”
+- Blocked step must show reason (gate) and how to unblock
+- Provide skeleton loaders
+- Save indicators, disabling buttons during actions
+- Audit/traceId visible for admin only
+
+========================================================
+9) SEED + DEMO FLOW (MANDATORY)
+Seed:
+- 10 orders across stages
+- 6 batches across QC/QP/Dispensing
+- 5 shipments (in transit + delivered + delayed)
+- notification configs (disabled by default in dev)
+- templates for email/sms/in-app
+Provide README “UI Journey Demo”:
+- how to navigate from order to batch to dispensing to shipment
+- how customer portal sees end-to-end journey
+- how to enable email/sms config and send test notifications
+
+Implementation Order:
+1) Build reusable UI components (badges, filter bar, stepper, timeline)
+2) Add stitched journey endpoints (order/batch/shipment)
+3) Enhance QC pages (queue + detail)
+4) Enhance QP release pages (queue + detail + e-sign)
+5) Enhance dispensing pages (workbench + detail + dose unit events)
+6) Enhance shipments pages (workbench + detail + exceptions)
+7) Enhance customer portal journey view
+8) Add notification engine + config UIs + templates + preferences

@@ -24,6 +24,7 @@ import reservationRoutes from './routes/reservations.js';
 import contractRoutes from './routes/contracts.js';
 import invoiceRoutes from './routes/invoices.js';
 import settingsRoutes from './routes/settings.js';
+import journeyRoutes from './routes/journey.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -55,6 +56,7 @@ app.use('/api/reservations', reservationRoutes);
 app.use('/api/contracts', contractRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/journey', journeyRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
