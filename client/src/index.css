@@ -219,8 +219,23 @@ input, select, textarea {
 }
 
 .badge-qc-passed {
+  background: #fef08a;
+  color: #854d0e;
+}
+
+.badge-qp-passed {
+  background: #fed7aa;
+  color: #c2410c;
+}
+
+.badge-released {
   background: #bbf7d0;
   color: #15803d;
+}
+
+.badge-closed {
+  background: #fecaca;
+  color: #991b1b;
 }
 
 .table {

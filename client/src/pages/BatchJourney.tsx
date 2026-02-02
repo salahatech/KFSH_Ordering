@@ -61,18 +61,18 @@ const statusConfig: Record<string, { color: string; badge: string; description: 
   // QC stage - orange (testing)
   QC_PENDING: { color: '#f59e0b', badge: 'warning', description: 'Awaiting quality control testing' },
   QC_IN_PROGRESS: { color: '#f59e0b', badge: 'warning', description: 'Quality control tests in progress' },
-  QC_PASSED: { color: '#15803d', badge: 'qc-passed', description: 'All QC tests passed' },
-  // Release stage - purple (review)
-  QP_REVIEW: { color: '#8b5cf6', badge: 'purple', description: 'Awaiting Qualified Person review' },
-  RELEASED: { color: '#15803d', badge: 'qc-passed', description: 'Released by QP for dispensing' },
+  QC_PASSED: { color: '#eab308', badge: 'qc-passed', description: 'All QC tests passed' },
+  // Release stage
+  QP_REVIEW: { color: '#f97316', badge: 'qp-passed', description: 'Awaiting Qualified Person review' },
+  RELEASED: { color: '#22c55e', badge: 'released', description: 'Released by QP for dispensing' },
   // Dispensing stage - teal (fulfillment)
   DISPENSING_IN_PROGRESS: { color: '#14b8a6', badge: 'teal', description: 'Dose units being dispensed' },
   DISPENSED: { color: '#14b8a6', badge: 'teal', description: 'All doses dispensed' },
   // Logistics stage - blue (shipping)
   PACKED: { color: '#3b82f6', badge: 'info', description: 'Packaged and ready for dispatch' },
   DISPATCHED: { color: '#3b82f6', badge: 'info', description: 'Shipped to customer' },
-  // Completed - dark green (terminal state)
-  CLOSED: { color: '#166534', badge: 'complete', description: 'Batch completed' },
+  // Completed - red (terminal state)
+  CLOSED: { color: '#dc2626', badge: 'closed', description: 'Batch completed' },
   // Exceptions - red/orange
   ON_HOLD: { color: '#f59e0b', badge: 'warning', description: 'Batch on hold - requires investigation' },
   REJECTED: { color: '#ef4444', badge: 'danger', description: 'Batch rejected by QP' },

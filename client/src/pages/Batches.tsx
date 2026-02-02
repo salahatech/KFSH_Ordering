@@ -117,17 +117,17 @@ export default function Batches() {
       QC_PENDING: 'warning',
       QC_IN_PROGRESS: 'warning',
       QC_PASSED: 'qc-passed',
-      // Release stage - purple (review)
-      QP_REVIEW: 'purple',
-      RELEASED: 'qc-passed',
+      // Release stage
+      QP_REVIEW: 'qp-passed',
+      RELEASED: 'released',
       // Dispensing stage - teal (fulfillment)
       DISPENSING_IN_PROGRESS: 'teal',
       DISPENSED: 'teal',
       // Logistics stage - blue (shipping)
       PACKED: 'info',
       DISPATCHED: 'info',
-      // Completed - dark green (terminal state)
-      CLOSED: 'complete',
+      // Completed - red (terminal state)
+      CLOSED: 'closed',
       // Exceptions - red/orange
       ON_HOLD: 'warning',
       REJECTED: 'danger',
