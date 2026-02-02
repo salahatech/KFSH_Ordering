@@ -38,6 +38,7 @@ import DashboardQC from './pages/DashboardQC';
 import DashboardQP from './pages/DashboardQP';
 import DashboardDispensing from './pages/DashboardDispensing';
 import DashboardLogistics from './pages/DashboardLogistics';
+import PaymentApprovals from './pages/admin/PaymentApprovals';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -173,6 +174,7 @@ export default function App() {
                   <Route path="/reservations" element={<Reservations />} />
                   <Route path="/contracts" element={<Contracts />} />
                   <Route path="/invoices" element={<Invoices />} />
+                  <Route path="/payments" element={<PaymentApprovals />} />
                   <Route path="/settings" element={<Settings />} />
                 </Routes>
               </Layout>

@@ -25,6 +25,7 @@ import {
   FileSignature,
   Receipt,
   Settings,
+  CreditCard,
 } from 'lucide-react';
 
 const menuItems = [
@@ -43,6 +44,7 @@ const menuItems = [
   { path: '/shipments', label: 'Logistics', icon: Truck },
   { path: '/contracts', label: 'Contracts', icon: FileSignature },
   { path: '/invoices', label: 'Invoicing', icon: Receipt },
+  { path: '/payments', label: 'Payment Approvals', icon: CreditCard },
   { path: '/reports', label: 'Reports', icon: BarChart3 },
   { path: '/users', label: 'Users', icon: Users },
   { path: '/settings', label: 'Settings', icon: Settings },
