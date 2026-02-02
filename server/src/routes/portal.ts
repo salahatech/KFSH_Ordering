@@ -337,18 +337,14 @@ router.post('/invoices/:id/payments', authenticateToken, requireCustomer, (req: 
         return;
       }
 
-      if (paymentAmount > invoice.remainingAmount) {
+      const remainingBalance = invoice.totalAmount - invoice.paidAmount;
+      if (paymentAmount > remainingBalance) {
         res.status(400).json({ error: 'Payment amount exceeds remaining balance' });
         return;
       }
 
-      if (!invoice.allowPartialPayment && paymentAmount < invoice.remainingAmount) {
-        res.status(400).json({ error: 'Partial payments are not allowed for this invoice' });
-        return;
-      }
-
-      if (invoice.minInstallmentAmount && paymentAmount < invoice.minInstallmentAmount && paymentAmount < invoice.remainingAmount) {
-        res.status(400).json({ error: `Minimum payment amount is ${invoice.minInstallmentAmount} ${invoice.currency}` });
+      if (!['SENT', 'PARTIALLY_PAID'].includes(invoice.status)) {
+        res.status(400).json({ error: 'Invoice is not payable' });
         return;
       }
 
@@ -357,16 +353,14 @@ router.post('/invoices/:id/payments', authenticateToken, requireCustomer, (req: 
       const paymentRequest = await prisma.paymentRequest.create({
         data: {
           invoiceId: id,
-          customerId: user.customerId,
           amount: paymentAmount,
-          amountSAR: paymentAmount * invoice.fxRateToSAR,
           currency: invoice.currency,
           paymentMethod,
-          referenceNumber: referenceNumber || null,
+          reference: referenceNumber || null,
           proofUrl,
           notes: notes || null,
-          status: 'PENDING_CONFIRMATION',
-          submittedByUserId: user.userId,
+          status: 'PENDING',
+          submittedById: user.id,
         },
       });
 

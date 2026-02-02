@@ -44,14 +44,27 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response): Promi
       return;
     }
 
-    if (user.customerId && user.customerId !== invoice.customerId) {
+    const isCustomer = user.customerId != null;
+    const isCustomerOwner = user.customerId === invoice.customerId;
+    const hasStaffPermission = user.permissions?.some((p: any) => 
+      p.resource === 'invoices' && (p.action === 'read' || p.action === 'manage')
+    );
+    
+    if (isCustomer && !isCustomerOwner) {
       res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+    
+    if (!isCustomer && !hasStaffPermission) {
+      res.status(403).json({ error: 'Access denied - insufficient permissions' });
       return;
     }
 
     const sellerName = 'RadioPharma KSA';
     const vatNumber = '300000000000003';
-    const timestamp = invoice.invoiceDate.toISOString();
+    const ksaDate = new Date(invoice.invoiceDate);
+    ksaDate.setHours(ksaDate.getHours() + 3);
+    const timestamp = ksaDate.toISOString().replace('Z', '+03:00');
     const total = invoice.totalAmount;
     const vat = invoice.taxAmount;
 

@@ -40,6 +40,27 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
 - **Security**: Status state machines to prevent invalid transitions, comprehensive audit logging for critical operations.
 
 ## Recent Changes (2026-02-02)
+- **Customer Payment Workflow**: Complete payment submission and approval system:
+  - Portal customers can submit payments with proof uploads (PNG/JPG/PDF up to 10MB)
+  - Support for full and partial payments with overpayment validation
+  - Payment methods: Bank Transfer, Credit Card, Cash, Cheque
+  - Payment request status tracking (Pending, Confirmed, Rejected)
+  - Finance/Admin approval queue at `/payments` with confirm/reject actions
+  - Automatic receipt voucher generation on payment confirmation
+  - Invoice status auto-update (SENT → PARTIALLY_PAID → PAID)
+- **PDF Invoice with ZATCA QR Code**: Server-side A4 PDF generation at `/api/invoice-pdf/:id`
+  - Professional layout with company branding, customer details, line items
+  - ZATCA-compliant QR code using TLV base64 encoding (Tags 1-5)
+  - Payment history and balance due sections
+  - Saudi timezone support (UTC+3) for timestamps
+  - Role-based access control (customer ownership or staff permission)
+- **Portal Invoice Management**: Enhanced at `/portal/invoices`
+  - Invoice list with filtering by status
+  - KPI cards showing total billed, paid, outstanding, overdue counts
+  - Invoice detail panel with VAT breakdown and payment history
+  - Download PDF button with ZATCA QR code
+  - Submit Payment button with proof upload modal
+  - Payment request history with status badges
 - **Customer Self-Service Profile**: Portal customers can now edit their own profile at `/portal/profile`:
   - Company name (English/Arabic), email, mobile, phone
   - Delivery address with country/region/city dropdowns and GPS coordinates
@@ -76,4 +97,5 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
 - **PostgreSQL**: Primary database for all application data.
 - **Prisma ORM**: Used for database interaction.
 - **Resend**: For email notifications related to approval workflows.
-- **jsPDF library**: For generating PDF invoices.
+- **PDFKit**: Server-side A4 PDF generation for invoices and receipts.
+- **QRCode**: ZATCA-compliant QR code generation with TLV base64 encoding.
