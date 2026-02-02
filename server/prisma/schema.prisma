@@ -21,6 +21,7 @@ model User {
   role          Role      @relation(fields: [roleId], references: [id])
   customerId    String?
   customer      Customer? @relation(fields: [customerId], references: [id])
+  driver        Driver?
   refreshTokens RefreshToken[]
   auditLogs     AuditLog[]
   notifications Notification[]
@@ -502,38 +503,162 @@ model BatchRelease {
 // ==================== LOGISTICS ====================
 
 enum ShipmentStatus {
-  CREATED
-  ASSIGNED
+  DRAFT
+  READY_TO_PACK
+  PACKED
+  ASSIGNED_TO_DRIVER
+  ACCEPTED_BY_DRIVER
+  PICKED_UP
   IN_TRANSIT
+  ARRIVED
   DELIVERED
-  DELAYED
+  DELIVERY_FAILED
   RETURNED
   CANCELLED
+  DELAYED
+}
+
+enum VehicleType {
+  CAR
+  VAN
+  MOTORCYCLE
+}
+
+enum DriverStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ShipmentPriority {
+  NORMAL
+  URGENT
+}
+
+// ==================== DRIVER MANAGEMENT ====================
+
+model Driver {
+  id                String       @id @default(uuid())
+  fullName          String
+  mobile            String
+  email             String?
+  nationalId        String?
+  driverLicenseNo   String?
+  licenseExpiryDate DateTime?
+  vehicleType       VehicleType  @default(CAR)
+  vehiclePlateNo    String?
+  vehicleModel      String?
+  status            DriverStatus @default(ACTIVE)
+  photoUrl          String?
+  userId            String?      @unique
+  user              User?        @relation(fields: [userId], references: [id])
+  shipments         Shipment[]
+  assignedShipments Shipment[]   @relation("ShipmentAssigner")
+  availability      DriverAvailability[]
+  proofOfDeliveries ProofOfDelivery[]
+  shipmentEvents    ShipmentEvent[]
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model DriverAvailability {
+  id          String   @id @default(uuid())
+  driverId    String
+  driver      Driver   @relation(fields: [driverId], references: [id])
+  date        DateTime
+  startTime   String
+  endTime     String
+  isAvailable Boolean  @default(true)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ShipmentEvent {
+  id          String   @id @default(uuid())
+  shipmentId  String
+  shipment    Shipment @relation(fields: [shipmentId], references: [id])
+  eventType   String
+  fromStatus  ShipmentStatus?
+  toStatus    ShipmentStatus?
+  driverId    String?
+  driver      Driver?  @relation(fields: [driverId], references: [id])
+  userId      String?
+  notes       String?
+  latitude    Float?
+  longitude   Float?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+}
+
+model ProofOfDelivery {
+  id              String    @id @default(uuid())
+  shipmentId      String    @unique
+  shipment        Shipment  @relation(fields: [shipmentId], references: [id])
+  deliveredAt     DateTime
+  receiverName    String
+  receiverMobile  String?
+  receiverIdType  String?
+  signatureFileUrl String?
+  gpsLat          Float?
+  gpsLng          Float?
+  notes           String?
+  capturedByDriverId String?
+  capturedByDriver   Driver?  @relation(fields: [capturedByDriverId], references: [id])
+  photos          ProofOfDeliveryPhoto[]
+  createdAt       DateTime  @default(now())
+}
+
+model ProofOfDeliveryPhoto {
+  id        String          @id @default(uuid())
+  podId     String
+  pod       ProofOfDelivery @relation(fields: [podId], references: [id])
+  fileUrl   String
+  caption   String?
+  createdAt DateTime        @default(now())
 }
 
 model Shipment {
-  id                  String         @id @default(uuid())
-  shipmentNumber      String         @unique
-  customerId          String
-  customer            Customer       @relation(fields: [customerId], references: [id])
-  courierId           String?
-  courierName         String?
-  vehicleInfo         String?
-  routeInfo           String?
+  id                     String           @id @default(uuid())
+  shipmentNumber         String           @unique
+  customerId             String
+  customer               Customer         @relation(fields: [customerId], references: [id])
+  driverId               String?
+  driver                 Driver?          @relation(fields: [driverId], references: [id])
+  assignedAt             DateTime?
+  assignedByDriverId     String?
+  assignedByDriver       Driver?          @relation("ShipmentAssigner", fields: [assignedByDriverId], references: [id])
+  courierId              String?
+  courierName            String?
+  vehicleInfo            String?
+  routeInfo              String?
+  scheduledPickupAt      DateTime?
+  scheduledDeliveryAt    DateTime?
   scheduledDepartureTime DateTime?
-  actualDepartureTime DateTime?
-  expectedArrivalTime DateTime?
-  actualArrivalTime   DateTime?
-  activityAtDispatch  Float?
-  activityAtDelivery  Float?
-  receiverName        String?
-  receiverSignature   String?
-  status              ShipmentStatus @default(CREATED)
-  notes               String?
-  orders              Order[]
-  doseUnits           DoseUnit[]
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+  actualDepartureTime    DateTime?
+  expectedArrivalTime    DateTime?
+  actualArrivalTime      DateTime?
+  pickupAddress          String?
+  deliveryAddress        String?
+  deliveryLat            Float?
+  deliveryLng            Float?
+  specialHandling        String?
+  currentLocationLat     Float?
+  currentLocationLng     Float?
+  lastCheckpointAt       DateTime?
+  priority               ShipmentPriority @default(NORMAL)
+  activityAtDispatch     Float?
+  activityAtDelivery     Float?
+  receiverName           String?
+  receiverSignature      String?
+  status                 ShipmentStatus   @default(PACKED)
+  notes                  String?
+  driverNotes            String?
+  orders                 Order[]
+  doseUnits              DoseUnit[]
+  events                 ShipmentEvent[]
+  proofOfDelivery        ProofOfDelivery?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
 }
 
 // ==================== NOTIFICATIONS ====================

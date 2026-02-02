@@ -31,6 +31,8 @@ import profileRoutes from './routes/profile.js';
 import portalRoutes from './routes/portal.js';
 import paymentRoutes from './routes/payments.js';
 import invoicePdfRoutes from './routes/invoicePdf.js';
+import driverRoutes from './routes/drivers.js';
+import driverPortalRoutes from './routes/driverPortal.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -70,6 +72,8 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/portal', portalRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/invoice-pdf', invoicePdfRoutes);
+app.use('/api/drivers', driverRoutes);
+app.use('/api/driver', driverPortalRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

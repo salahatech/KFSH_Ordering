@@ -17,6 +17,30 @@ function generateShipmentNumber(): string {
   return `SHP-${year}${month}${day}-${random}`;
 }
 
+async function createShipmentEvent(
+  shipmentId: string,
+  eventType: string,
+  fromStatus: ShipmentStatus | null,
+  toStatus: ShipmentStatus | null,
+  driverId?: string,
+  userId?: string,
+  notes?: string,
+  metadata?: any
+) {
+  return prisma.shipmentEvent.create({
+    data: {
+      shipmentId,
+      eventType,
+      fromStatus,
+      toStatus,
+      driverId,
+      userId,
+      notes,
+      metadata,
+    },
+  });
+}
+
 /**
  * @swagger
  * /shipments:
@@ -29,28 +53,47 @@ function generateShipmentNumber(): string {
  */
 router.get('/', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { status, customerId, fromDate, toDate } = req.query;
+    const { status, customerId, driverId, fromDate, toDate, search, priority, unassigned } = req.query;
     
     const where: any = {};
-    if (status) where.status = status as ShipmentStatus;
+    if (status) {
+      if (Array.isArray(status)) {
+        where.status = { in: status };
+      } else {
+        where.status = status as ShipmentStatus;
+      }
+    }
     if (customerId) where.customerId = customerId as string;
+    if (driverId) where.driverId = driverId as string;
+    if (priority) where.priority = priority;
+    if (unassigned === 'true') where.driverId = null;
     if (fromDate || toDate) {
-      where.scheduledDepartureTime = {};
-      if (fromDate) where.scheduledDepartureTime.gte = new Date(fromDate as string);
-      if (toDate) where.scheduledDepartureTime.lte = new Date(toDate as string);
+      where.scheduledDeliveryAt = {};
+      if (fromDate) where.scheduledDeliveryAt.gte = new Date(fromDate as string);
+      if (toDate) where.scheduledDeliveryAt.lte = new Date(toDate as string);
+    }
+    if (search) {
+      where.OR = [
+        { shipmentNumber: { contains: search as string, mode: 'insensitive' } },
+        { customer: { name: { contains: search as string, mode: 'insensitive' } } },
+        { driver: { fullName: { contains: search as string, mode: 'insensitive' } } },
+      ];
     }
 
     const shipments = await prisma.shipment.findMany({
       where,
       include: {
         customer: true,
+        driver: true,
         orders: { include: { product: true } },
+        _count: { select: { orders: true, events: true } },
       },
-      orderBy: { scheduledDepartureTime: 'asc' },
+      orderBy: { scheduledDeliveryAt: 'asc' },
     });
 
     res.json(shipments);
   } catch (error) {
+    console.error('Fetch shipments error:', error);
     res.status(500).json({ error: 'Failed to fetch shipments' });
   }
 });
@@ -71,12 +114,15 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response): Promi
       where: { id: req.params.id },
       include: {
         customer: true,
+        driver: true,
         orders: { 
           include: { 
             product: true,
             batch: true,
           },
         },
+        events: { orderBy: { createdAt: 'desc' }, include: { driver: true } },
+        proofOfDelivery: { include: { photos: true, capturedByDriver: true } },
       },
     });
 
@@ -353,8 +399,18 @@ router.patch('/:id/status', authenticateToken, requireRole('Admin', 'Production 
         status: status as ShipmentStatus,
         notes: notes ? `${shipment.notes || ''}\n${notes}` : shipment.notes,
       },
-      include: { customer: true, orders: true },
+      include: { customer: true, orders: true, driver: true },
     });
+
+    await createShipmentEvent(
+      shipment.id,
+      'STATUS_CHANGE',
+      shipment.status,
+      status as ShipmentStatus,
+      undefined,
+      req.user?.userId,
+      notes
+    );
 
     await createAuditLog(req.user?.userId, 'STATUS_CHANGE', 'Shipment', shipment.id,
       { status: shipment.status }, { status }, req);
@@ -362,6 +418,228 @@ router.patch('/:id/status', authenticateToken, requireRole('Admin', 'Production 
     res.json(updatedShipment);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update shipment status' });
+  }
+});
+
+router.post('/:id/assign-driver', authenticateToken, requireRole('Admin', 'Production Manager', 'Logistics'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { driverId, scheduledPickupAt, scheduledDeliveryAt, driverNotes, priority } = req.body;
+
+    if (!driverId) {
+      res.status(400).json({ error: 'Driver ID is required' });
+      return;
+    }
+
+    const shipment = await prisma.shipment.findUnique({
+      where: { id: req.params.id },
+      include: { customer: true },
+    });
+
+    if (!shipment) {
+      res.status(404).json({ error: 'Shipment not found' });
+      return;
+    }
+
+    if (!['PACKED', 'ASSIGNED_TO_DRIVER', 'DELIVERY_FAILED'].includes(shipment.status)) {
+      res.status(400).json({ error: `Cannot assign driver to shipment in ${shipment.status} status` });
+      return;
+    }
+
+    const driver = await prisma.driver.findUnique({ where: { id: driverId } });
+    if (!driver) {
+      res.status(404).json({ error: 'Driver not found' });
+      return;
+    }
+
+    if (driver.status !== 'ACTIVE') {
+      res.status(400).json({ error: 'Driver is not active' });
+      return;
+    }
+
+    const updatedShipment = await prisma.shipment.update({
+      where: { id: req.params.id },
+      data: {
+        driverId,
+        assignedAt: new Date(),
+        status: 'ASSIGNED_TO_DRIVER',
+        scheduledPickupAt: scheduledPickupAt ? new Date(scheduledPickupAt) : undefined,
+        scheduledDeliveryAt: scheduledDeliveryAt ? new Date(scheduledDeliveryAt) : undefined,
+        driverNotes,
+        priority: priority || undefined,
+        deliveryAddress: `${shipment.customer.address || ''}, ${shipment.customer.city || ''}`,
+        deliveryLat: shipment.customer.latitude,
+        deliveryLng: shipment.customer.longitude,
+      },
+      include: { customer: true, driver: true, orders: { include: { product: true } } },
+    });
+
+    await createShipmentEvent(
+      shipment.id,
+      'ASSIGNED_TO_DRIVER',
+      shipment.status,
+      'ASSIGNED_TO_DRIVER',
+      driverId,
+      req.user?.userId,
+      `Assigned to ${driver.fullName}`
+    );
+
+    await createAuditLog(req.user?.userId, 'ASSIGN_DRIVER', 'Shipment', shipment.id,
+      { driverId: shipment.driverId }, { driverId, driverName: driver.fullName }, req);
+
+    res.json(updatedShipment);
+  } catch (error) {
+    console.error('Assign driver error:', error);
+    res.status(500).json({ error: 'Failed to assign driver' });
+  }
+});
+
+router.post('/:id/schedule', authenticateToken, requireRole('Admin', 'Production Manager', 'Logistics'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { scheduledPickupAt, scheduledDeliveryAt, priority, notes } = req.body;
+
+    const shipment = await prisma.shipment.findUnique({ where: { id: req.params.id } });
+    if (!shipment) {
+      res.status(404).json({ error: 'Shipment not found' });
+      return;
+    }
+
+    const updatedShipment = await prisma.shipment.update({
+      where: { id: req.params.id },
+      data: {
+        scheduledPickupAt: scheduledPickupAt ? new Date(scheduledPickupAt) : undefined,
+        scheduledDeliveryAt: scheduledDeliveryAt ? new Date(scheduledDeliveryAt) : undefined,
+        priority: priority || undefined,
+        notes: notes ? `${shipment.notes || ''}\n${notes}` : undefined,
+      },
+      include: { customer: true, driver: true },
+    });
+
+    await createShipmentEvent(
+      shipment.id,
+      'SCHEDULED',
+      null,
+      null,
+      undefined,
+      req.user?.userId,
+      `Scheduled pickup: ${scheduledPickupAt}, delivery: ${scheduledDeliveryAt}`
+    );
+
+    res.json(updatedShipment);
+  } catch (error) {
+    console.error('Schedule shipment error:', error);
+    res.status(500).json({ error: 'Failed to schedule shipment' });
+  }
+});
+
+router.post('/:id/mark-packed', authenticateToken, requireRole('Admin', 'Production Manager', 'Logistics', 'QP'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const shipment = await prisma.shipment.findUnique({ where: { id: req.params.id } });
+    if (!shipment) {
+      res.status(404).json({ error: 'Shipment not found' });
+      return;
+    }
+
+    if (!['DRAFT', 'READY_TO_PACK'].includes(shipment.status)) {
+      res.status(400).json({ error: `Cannot mark as packed from ${shipment.status} status` });
+      return;
+    }
+
+    const updatedShipment = await prisma.shipment.update({
+      where: { id: req.params.id },
+      data: { status: 'PACKED' },
+      include: { customer: true, driver: true, orders: { include: { product: true } } },
+    });
+
+    await createShipmentEvent(
+      shipment.id,
+      'PACKED',
+      shipment.status,
+      'PACKED',
+      undefined,
+      req.user?.userId,
+      'Shipment packed and ready for assignment'
+    );
+
+    res.json(updatedShipment);
+  } catch (error) {
+    console.error('Mark packed error:', error);
+    res.status(500).json({ error: 'Failed to mark as packed' });
+  }
+});
+
+router.post('/:id/cancel', authenticateToken, requireRole('Admin', 'Production Manager', 'Logistics'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { reason } = req.body;
+
+    const shipment = await prisma.shipment.findUnique({ where: { id: req.params.id } });
+    if (!shipment) {
+      res.status(404).json({ error: 'Shipment not found' });
+      return;
+    }
+
+    if (['DELIVERED', 'CANCELLED'].includes(shipment.status)) {
+      res.status(400).json({ error: `Cannot cancel shipment in ${shipment.status} status` });
+      return;
+    }
+
+    const updatedShipment = await prisma.shipment.update({
+      where: { id: req.params.id },
+      data: {
+        status: 'CANCELLED',
+        notes: reason ? `${shipment.notes || ''}\nCancelled: ${reason}` : shipment.notes,
+      },
+      include: { customer: true, driver: true },
+    });
+
+    await createShipmentEvent(
+      shipment.id,
+      'CANCELLED',
+      shipment.status,
+      'CANCELLED',
+      undefined,
+      req.user?.userId,
+      reason || 'Shipment cancelled'
+    );
+
+    await createAuditLog(req.user?.userId, 'CANCEL', 'Shipment', shipment.id,
+      { status: shipment.status }, { status: 'CANCELLED', reason }, req);
+
+    res.json(updatedShipment);
+  } catch (error) {
+    console.error('Cancel shipment error:', error);
+    res.status(500).json({ error: 'Failed to cancel shipment' });
+  }
+});
+
+router.get('/:id/pod', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const pod = await prisma.proofOfDelivery.findUnique({
+      where: { shipmentId: req.params.id },
+      include: { photos: true, capturedByDriver: true, shipment: { include: { customer: true } } },
+    });
+
+    if (!pod) {
+      res.status(404).json({ error: 'Proof of delivery not found' });
+      return;
+    }
+
+    res.json(pod);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch proof of delivery' });
+  }
+});
+
+router.get('/:id/events', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const events = await prisma.shipmentEvent.findMany({
+      where: { shipmentId: req.params.id },
+      include: { driver: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch shipment events' });
   }
 });
 

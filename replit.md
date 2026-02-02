@@ -92,6 +92,35 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
 - **Backend Dashboard API**: Aggregated endpoints at `/dashboard/overview`, `/dashboard/qc`, `/dashboard/qp`, `/dashboard/dispensing`, `/dashboard/logistics`, `/dashboard/portal`
 - **Enhanced Batch Management**: Extended to 19 batch statuses with full state machine, BatchEvent audit trail, role-based transition enforcement, KPI cards, filter widgets, and Batch Journey page with visual stepper/timeline
 - **Order Journey Tracking**: Visual stepper, timeline, "What happens next" panel with role-based actions
+- **Driver Management System**: Comprehensive driver and delivery management:
+  - Driver database model with availability scheduling, vehicle info, license tracking
+  - Driver CRUD API at `/drivers` with search, filtering, status management
+  - Enhanced ShipmentStatus with 13-status workflow (DRAFT→PACKED→ASSIGNED→ACCEPTED→PICKED_UP→IN_TRANSIT→ARRIVED→DELIVERED)
+  - Driver assignment modal with active driver filtering and delivery address auto-fill
+  - Shipment scheduling with calendar date/time picker
+  - ShipmentEvent audit trail for status transitions
+  - ProofOfDelivery model with multi-photo upload (up to 5), signature capture, GPS coordinates, receiver info
+- **Driver Portal**: Self-service portal for drivers at `/driver/*`:
+  - Dashboard with KPIs (assigned today, awaiting acceptance, in transit, delivered, failed)
+  - Upcoming deliveries queue with call and navigate actions
+  - Shipment list with status filtering and search
+  - Shipment detail page with journey stepper, delivery info, customer contact
+  - Action buttons for Accept, Pickup, Start Transit, Mark Arrived, Complete Delivery, Report Failed
+  - GPS location capture with "Capture Location" button
+  - Proof of delivery form with receiver name, signature image, photos, notes
+  - Delivery failed modal with reason codes and notes
+- **Admin Shipment Enhancements**: Updated `/shipments` page:
+  - Dropdown action menu with status-based conditional options
+  - Assign Driver modal with driver list and notes
+  - Schedule modal with date/time picker
+  - Mark as Packed, Cancel Shipment actions
+  - View Details navigation to shipment detail page
+- **Shipment Detail Page**: New at `/shipments/:id`:
+  - Journey stepper with 8-step visual progress
+  - Timeline of all shipment events with timestamps
+  - Driver card with contact info and vehicle details
+  - Proof of delivery display with photos, signature, receiver info
+  - Action modals for driver assignment and scheduling
 
 ## External Dependencies
 - **PostgreSQL**: Primary database for all application data.

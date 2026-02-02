@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore';
 import { ToastProvider } from './components/ui/Toast';
 import Layout from './components/Layout';
 import PortalLayout from './components/PortalLayout';
+import DriverLayout from './components/DriverLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Customers from './pages/Customers';
@@ -39,6 +40,11 @@ import DashboardQP from './pages/DashboardQP';
 import DashboardDispensing from './pages/DashboardDispensing';
 import DashboardLogistics from './pages/DashboardLogistics';
 import PaymentApprovals from './pages/admin/PaymentApprovals';
+import Drivers from './pages/Drivers';
+import ShipmentDetail from './pages/ShipmentDetail';
+import DriverDashboard from './pages/driver/DriverDashboard';
+import DriverShipments from './pages/driver/DriverShipments';
+import DriverShipmentDetail from './pages/driver/DriverShipmentDetail';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -80,6 +86,28 @@ function CustomerRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function DriverRoute({ children }: { children: React.ReactNode }) {
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return (
+      <div className="loading-overlay" style={{ height: '100vh' }}>
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role !== 'Driver') {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function InternalRoute({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading } = useAuthStore();
 
@@ -97,6 +125,10 @@ function InternalRoute({ children }: { children: React.ReactNode }) {
 
   if (user?.role === 'Customer') {
     return <Navigate to="/portal" replace />;
+  }
+
+  if (user?.role === 'Driver') {
+    return <Navigate to="/driver" replace />;
   }
 
   return <>{children}</>;
@@ -141,6 +173,21 @@ export default function App() {
         />
         
         <Route
+          path="/driver/*"
+          element={
+            <DriverRoute>
+              <DriverLayout>
+                <Routes>
+                  <Route path="/" element={<DriverDashboard />} />
+                  <Route path="/shipments" element={<DriverShipments />} />
+                  <Route path="/shipments/:id" element={<DriverShipmentDetail />} />
+                </Routes>
+              </DriverLayout>
+            </DriverRoute>
+          }
+        />
+        
+        <Route
           path="/*"
           element={
             <InternalRoute>
@@ -165,6 +212,8 @@ export default function App() {
                   <Route path="/qc" element={<QC />} />
                   <Route path="/release" element={<Release />} />
                   <Route path="/shipments" element={<Shipments />} />
+                  <Route path="/shipments/:id" element={<ShipmentDetail />} />
+                  <Route path="/drivers" element={<Drivers />} />
                   <Route path="/users" element={<Users />} />
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/audit" element={<AuditLog />} />

@@ -143,6 +143,18 @@ async function main() {
     },
   });
 
+  const driverRole = await prisma.role.upsert({
+    where: { name: 'Driver' },
+    update: {},
+    create: {
+      name: 'Driver',
+      description: 'Driver portal access for deliveries',
+      permissions: {
+        connect: permissions.filter(p => ['dispatch_shipment'].includes(p.name)).map(p => ({ id: p.id })),
+      },
+    },
+  });
+
   const hashedPassword = await bcrypt.hash('admin123', 10);
   
   const adminUser = await prisma.user.upsert({
