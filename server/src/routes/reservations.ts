@@ -238,7 +238,7 @@ router.put('/:id/cancel', authenticateToken, async (req: Request, res: Response)
 router.post('/:id/convert', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { deliveryTimeStart, deliveryTimeEnd, specialNotes } = req.body;
+    const { deliveryTimeStart, deliveryTimeEnd, specialNotes } = req.body || {};
 
     const reservation = await prisma.reservation.findUnique({
       where: { id },

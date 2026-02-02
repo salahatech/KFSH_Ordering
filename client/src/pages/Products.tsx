@@ -1,11 +1,29 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { Plus, Edit2, Clock, Beaker } from 'lucide-react';
+import { 
+  Plus, 
+  Edit2, 
+  Clock, 
+  Beaker, 
+  Package, 
+  X, 
+  Atom, 
+  Activity,
+  Timer,
+  Zap,
+  FlaskConical,
+  Search,
+  Filter,
+} from 'lucide-react';
 
 export default function Products() {
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [detailProduct, setDetailProduct] = useState<any>(null);
+  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [methodFilter, setMethodFilter] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
   const queryClient = useQueryClient();
 
   const { data: products, isLoading } = useQuery({
@@ -59,6 +77,36 @@ export default function Products() {
     return `${minutes}m`;
   };
 
+  const filteredProducts = products?.filter((product: any) => {
+    if (typeFilter && product.productType !== typeFilter) return false;
+    if (methodFilter && product.productionMethod !== methodFilter) return false;
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return (
+        product.name.toLowerCase().includes(query) ||
+        product.code.toLowerCase().includes(query) ||
+        product.radionuclide.toLowerCase().includes(query)
+      );
+    }
+    return true;
+  }) || [];
+
+  const stats = {
+    total: products?.length || 0,
+    pet: products?.filter((p: any) => p.productType === 'PET').length || 0,
+    spect: products?.filter((p: any) => p.productType === 'SPECT').length || 0,
+    therapy: products?.filter((p: any) => p.productType === 'THERAPY').length || 0,
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'PET': return { bg: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' };
+      case 'SPECT': return { bg: 'rgba(34, 197, 94, 0.1)', color: 'var(--success)' };
+      case 'THERAPY': return { bg: 'rgba(234, 179, 8, 0.1)', color: 'var(--warning)' };
+      default: return { bg: 'rgba(100, 116, 139, 0.1)', color: 'var(--text-muted)' };
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="loading-overlay">
@@ -68,67 +116,373 @@ export default function Products() {
   }
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Product Catalog</h2>
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">
+            <Package size={28} style={{ marginRight: '0.5rem' }} />
+            Product Catalog
+          </h1>
+          <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            Manage radiopharmaceutical products with decay properties and production times
+          </p>
+        </div>
         <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <Plus size={18} />
-          Add Product
+          <Plus size={18} /> Add Product
         </button>
       </div>
 
-      <div className="grid grid-3">
-        {products?.map((product: any) => (
-          <div key={product.id} className="card" style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <div>
-                <span className={`badge badge-${product.productType === 'PET' ? 'info' : product.productType === 'SPECT' ? 'success' : 'warning'}`}>
-                  {product.productType}
-                </span>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div 
+          className="card stat-card" 
+          style={{ cursor: 'pointer', border: !typeFilter ? '2px solid var(--primary)' : undefined }}
+          onClick={() => setTypeFilter('')}
+        >
+          <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' }}>
+            <Package size={20} />
+          </div>
+          <div>
+            <div className="stat-value" style={{ color: 'var(--primary)' }}>{stats.total}</div>
+            <div className="stat-label">Total Products</div>
+          </div>
+        </div>
+        <div 
+          className="card stat-card" 
+          style={{ cursor: 'pointer', border: typeFilter === 'PET' ? '2px solid var(--primary)' : undefined }}
+          onClick={() => setTypeFilter(typeFilter === 'PET' ? '' : 'PET')}
+        >
+          <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' }}>
+            <Atom size={20} />
+          </div>
+          <div>
+            <div className="stat-value">{stats.pet}</div>
+            <div className="stat-label">PET Products</div>
+          </div>
+        </div>
+        <div 
+          className="card stat-card" 
+          style={{ cursor: 'pointer', border: typeFilter === 'SPECT' ? '2px solid var(--success)' : undefined }}
+          onClick={() => setTypeFilter(typeFilter === 'SPECT' ? '' : 'SPECT')}
+        >
+          <div className="stat-icon" style={{ background: 'rgba(34, 197, 94, 0.1)', color: 'var(--success)' }}>
+            <Activity size={20} />
+          </div>
+          <div>
+            <div className="stat-value" style={{ color: 'var(--success)' }}>{stats.spect}</div>
+            <div className="stat-label">SPECT Products</div>
+          </div>
+        </div>
+        <div 
+          className="card stat-card" 
+          style={{ cursor: 'pointer', border: typeFilter === 'THERAPY' ? '2px solid var(--warning)' : undefined }}
+          onClick={() => setTypeFilter(typeFilter === 'THERAPY' ? '' : 'THERAPY')}
+        >
+          <div className="stat-icon" style={{ background: 'rgba(234, 179, 8, 0.1)', color: 'var(--warning)' }}>
+            <Zap size={20} />
+          </div>
+          <div>
+            <div className="stat-value" style={{ color: 'var(--warning)' }}>{stats.therapy}</div>
+            <div className="stat-label">Therapy Products</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Filter size={18} style={{ color: 'var(--text-muted)' }} />
+            <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}>Filters:</span>
+          </div>
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '300px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Search by name, code, or isotope..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ paddingLeft: '2.25rem' }}
+            />
+          </div>
+          <select
+            className="form-select"
+            style={{ width: 'auto', minWidth: '150px' }}
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+          >
+            <option value="">All Types</option>
+            <option value="PET">PET</option>
+            <option value="SPECT">SPECT</option>
+            <option value="THERAPY">Therapy</option>
+          </select>
+          <select
+            className="form-select"
+            style={{ width: 'auto', minWidth: '160px' }}
+            value={methodFilter}
+            onChange={(e) => setMethodFilter(e.target.value)}
+          >
+            <option value="">All Methods</option>
+            <option value="CYCLOTRON">Cyclotron</option>
+            <option value="GENERATOR">Generator</option>
+            <option value="KIT">Kit</option>
+          </select>
+          {(typeFilter || methodFilter || searchQuery) && (
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => {
+                setTypeFilter('');
+                setMethodFilter('');
+                setSearchQuery('');
+              }}
+            >
+              <X size={14} /> Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: detailProduct ? '1fr 380px' : '1fr', gap: '1.5rem' }}>
+        <div>
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+            {filteredProducts.map((product: any) => {
+              const typeStyle = getTypeColor(product.productType);
+              const isSelected = detailProduct?.id === product.id;
+              return (
+                <div 
+                  key={product.id} 
+                  className="card" 
+                  style={{ 
+                    padding: '1.25rem', 
+                    cursor: 'pointer',
+                    border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border)',
+                    transition: 'all 0.2s',
+                  }}
+                  onClick={() => setDetailProduct(product)}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                    <span 
+                      className="badge"
+                      style={{ 
+                        background: typeStyle.bg, 
+                        color: typeStyle.color,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {product.productType}
+                    </span>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedProduct(product);
+                        setShowModal(true);
+                      }}
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                  </div>
+                  
+                  <h3 style={{ fontWeight: 600, marginBottom: '0.25rem', fontSize: '1rem' }}>{product.name}</h3>
+                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                    <span style={{ fontFamily: 'monospace' }}>{product.code}</span> • {product.radionuclide}
+                  </p>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.8125rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <Clock size={14} style={{ color: 'var(--text-muted)' }} />
+                      <span>T½: {formatTime(product.halfLifeMinutes)}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <Timer size={14} style={{ color: 'var(--text-muted)' }} />
+                      <span>Shelf: {formatTime(product.shelfLifeMinutes)}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ 
+                    marginTop: '0.75rem', 
+                    paddingTop: '0.75rem', 
+                    borderTop: '1px solid var(--border)', 
+                    fontSize: '0.75rem', 
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    gap: '0.5rem',
+                    flexWrap: 'wrap',
+                  }}>
+                    <span className="badge badge-default" style={{ fontSize: '0.6875rem' }}>{product.productionMethod}</span>
+                    <span style={{ opacity: 0.7 }}>
+                      {product.synthesisTimeMinutes + product.qcTimeMinutes + product.packagingTimeMinutes}m total production
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {filteredProducts.length === 0 && (
+            <div className="card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+              <Package size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+              <div style={{ fontWeight: 500 }}>No products found</div>
+              <div style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                {searchQuery || typeFilter || methodFilter ? 'Try adjusting your filters' : 'Add your first product to get started'}
               </div>
+            </div>
+          )}
+        </div>
+
+        {detailProduct && (
+          <div className="card" style={{ padding: 0, height: 'fit-content', position: 'sticky', top: '1rem' }}>
+            <div style={{ 
+              padding: '1.25rem', 
+              borderBottom: '1px solid var(--border)',
+              background: getTypeColor(detailProduct.productType).bg,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <span 
+                    className="badge"
+                    style={{ 
+                      background: getTypeColor(detailProduct.productType).color, 
+                      color: 'white',
+                      marginBottom: '0.5rem',
+                    }}
+                  >
+                    {detailProduct.productType}
+                  </span>
+                  <h3 style={{ fontWeight: 600, fontSize: '1.125rem', margin: '0.5rem 0 0.25rem' }}>{detailProduct.name}</h3>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: 0 }}>
+                    {detailProduct.code}
+                  </p>
+                </div>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => setDetailProduct(null)}
+                  style={{ borderRadius: '50%', width: '28px', height: '28px', padding: 0 }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div style={{ padding: '1.25rem' }}>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+                  Isotope Properties
+                </div>
+                <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>
+                      <Atom size={14} style={{ color: 'var(--primary)' }} />
+                      <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Radionuclide</span>
+                    </div>
+                    <div style={{ fontWeight: 600 }}>{detailProduct.radionuclide}</div>
+                  </div>
+                  <div style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>
+                      <Clock size={14} style={{ color: 'var(--warning)' }} />
+                      <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Half-Life</span>
+                    </div>
+                    <div style={{ fontWeight: 600 }}>{formatTime(detailProduct.halfLifeMinutes)}</div>
+                  </div>
+                  <div style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>
+                      <Timer size={14} style={{ color: 'var(--success)' }} />
+                      <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Shelf Life</span>
+                    </div>
+                    <div style={{ fontWeight: 600 }}>{formatTime(detailProduct.shelfLifeMinutes)}</div>
+                  </div>
+                  <div style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>
+                      <Beaker size={14} style={{ color: 'var(--primary)' }} />
+                      <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Std. Dose</span>
+                    </div>
+                    <div style={{ fontWeight: 600 }}>{detailProduct.standardDose || '-'} {detailProduct.doseUnit}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+                  Production Details
+                </div>
+                <div style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)', marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>
+                    <FlaskConical size={14} style={{ color: 'var(--primary)' }} />
+                    <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Production Method</span>
+                  </div>
+                  <div style={{ fontWeight: 600 }}>{detailProduct.productionMethod}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.625rem', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                    <span style={{ fontSize: '0.8125rem' }}>Synthesis Time</span>
+                    <span style={{ fontWeight: 600 }}>{detailProduct.synthesisTimeMinutes} min</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.625rem', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                    <span style={{ fontSize: '0.8125rem' }}>QC Testing Time</span>
+                    <span style={{ fontWeight: 600 }}>{detailProduct.qcTimeMinutes} min</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.625rem', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                    <span style={{ fontSize: '0.8125rem' }}>Packaging Time</span>
+                    <span style={{ fontWeight: 600 }}>{detailProduct.packagingTimeMinutes} min</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.625rem', background: 'var(--primary)', color: 'white', borderRadius: 'var(--radius)' }}>
+                    <span style={{ fontSize: '0.8125rem' }}>Total Production</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {detailProduct.synthesisTimeMinutes + detailProduct.qcTimeMinutes + detailProduct.packagingTimeMinutes} min
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                  Overage Factor
+                </div>
+                <div style={{ 
+                  padding: '0.75rem', 
+                  background: 'rgba(234, 179, 8, 0.1)', 
+                  borderRadius: 'var(--radius)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}>
+                  <span style={{ fontSize: '0.8125rem' }}>Decay compensation</span>
+                  <span style={{ fontWeight: 600, color: 'var(--warning)' }}>+{detailProduct.overagePercent}%</span>
+                </div>
+              </div>
+
+              {detailProduct.qcTemplates?.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                    QC Tests ({detailProduct.qcTemplates.length})
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                    {detailProduct.qcTemplates.map((qc: any) => (
+                      <span 
+                        key={qc.id} 
+                        className="badge badge-default"
+                        style={{ fontSize: '0.6875rem' }}
+                      >
+                        {qc.testName}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <button
-                className="btn btn-secondary btn-sm"
+                className="btn btn-primary"
+                style={{ width: '100%', marginTop: '1.25rem' }}
                 onClick={() => {
-                  setSelectedProduct(product);
+                  setSelectedProduct(detailProduct);
                   setShowModal(true);
                 }}
               >
-                <Edit2 size={14} />
+                <Edit2 size={16} /> Edit Product
               </button>
             </div>
-            
-            <h3 style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{product.name}</h3>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              {product.code} | {product.radionuclide}
-            </p>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.875rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Clock size={16} color="var(--text-muted)" />
-                <span>T½: {formatTime(product.halfLifeMinutes)}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Beaker size={16} color="var(--text-muted)" />
-                <span>Shelf: {formatTime(product.shelfLifeMinutes)}</span>
-              </div>
-            </div>
-
-            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Synthesis: {product.synthesisTimeMinutes}m | QC: {product.qcTimeMinutes}m | Pkg: {product.packagingTimeMinutes}m
-            </div>
-            
-            {product.qcTemplates?.length > 0 && (
-              <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                {product.qcTemplates.length} QC tests configured
-              </div>
-            )}
           </div>
-        ))}
+        )}
       </div>
-
-      {products?.length === 0 && (
-        <div className="card empty-state">No products found</div>
-      )}
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -139,7 +493,7 @@ export default function Products() {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
-                <div className="grid grid-2">
+                <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div className="form-group">
                     <label className="form-label">Code</label>
                     <input name="code" className="form-input" defaultValue={selectedProduct?.code} required disabled={!!selectedProduct} />
