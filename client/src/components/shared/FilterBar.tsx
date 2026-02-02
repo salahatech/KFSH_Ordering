@@ -55,23 +55,23 @@ export function FilterBar({
           if (widget.type === 'search') {
             return (
               <div key={widget.key} style={{ flex: '1 1 200px', maxWidth: '300px' }}>
-                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block' }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.375rem', display: 'block', fontWeight: 500 }}>
                   {widget.label}
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <Search size={16} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                   <input
                     type="text"
-                    className="input"
+                    className="form-input"
                     placeholder={widget.placeholder || `Search ${widget.label.toLowerCase()}...`}
                     value={values[widget.key] || ''}
                     onChange={(e) => onChange(widget.key, e.target.value)}
-                    style={{ paddingLeft: '2.25rem' }}
+                    style={{ paddingLeft: '2.5rem', height: '40px' }}
                   />
                   {values[widget.key] && (
                     <button
                       onClick={() => onChange(widget.key, '')}
-                      style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                      style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
                     >
                       <X size={14} />
                     </button>
@@ -83,14 +83,15 @@ export function FilterBar({
 
           if (widget.type === 'select') {
             return (
-              <div key={widget.key} style={{ flex: '0 0 auto', minWidth: '150px' }}>
-                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block' }}>
+              <div key={widget.key} style={{ flex: '0 0 auto', minWidth: '160px' }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.375rem', display: 'block', fontWeight: 500 }}>
                   {widget.label}
                 </label>
                 <select
-                  className="input"
+                  className="form-select"
                   value={values[widget.key] || ''}
                   onChange={(e) => onChange(widget.key, e.target.value)}
+                  style={{ height: '40px', minWidth: '140px' }}
                 >
                   <option value="">All</option>
                   {widget.options?.map(opt => (
@@ -104,19 +105,19 @@ export function FilterBar({
           if (widget.type === 'multiselect') {
             const selectedValues = values[widget.key] || [];
             return (
-              <div key={widget.key} style={{ flex: '0 0 auto', minWidth: '150px', position: 'relative' }}>
-                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block' }}>
+              <div key={widget.key} style={{ flex: '0 0 auto', minWidth: '160px', position: 'relative' }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.375rem', display: 'block', fontWeight: 500 }}>
                   {widget.label}
                 </label>
                 <button
-                  className="input"
+                  className="form-select"
                   onClick={() => setExpandedSelect(expandedSelect === widget.key ? null : widget.key)}
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left' }}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', height: '40px', backgroundImage: 'none' }}
                 >
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {selectedValues.length === 0 ? 'All' : `${selectedValues.length} selected`}
                   </span>
-                  <ChevronDown size={14} />
+                  <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />
                 </button>
                 {expandedSelect === widget.key && (
                   <div style={{
@@ -161,27 +162,27 @@ export function FilterBar({
             return (
               <div key={widget.key} style={{ flex: '0 0 auto', display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block' }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.375rem', display: 'block', fontWeight: 500 }}>
                     From
                   </label>
                   <input
                     type="date"
-                    className="input"
+                    className="form-input"
                     value={values[`${widget.key}From`] || ''}
                     onChange={(e) => onChange(`${widget.key}From`, e.target.value)}
-                    style={{ width: '140px' }}
+                    style={{ width: '150px', height: '40px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block' }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.375rem', display: 'block', fontWeight: 500 }}>
                     To
                   </label>
                   <input
                     type="date"
-                    className="input"
+                    className="form-input"
                     value={values[`${widget.key}To`] || ''}
                     onChange={(e) => onChange(`${widget.key}To`, e.target.value)}
-                    style={{ width: '140px' }}
+                    style={{ width: '150px', height: '40px' }}
                   />
                 </div>
               </div>
