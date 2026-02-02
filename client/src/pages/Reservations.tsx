@@ -111,9 +111,14 @@ export default function Reservations() {
       const response = await api.post(`/reservations/${id}/convert`);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['reservations'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      alert(`Order ${data.order?.orderNumber || ''} created successfully!`);
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.error || error.message || 'Failed to convert reservation';
+      alert(`Error: ${message}`);
     },
   });
 
