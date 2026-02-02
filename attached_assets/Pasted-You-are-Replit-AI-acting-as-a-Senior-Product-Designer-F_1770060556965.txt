@@ -1,0 +1,207 @@
+You are Replit AI acting as a Senior Product Designer + Full-Stack Engineer.
+
+Goal:
+Implement a complete “Order Journey Tracking” experience for the RadioPharma OMS, where every order is tracked through statuses from customer submission until delivery. The UX must show a clear journey (timeline/stepper) with screens tied to each status, role-based actions, timestamps, and audit trail.
+
+Tech:
+- Frontend: React + TypeScript
+- Backend: Node.js (NestJS or Express) + TypeScript
+- DB: PostgreSQL + Prisma
+- Auth: JWT + RBAC
+
+1) ORDER STATUS STATE MACHINE (MANDATORY)
+Statuses:
+- DRAFT
+- SUBMITTED
+- VALIDATED
+- SCHEDULED
+- IN_PRODUCTION
+- QC_PENDING
+- RELEASED
+- DISPATCHED
+- DELIVERED
+Terminal/Exception statuses:
+- CANCELLED
+- REJECTED
+- FAILED_QC
+- REWORK (optional, only if feasible by shelf-life rules)
+
+Implement a strict state machine:
+- Allow only valid transitions.
+- Each transition must create an OrderStatusEvent row with:
+  - orderId
+  - fromStatus
+  - toStatus
+  - changedByUserId
+  - changedAt (UTC)
+  - role
+  - comment/note
+  - metadata JSON (batchId, shipmentId, QC summary, reason codes, etc.)
+- Provide server-side validation + meaningful error messages for invalid transitions.
+
+2) CORE UX: “ORDER JOURNEY” SCREEN (MANDATORY)
+Create a single order detail page: /orders/:id that contains:
+A) Order Header Card:
+- Order number, customer, product, delivery/injection times
+- Current status badge + ETA (computed)
+- Quick actions (role-based)
+
+B) Journey Stepper + Timeline:
+- A stepper at the top showing the main milestones:
+  Submitted → Validated → Scheduled → Production → QC → Released → Dispatched → Delivered
+- Each milestone shows:
+  - status icon (done/current/pending)
+  - timestamp
+  - user who performed it
+- Under it, a chronological timeline of events (from OrderStatusEvent + related events) including:
+  - status changes
+  - scheduling updates
+  - batch assignment
+  - QC test results summary
+  - QP release signature
+  - dispatch and delivery proof
+
+C) “What happens next” panel:
+- Show the next expected step + who is responsible + required action.
+
+D) Attachments:
+- QC report / COA PDF
+- Delivery proof (signature/photo) if uploaded
+
+E) Audit & Trace ID:
+- For admin-only roles: show traceId and full audit history view link.
+
+3) SCREENS RELATED TO EACH STEP (MANDATORY)
+Implement the following pages and link them from the Order Journey:
+
+DRAFT
+- Screen: Create/Edit Order Form (customer portal + internal order desk)
+- Behavior: save as draft, validate basic fields client-side.
+
+SUBMITTED
+- Screen: “Submitted Orders” queue (Order Desk)
+- Actions: Validate/Reject, request correction, add notes.
+
+VALIDATED
+- Screen: Validation Checklist (license, permitted product, credit, feasibility)
+- Show pass/fail items and allow “Approve Validation”.
+- If failed → REJECTED with reason codes.
+
+SCHEDULED
+- Screen: Planner / Scheduling screen
+- Must show:
+  - backward scheduling calculation details
+  - planned batch time, QC time, packaging time, travel time
+  - capacity constraints
+- Action: “Assign to Batch / Create Batch Work Order”
+- On schedule set → status becomes SCHEDULED and event saved.
+
+IN_PRODUCTION
+- Screen: Batch Work Order view (production team)
+- Must show:
+  - batch number, synthesis module, operators, planned vs actual times
+  - materials lots used
+- Action: “Start Production” sets order status IN_PRODUCTION.
+- If production fails and cannot recover → CANCELLED with reason.
+
+QC_PENDING
+- Screen: QC Dashboard + QC Entry screen
+- After production end, set QC_PENDING automatically.
+- QC entry includes test results and pass/fail.
+- If QC fails:
+  - set status FAILED_QC for impacted orders
+  - show message “Orders cannot be dispatched.”
+- If QC passes, allow move to RELEASED only via QP.
+
+RELEASED
+- Screen: QP Release screen (final approval)
+- Show QC summary + batch genealogy + electronic signature capture.
+- Action: “Release Batch” moves orders to RELEASED with signature event.
+
+DISPATCHED
+- Screen: Logistics Dispatch screen / Shipment details
+- Create shipment, assign courier, route, dispatch time.
+- Show activity at dispatch time and expected activity at delivery time.
+- Action: “Dispatch Shipment” sets DISPATCHED with shipmentId.
+
+DELIVERED
+- Screen: Delivery Confirmation screen
+- Capture delivery time, receiver name, optional signature/photo upload.
+- Action: “Confirm Delivery” sets DELIVERED.
+
+4) ROLE-BASED VISIBILITY (MANDATORY)
+- Customer sees:
+  - Only their orders
+  - Journey stepper/timeline (no internal material lots)
+  - Delivery ETA and status
+  - COA PDF (optional if allowed)
+- Internal roles see additional tabs:
+  - Production tab (batch/work order)
+  - QC tab (tests/results)
+  - Logistics tab (shipment)
+  - Finance tab (invoice status) (optional link only)
+
+5) NOTIFICATIONS CONNECTED TO JOURNEY (MANDATORY)
+Trigger in-app notifications + (optional) email on:
+- Order submitted
+- Order validated / rejected
+- Scheduled time assigned or changed
+- QC passed / failed
+- Batch released
+- Shipment dispatched
+- Delivered confirmation
+
+6) UI/UX REQUIREMENTS (MANDATORY)
+- The journey must feel like a guided flow:
+  - progress stepper
+  - clear next steps
+  - “Completed at” timestamps
+- Provide empty states and friendly errors:
+  - “QC results not entered yet”
+  - “Shipment not created yet”
+  - “Waiting for QP release”
+- Add skeleton loaders for journey/timeline.
+- Add a printable “Order Journey Report” export to PDF (basic is OK).
+
+7) BACKEND API (MANDATORY)
+Endpoints:
+- GET /orders/:id (includes current status + computed journey data)
+- GET /orders/:id/events (OrderStatusEvent timeline)
+- POST /orders/:id/transition (body: toStatus, comment, metadata)
+- Planner endpoints:
+  - POST /orders/:id/schedule
+- QC endpoints:
+  - POST /batches/:id/qc-results
+- Release endpoint:
+  - POST /batches/:id/release
+- Logistics endpoints:
+  - POST /shipments
+  - POST /shipments/:id/dispatch
+  - POST /shipments/:id/deliver
+
+Implement server-side guards to enforce allowed transitions by role and current status.
+
+8) DATABASE (PRISMA) (MANDATORY)
+Add tables:
+- Order
+- OrderStatusEvent
+- Batch, BatchOrder (join)
+- QCResult (header + lines)
+- Shipment, ShipmentOrder (join)
+- Attachment (orderId/batchId/shipmentId, fileUrl, type, uploadedBy, uploadedAt)
+
+9) SEED DATA + DEMO FLOW (MANDATORY)
+Seed:
+- 2 customers (hospital portal users)
+- 3 internal users (planner, QC, QP, logistics)
+- 3 products (FDG, Tc-99m MDP, I-131)
+- 6 sample orders across different statuses
+Provide a README “Demo Journey” with steps to move an order from Draft → Delivered.
+
+Implementation order:
+1) Build Prisma schema + migrations
+2) Implement state machine + transition endpoint
+3) Build Order Journey screen UI (stepper + timeline)
+4) Build queues/screens for each status
+5) Integrate batch/QC/release/shipment events into the timeline
+6) Notifications + PDF export

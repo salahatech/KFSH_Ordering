@@ -3,12 +3,26 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import api from '../lib/api';
 import { format, addHours } from 'date-fns';
-import { ArrowLeft, Calculator, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Calculator, AlertCircle, RefreshCw } from 'lucide-react';
 import ApprovalStatus from '../components/ApprovalStatus';
+import { useToast } from '../components/ui/Toast';
+import { parseApiError } from '../components/ui/FormErrors';
+
+function safeFormatDate(date: any, formatStr: string, fallback: string = ''): string {
+  try {
+    if (!date) return fallback;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return fallback;
+    return format(d, formatStr);
+  } catch {
+    return fallback;
+  }
+}
 
 export default function OrderForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     customerId: '',
     productId: '',
@@ -41,7 +55,7 @@ export default function OrderForm() {
     },
   });
 
-  const { data: order } = useQuery({
+  const { data: order, isLoading: isLoadingOrder, error: orderError } = useQuery({
     queryKey: ['order', id],
     queryFn: async () => {
       const { data } = await api.get(`/orders/${id}`);
@@ -52,19 +66,24 @@ export default function OrderForm() {
 
   useEffect(() => {
     if (order) {
-      setFormData({
-        customerId: order.customerId,
-        productId: order.productId,
-        deliveryDate: format(new Date(order.deliveryDate), 'yyyy-MM-dd'),
-        deliveryTimeStart: format(new Date(order.deliveryTimeStart), "yyyy-MM-dd'T'HH:mm"),
-        deliveryTimeEnd: format(new Date(order.deliveryTimeEnd), "yyyy-MM-dd'T'HH:mm"),
-        requestedActivity: order.requestedActivity.toString(),
-        activityUnit: order.activityUnit,
-        numberOfDoses: order.numberOfDoses?.toString() || '',
-        injectionTime: order.injectionTime ? format(new Date(order.injectionTime), "yyyy-MM-dd'T'HH:mm") : '',
-        patientCount: order.patientCount?.toString() || '',
-        specialNotes: order.specialNotes || '',
-      });
+      try {
+        setFormData({
+          customerId: order.customerId || '',
+          productId: order.productId || '',
+          deliveryDate: safeFormatDate(order.deliveryDate, 'yyyy-MM-dd', format(new Date(), 'yyyy-MM-dd')),
+          deliveryTimeStart: safeFormatDate(order.deliveryTimeStart, "yyyy-MM-dd'T'HH:mm"),
+          deliveryTimeEnd: safeFormatDate(order.deliveryTimeEnd, "yyyy-MM-dd'T'HH:mm"),
+          requestedActivity: order.requestedActivity?.toString() || '',
+          activityUnit: order.activityUnit || 'mCi',
+          numberOfDoses: order.numberOfDoses?.toString() || '',
+          injectionTime: safeFormatDate(order.injectionTime, "yyyy-MM-dd'T'HH:mm"),
+          patientCount: order.patientCount?.toString() || '',
+          specialNotes: order.specialNotes || '',
+        });
+      } catch (err) {
+        console.error('Error loading order data:', err);
+        setError('Failed to load order data. Some fields may be missing.');
+      }
     }
   }, [order]);
 
@@ -111,6 +130,40 @@ export default function OrderForm() {
 
   const selectedCustomer = customers?.find((c: any) => c.id === formData.customerId);
   const selectedProduct = products?.find((p: any) => p.id === formData.productId);
+
+  if (id && isLoadingOrder) {
+    return (
+      <div className="loading-overlay">
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  if (orderError) {
+    const apiError = parseApiError(orderError);
+    return (
+      <div>
+        <button
+          onClick={() => navigate('/orders')}
+          className="btn btn-secondary"
+          style={{ marginBottom: '1rem' }}
+        >
+          <ArrowLeft size={18} />
+          Back to Orders
+        </button>
+        <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
+          <AlertCircle size={48} style={{ color: 'var(--danger)', marginBottom: '1rem' }} />
+          <h3 style={{ marginBottom: '0.5rem' }}>Failed to Load Order</h3>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
+            {apiError?.userMessage || 'Unable to load order details. Please try again.'}
+          </p>
+          <button className="btn btn-primary" onClick={() => window.location.reload()}>
+            <RefreshCw size={18} /> Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
