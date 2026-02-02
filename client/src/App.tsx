@@ -17,6 +17,10 @@ import Users from './pages/Users';
 import Reports from './pages/Reports';
 import AuditLog from './pages/AuditLog';
 import Approvals from './pages/Approvals';
+import Dispensing from './pages/Dispensing';
+import Availability from './pages/Availability';
+import Contracts from './pages/Contracts';
+import Invoices from './pages/Invoices';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -75,6 +79,10 @@ export default function App() {
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/audit" element={<AuditLog />} />
                 <Route path="/approvals" element={<Approvals />} />
+                <Route path="/dispensing" element={<Dispensing />} />
+                <Route path="/availability" element={<Availability />} />
+                <Route path="/contracts" element={<Contracts />} />
+                <Route path="/invoices" element={<Invoices />} />
               </Routes>
             </Layout>
           </ProtectedRoute>

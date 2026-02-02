@@ -19,6 +19,10 @@ import {
   X,
   Bell,
   FileCheck,
+  Syringe,
+  CalendarClock,
+  FileSignature,
+  Receipt,
 } from 'lucide-react';
 
 const menuItems = [
@@ -27,11 +31,15 @@ const menuItems = [
   { path: '/customers', label: 'Customers', icon: Building2 },
   { path: '/products', label: 'Products', icon: Package },
   { path: '/orders', label: 'Orders', icon: ShoppingCart },
+  { path: '/availability', label: 'Availability', icon: CalendarClock },
   { path: '/planner', label: 'Planner', icon: Calendar },
   { path: '/batches', label: 'Batches', icon: FlaskConical },
   { path: '/qc', label: 'QC Testing', icon: ClipboardCheck },
   { path: '/release', label: 'QP Release', icon: CheckCircle },
+  { path: '/dispensing', label: 'Dispensing', icon: Syringe },
   { path: '/shipments', label: 'Logistics', icon: Truck },
+  { path: '/contracts', label: 'Contracts', icon: FileSignature },
+  { path: '/invoices', label: 'Invoicing', icon: Receipt },
   { path: '/reports', label: 'Reports', icon: BarChart3 },
   { path: '/users', label: 'Users', icon: Users },
   { path: '/audit', label: 'Audit Log', icon: FileText },
