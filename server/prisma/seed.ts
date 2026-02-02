@@ -157,6 +157,80 @@ async function main() {
     },
   });
 
+  await prisma.user.upsert({
+    where: { email: 'sales@radiopharma.com' },
+    update: {},
+    create: {
+      email: 'sales@radiopharma.com',
+      password: hashedPassword,
+      firstName: 'Sarah',
+      lastName: 'Sales',
+      roleId: salesRole.id,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'planner@radiopharma.com' },
+    update: {},
+    create: {
+      email: 'planner@radiopharma.com',
+      password: hashedPassword,
+      firstName: 'Peter',
+      lastName: 'Planner',
+      roleId: plannerRole.id,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'qc@radiopharma.com' },
+    update: {},
+    create: {
+      email: 'qc@radiopharma.com',
+      password: hashedPassword,
+      firstName: 'Quinn',
+      lastName: 'Quality',
+      roleId: qcRole.id,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'qp@radiopharma.com' },
+    update: {},
+    create: {
+      email: 'qp@radiopharma.com',
+      password: hashedPassword,
+      firstName: 'Quincy',
+      lastName: 'Person',
+      roleId: qpRole.id,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'logistics@radiopharma.com' },
+    update: {},
+    create: {
+      email: 'logistics@radiopharma.com',
+      password: hashedPassword,
+      firstName: 'Larry',
+      lastName: 'Logistics',
+      roleId: logisticsRole.id,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'customer@radiopharma.com' },
+    update: {},
+    create: {
+      email: 'customer@radiopharma.com',
+      password: hashedPassword,
+      firstName: 'Chris',
+      lastName: 'Customer',
+      roleId: customerRole.id,
+    },
+  });
+
+  console.log('Created demo users for all roles');
+
   const products = await Promise.all([
     prisma.product.upsert({
       where: { code: 'FDG-18' },

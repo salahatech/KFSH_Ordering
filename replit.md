@@ -111,7 +111,17 @@ Key entities:
 - Invoice status workflow (Draft, Sent, Paid, Partially Paid, Overdue)
 
 ## Demo Credentials
-- **Admin**: admin@radiopharma.com / admin123
+All accounts use password: **admin123**
+
+| Role | Email | Permissions |
+|------|-------|-------------|
+| Admin | admin@radiopharma.com | Full system access |
+| Sales | sales@radiopharma.com | Create/approve orders, manage customers, view reports |
+| Production Planner | planner@radiopharma.com | Schedule batches, view reports |
+| QC Analyst | qc@radiopharma.com | Enter QC results, view reports |
+| Qualified Person | qp@radiopharma.com | Release batches, enter QC, view reports |
+| Logistics | logistics@radiopharma.com | Dispatch shipments, view reports |
+| Customer | customer@radiopharma.com | Create orders (portal access) |
 
 ## Running the Application
 
