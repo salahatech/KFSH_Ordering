@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { format } from 'date-fns';
-import { Plus, FileText, Check, X, Eye, DollarSign } from 'lucide-react';
+import { Plus, FileText, Check, X, Eye, DollarSign, Building } from 'lucide-react';
 
 export default function Contracts() {
   const [selectedContract, setSelectedContract] = useState<any>(null);
@@ -109,6 +109,11 @@ export default function Contracts() {
     });
   };
 
+  const activeContracts = contracts?.filter((c: any) => c.status === 'ACTIVE').length || 0;
+  const totalCreditLimit = contracts?.reduce((sum: number, c: any) => sum + (c.creditLimit || 0), 0) || 0;
+  const avgDiscount = contracts?.length ? 
+    (contracts.reduce((sum: number, c: any) => sum + (c.discountPercent || 0), 0) / contracts.length).toFixed(1) : 0;
+
   if (isLoading) {
     return (
       <div className="loading-overlay">
@@ -119,9 +124,14 @@ export default function Contracts() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Contracts & Pricing</h2>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.25rem' }}>Contracts & Pricing</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+            Manage customer contracts, payment terms, and product pricing
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <select
             className="form-select"
             style={{ width: 'auto' }}
@@ -135,12 +145,39 @@ export default function Contracts() {
             <option value="TERMINATED">Terminated</option>
           </select>
           <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-            <Plus size={16} /> New Contract
+            <Plus size={18} /> New Contract
           </button>
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: selectedContract ? '1fr 1fr' : '1fr' }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--primary)' }}>
+            {contracts?.length || 0}
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Total Contracts</div>
+        </div>
+        <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--success)' }}>
+            {activeContracts}
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Active</div>
+        </div>
+        <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--text)' }}>
+            ${(totalCreditLimit / 1000).toFixed(0)}k
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Total Credit</div>
+        </div>
+        <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--warning)' }}>
+            {avgDiscount}%
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Avg Discount</div>
+        </div>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: selectedContract ? '1fr 400px' : '1fr', gap: '1.5rem' }}>
         <div className="card">
           <table className="table">
             <thead>
@@ -149,28 +186,52 @@ export default function Contracts() {
                 <th>Customer</th>
                 <th>Period</th>
                 <th>Credit Limit</th>
+                <th>Discount</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th style={{ width: '100px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {contracts?.map((contract: any) => (
-                <tr key={contract.id}>
-                  <td style={{ fontFamily: 'monospace' }}>{contract.contractNumber}</td>
-                  <td>{contract.customer?.name}</td>
+                <tr 
+                  key={contract.id} 
+                  style={{ 
+                    cursor: 'pointer',
+                    backgroundColor: selectedContract?.id === contract.id ? 'var(--background-secondary)' : undefined
+                  }}
+                  onClick={() => setSelectedContract(contract)}
+                >
+                  <td style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>{contract.contractNumber}</td>
                   <td>
-                    {format(new Date(contract.startDate), 'MMM d, yyyy')} -{' '}
-                    {format(new Date(contract.endDate), 'MMM d, yyyy')}
+                    <div style={{ fontWeight: 500 }}>{contract.customer?.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{contract.name}</div>
                   </td>
                   <td>
-                    {contract.creditLimit ? `$${contract.creditLimit.toLocaleString()}` : '-'}
+                    <div>{format(new Date(contract.startDate), 'MMM d, yyyy')}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      to {format(new Date(contract.endDate), 'MMM d, yyyy')}
+                    </div>
+                  </td>
+                  <td>
+                    {contract.creditLimit ? (
+                      <span style={{ fontWeight: 500 }}>${contract.creditLimit.toLocaleString()}</span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)' }}>No limit</span>
+                    )}
+                  </td>
+                  <td>
+                    {contract.discountPercent > 0 ? (
+                      <span style={{ color: 'var(--success)', fontWeight: 500 }}>{contract.discountPercent}%</span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)' }}>-</span>
+                    )}
                   </td>
                   <td>
                     <span className={`badge badge-${getStatusColor(contract.status)}`}>
                       {contract.status}
                     </span>
                   </td>
-                  <td>
+                  <td onClick={(e) => e.stopPropagation()}>
                     <div style={{ display: 'flex', gap: '0.25rem' }}>
                       <button
                         className="btn btn-sm btn-outline"
@@ -206,7 +267,7 @@ export default function Contracts() {
               ))}
               {(!contracts || contracts.length === 0) && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
                     No contracts found
                   </td>
                 </tr>
@@ -217,10 +278,17 @@ export default function Contracts() {
 
         {selectedContract && (
           <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'flex-start',
+              paddingBottom: '1rem',
+              borderBottom: '1px solid var(--border)',
+              marginBottom: '1rem'
+            }}>
               <div>
-                <h3 style={{ fontWeight: 600 }}>{selectedContract.name}</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                <h3 style={{ fontWeight: 600, fontSize: '1.125rem', marginBottom: '0.25rem' }}>{selectedContract.name}</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', fontFamily: 'monospace', margin: 0 }}>
                   {selectedContract.contractNumber}
                 </p>
               </div>
@@ -229,36 +297,40 @@ export default function Contracts() {
               </button>
             </div>
 
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <Building size={16} style={{ color: 'var(--text-muted)' }} />
+              <span style={{ fontWeight: 500 }}>{selectedContract.customer?.name}</span>
+              <span className={`badge badge-${getStatusColor(selectedContract.status)}`} style={{ marginLeft: 'auto' }}>
+                {selectedContract.status}
+              </span>
+            </div>
+
             <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Customer</div>
-                <div>{selectedContract.customer?.name}</div>
+              <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payment Terms</div>
+                <div style={{ fontWeight: 500, marginTop: '0.25rem' }}>Net {selectedContract.paymentTermsDays} days</div>
               </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Status</div>
-                <span className={`badge badge-${getStatusColor(selectedContract.status)}`}>
-                  {selectedContract.status}
-                </span>
+              <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contract Discount</div>
+                <div style={{ fontWeight: 500, marginTop: '0.25rem', color: selectedContract.discountPercent > 0 ? 'var(--success)' : undefined }}>
+                  {selectedContract.discountPercent}%
+                </div>
               </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Payment Terms</div>
-                <div>Net {selectedContract.paymentTermsDays} days</div>
+              <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Credit Limit</div>
+                <div style={{ fontWeight: 500, marginTop: '0.25rem' }}>
+                  {selectedContract.creditLimit ? `$${selectedContract.creditLimit.toLocaleString()}` : 'No limit'}
+                </div>
               </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Contract Discount</div>
-                <div>{selectedContract.discountPercent}%</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Credit Limit</div>
-                <div>{selectedContract.creditLimit ? `$${selectedContract.creditLimit.toLocaleString()}` : 'No limit'}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Invoices</div>
-                <div>{selectedContract._count?.invoices || 0}</div>
+              <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Invoices</div>
+                <div style={{ fontWeight: 500, marginTop: '0.25rem' }}>{selectedContract._count?.invoices || 0}</div>
               </div>
             </div>
 
-            <h4 style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Product Pricing</h4>
+            <h4 style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
+              Product Pricing
+            </h4>
             <table className="table">
               <thead>
                 <tr>
@@ -271,14 +343,20 @@ export default function Contracts() {
                 {selectedContract.priceItems?.map((item: any) => (
                   <tr key={item.id}>
                     <td>{item.product?.name}</td>
-                    <td>${item.unitPrice.toFixed(2)} {item.priceUnit}</td>
-                    <td>{item.discountPercent}%</td>
+                    <td style={{ fontWeight: 500 }}>${item.unitPrice.toFixed(2)} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{item.priceUnit}</span></td>
+                    <td>
+                      {item.discountPercent > 0 ? (
+                        <span style={{ color: 'var(--success)' }}>{item.discountPercent}%</span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>-</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
                 {(!selectedContract.priceItems || selectedContract.priceItems.length === 0) && (
                   <tr>
-                    <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                      No pricing configured - using default rates
+                    <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '1.5rem' }}>
+                      No custom pricing - using default rates
                     </td>
                   </tr>
                 )}
@@ -291,7 +369,10 @@ export default function Contracts() {
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '1rem' }}>Create Contract</h3>
+            <h3 style={{ marginBottom: '0.5rem', fontWeight: 600 }}>Create Contract</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+              Set up a new customer contract with payment terms and pricing
+            </p>
             <div className="form-group">
               <label>Customer *</label>
               <select
@@ -344,7 +425,7 @@ export default function Contracts() {
                   type="number"
                   className="form-input"
                   value={createForm.paymentTermsDays}
-                  onChange={(e) => setCreateForm({ ...createForm, paymentTermsDays: parseInt(e.target.value) })}
+                  onChange={(e) => setCreateForm({ ...createForm, paymentTermsDays: parseInt(e.target.value) || 30 })}
                 />
               </div>
               <div className="form-group">
@@ -364,7 +445,7 @@ export default function Contracts() {
                 type="number"
                 className="form-input"
                 value={createForm.discountPercent}
-                onChange={(e) => setCreateForm({ ...createForm, discountPercent: parseFloat(e.target.value) })}
+                onChange={(e) => setCreateForm({ ...createForm, discountPercent: parseFloat(e.target.value) || 0 })}
                 min="0"
                 max="100"
                 step="0.5"
@@ -377,16 +458,17 @@ export default function Contracts() {
                 value={createForm.notes}
                 onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })}
                 rows={2}
+                placeholder="Optional notes about this contract"
               />
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
               <button className="btn btn-outline" onClick={() => setShowCreateModal(false)}>
                 Cancel
               </button>
               <button
                 className="btn btn-primary"
                 onClick={handleCreate}
-                disabled={createContractMutation.isPending}
+                disabled={createContractMutation.isPending || !createForm.customerId || !createForm.name}
               >
                 {createContractMutation.isPending ? 'Creating...' : 'Create Contract'}
               </button>

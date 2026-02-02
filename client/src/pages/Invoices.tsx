@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { format } from 'date-fns';
-import { Plus, Send, DollarSign, Eye, X, FileText, CreditCard } from 'lucide-react';
+import { Plus, Send, Eye, X, FileText, CreditCard, Receipt, TrendingUp, AlertCircle } from 'lucide-react';
 
 export default function Invoices() {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
@@ -147,9 +147,14 @@ export default function Invoices() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Invoicing</h2>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.25rem' }}>Invoicing</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+            Generate invoices from delivered orders and track payments
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <select
             className="form-select"
             style={{ width: 'auto' }}
@@ -164,41 +169,101 @@ export default function Invoices() {
             <option value="OVERDUE">Overdue</option>
           </select>
           <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-            <Plus size={16} /> Generate Invoice
+            <Plus size={18} /> Generate Invoice
           </button>
         </div>
       </div>
 
       {summary && (
         <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div className="card" style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--primary)' }}>
-              ${summary.totalAmount?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ 
+                width: '48px', 
+                height: '48px', 
+                borderRadius: '0.75rem', 
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Receipt size={24} style={{ color: 'var(--primary)' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--primary)' }}>
+                  ${(summary.totalAmount / 1000)?.toFixed(1) || '0'}k
+                </div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Total Invoiced</div>
+              </div>
             </div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Total Invoiced</div>
           </div>
-          <div className="card" style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--success)' }}>
-              ${summary.totalPaid?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ 
+                width: '48px', 
+                height: '48px', 
+                borderRadius: '0.75rem', 
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <TrendingUp size={24} style={{ color: 'var(--success)' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--success)' }}>
+                  ${(summary.totalPaid / 1000)?.toFixed(1) || '0'}k
+                </div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Total Paid</div>
+              </div>
             </div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Total Paid</div>
           </div>
-          <div className="card" style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--warning)' }}>
-              ${summary.totalOutstanding?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ 
+                width: '48px', 
+                height: '48px', 
+                borderRadius: '0.75rem', 
+                backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <FileText size={24} style={{ color: 'var(--warning)' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--warning)' }}>
+                  ${(summary.totalOutstanding / 1000)?.toFixed(1) || '0'}k
+                </div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Outstanding</div>
+              </div>
             </div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Outstanding</div>
           </div>
-          <div className="card" style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--danger)' }}>
-              {summary.byStatus?.overdue || 0}
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ 
+                width: '48px', 
+                height: '48px', 
+                borderRadius: '0.75rem', 
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <AlertCircle size={24} style={{ color: 'var(--danger)' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--danger)' }}>
+                  {summary.byStatus?.overdue || 0}
+                </div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Overdue</div>
+              </div>
             </div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Overdue</div>
           </div>
         </div>
       )}
 
-      <div className="grid" style={{ gridTemplateColumns: selectedInvoice ? '1fr 1fr' : '1fr' }}>
+      <div className="grid" style={{ gridTemplateColumns: selectedInvoice ? '1fr 420px' : '1fr', gap: '1.5rem' }}>
         <div className="card">
           <table className="table">
             <thead>
@@ -210,7 +275,7 @@ export default function Invoices() {
                 <th>Total</th>
                 <th>Paid</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th style={{ width: '100px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -218,21 +283,30 @@ export default function Invoices() {
                 const isOverdue = ['SENT', 'PARTIALLY_PAID'].includes(invoice.status) && 
                   new Date(invoice.dueDate) < new Date();
                 return (
-                  <tr key={invoice.id}>
-                    <td style={{ fontFamily: 'monospace' }}>{invoice.invoiceNumber}</td>
+                  <tr 
+                    key={invoice.id}
+                    style={{ 
+                      cursor: 'pointer',
+                      backgroundColor: selectedInvoice?.id === invoice.id ? 'var(--background-secondary)' : undefined
+                    }}
+                    onClick={() => setSelectedInvoice(invoice)}
+                  >
+                    <td style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>{invoice.invoiceNumber}</td>
                     <td>{invoice.customer?.name}</td>
                     <td>{format(new Date(invoice.invoiceDate), 'MMM d, yyyy')}</td>
                     <td style={{ color: isOverdue ? 'var(--danger)' : undefined }}>
                       {format(new Date(invoice.dueDate), 'MMM d, yyyy')}
                     </td>
-                    <td>${invoice.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    <td>${invoice.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td style={{ fontWeight: 500 }}>${invoice.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td style={{ color: invoice.paidAmount > 0 ? 'var(--success)' : 'var(--text-muted)' }}>
+                      ${invoice.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
                     <td>
                       <span className={`badge badge-${isOverdue ? 'danger' : getStatusColor(invoice.status)}`}>
                         {isOverdue ? 'OVERDUE' : invoice.status}
                       </span>
                     </td>
-                    <td>
+                    <td onClick={(e) => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: '0.25rem' }}>
                         <button
                           className="btn btn-sm btn-outline"
@@ -272,7 +346,7 @@ export default function Invoices() {
               })}
               {(!invoices || invoices.length === 0) && (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
                     No invoices found
                   </td>
                 </tr>
@@ -283,10 +357,19 @@ export default function Invoices() {
 
         {selectedInvoice && (
           <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'flex-start',
+              paddingBottom: '1rem',
+              borderBottom: '1px solid var(--border)',
+              marginBottom: '1rem'
+            }}>
               <div>
-                <h3 style={{ fontWeight: 600 }}>Invoice {selectedInvoice.invoiceNumber}</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                <h3 style={{ fontWeight: 600, fontSize: '1.125rem', marginBottom: '0.25rem' }}>
+                  Invoice {selectedInvoice.invoiceNumber}
+                </h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
                   {selectedInvoice.customer?.name}
                 </p>
               </div>
@@ -295,52 +378,63 @@ export default function Invoices() {
               </button>
             </div>
 
-            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Invoice Date</div>
-                <div>{format(new Date(selectedInvoice.invoiceDate), 'MMM d, yyyy')}</div>
+            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
+              <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Invoice Date</div>
+                <div style={{ fontWeight: 500, marginTop: '0.25rem' }}>{format(new Date(selectedInvoice.invoiceDate), 'MMM d, yyyy')}</div>
               </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Due Date</div>
-                <div>{format(new Date(selectedInvoice.dueDate), 'MMM d, yyyy')}</div>
+              <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Due Date</div>
+                <div style={{ fontWeight: 500, marginTop: '0.25rem' }}>{format(new Date(selectedInvoice.dueDate), 'MMM d, yyyy')}</div>
               </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Subtotal</div>
-                <div>${selectedInvoice.subtotal.toFixed(2)}</div>
+              <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subtotal</div>
+                <div style={{ fontWeight: 500, marginTop: '0.25rem' }}>${selectedInvoice.subtotal.toFixed(2)}</div>
               </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tax</div>
-                <div>${selectedInvoice.taxAmount.toFixed(2)}</div>
+              <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tax</div>
+                <div style={{ fontWeight: 500, marginTop: '0.25rem' }}>${selectedInvoice.taxAmount.toFixed(2)}</div>
               </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Discount</div>
-                <div>${selectedInvoice.discountAmount.toFixed(2)}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total</div>
-                <div style={{ fontWeight: 600, fontSize: '1.25rem' }}>
-                  ${selectedInvoice.totalAmount.toFixed(2)}
+            </div>
+
+            <div style={{ 
+              backgroundColor: 'var(--primary)', 
+              color: 'white', 
+              padding: '1rem', 
+              borderRadius: '0.5rem',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Total Amount</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>${selectedInvoice.totalAmount.toFixed(2)}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Paid</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 500 }}>${selectedInvoice.paidAmount.toFixed(2)}</div>
                 </div>
               </div>
             </div>
 
-            <h4 style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Line Items</h4>
+            <h4 style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
+              Line Items
+            </h4>
             <table className="table">
               <thead>
                 <tr>
                   <th>Description</th>
                   <th>Qty</th>
-                  <th>Unit Price</th>
+                  <th>Price</th>
                   <th>Total</th>
                 </tr>
               </thead>
               <tbody>
                 {selectedInvoice.items?.map((item: any) => (
                   <tr key={item.id}>
-                    <td>{item.description}</td>
+                    <td style={{ fontSize: '0.875rem' }}>{item.description}</td>
                     <td>{item.quantity}</td>
                     <td>${item.unitPrice.toFixed(2)}</td>
-                    <td>${item.lineTotal.toFixed(2)}</td>
+                    <td style={{ fontWeight: 500 }}>${item.lineTotal.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -348,7 +442,9 @@ export default function Invoices() {
 
             {selectedInvoice.payments?.length > 0 && (
               <>
-                <h4 style={{ fontWeight: 600, marginTop: '1.5rem', marginBottom: '0.5rem' }}>Payments</h4>
+                <h4 style={{ fontWeight: 600, marginTop: '1.5rem', marginBottom: '0.75rem', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
+                  Payments
+                </h4>
                 <table className="table">
                   <thead>
                     <tr>
@@ -362,9 +458,11 @@ export default function Invoices() {
                     {selectedInvoice.payments.map((payment: any) => (
                       <tr key={payment.id}>
                         <td>{format(new Date(payment.paymentDate), 'MMM d, yyyy')}</td>
-                        <td>${payment.amount.toFixed(2)}</td>
-                        <td>{payment.paymentMethod}</td>
-                        <td>{payment.referenceNumber || '-'}</td>
+                        <td style={{ fontWeight: 500, color: 'var(--success)' }}>${payment.amount.toFixed(2)}</td>
+                        <td>{payment.paymentMethod.replace('_', ' ')}</td>
+                        <td style={{ color: payment.referenceNumber ? undefined : 'var(--text-muted)' }}>
+                          {payment.referenceNumber || '-'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -378,7 +476,10 @@ export default function Invoices() {
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="modal" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '1rem' }}>Generate Invoice from Orders</h3>
+            <h3 style={{ marginBottom: '0.5rem', fontWeight: 600 }}>Generate Invoice from Orders</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+              Select delivered orders to include in the invoice
+            </p>
             <div className="form-group">
               <label>Customer *</label>
               <select
@@ -397,9 +498,26 @@ export default function Invoices() {
             {createForm.customerId && (
               <div className="form-group">
                 <label>Select Delivered Orders *</label>
-                <div style={{ maxHeight: '200px', overflow: 'auto', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '0.5rem' }}>
+                <div style={{ 
+                  maxHeight: '200px', 
+                  overflow: 'auto', 
+                  border: '1px solid var(--border)', 
+                  borderRadius: '0.5rem', 
+                  backgroundColor: 'var(--background-secondary)'
+                }}>
                   {customerOrders.length > 0 ? customerOrders.map((order: any) => (
-                    <label key={order.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', cursor: 'pointer' }}>
+                    <label 
+                      key={order.id} 
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.75rem', 
+                        padding: '0.75rem 1rem', 
+                        cursor: 'pointer',
+                        borderBottom: '1px solid var(--border)',
+                        backgroundColor: createForm.selectedOrders.includes(order.id) ? 'rgba(59, 130, 246, 0.1)' : undefined
+                      }}
+                    >
                       <input
                         type="checkbox"
                         checked={createForm.selectedOrders.includes(order.id)}
@@ -410,18 +528,26 @@ export default function Invoices() {
                             setCreateForm({ ...createForm, selectedOrders: createForm.selectedOrders.filter(id => id !== order.id) });
                           }
                         }}
+                        style={{ width: '16px', height: '16px' }}
                       />
-                      <span>{order.orderNumber}</span>
-                      <span style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>
-                        {order.requestedActivity} {order.activityUnit} - {order.product?.name}
-                      </span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '0.8125rem' }}>{order.orderNumber}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {order.product?.name} - {order.requestedActivity} {order.activityUnit}
+                        </div>
+                      </div>
                     </label>
                   )) : (
-                    <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '1rem' }}>
+                    <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
                       No delivered orders for this customer
                     </p>
                   )}
                 </div>
+                {createForm.selectedOrders.length > 0 && (
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--primary)' }}>
+                    {createForm.selectedOrders.length} order(s) selected
+                  </div>
+                )}
               </div>
             )}
             <div className="form-group">
@@ -430,13 +556,13 @@ export default function Invoices() {
                 type="number"
                 className="form-input"
                 value={createForm.taxRate}
-                onChange={(e) => setCreateForm({ ...createForm, taxRate: parseFloat(e.target.value) })}
+                onChange={(e) => setCreateForm({ ...createForm, taxRate: parseFloat(e.target.value) || 0 })}
                 min="0"
                 max="100"
                 step="0.5"
               />
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
               <button className="btn btn-outline" onClick={() => setShowCreateModal(false)}>
                 Cancel
               </button>
@@ -455,10 +581,10 @@ export default function Invoices() {
       {showPaymentModal && (
         <div className="modal-overlay" onClick={() => setShowPaymentModal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '1rem' }}>Record Payment</h3>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
+            <h3 style={{ marginBottom: '0.5rem', fontWeight: 600 }}>Record Payment</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
               Invoice: {showPaymentModal.invoiceNumber} | 
-              Outstanding: ${(showPaymentModal.totalAmount - showPaymentModal.paidAmount).toFixed(2)}
+              Outstanding: <span style={{ color: 'var(--danger)', fontWeight: 500 }}>${(showPaymentModal.totalAmount - showPaymentModal.paidAmount).toFixed(2)}</span>
             </p>
             <div className="form-group">
               <label>Amount *</label>
@@ -468,6 +594,7 @@ export default function Invoices() {
                 value={paymentForm.amount}
                 onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
                 step="0.01"
+                placeholder="Enter payment amount"
               />
             </div>
             <div className="form-group">
@@ -500,16 +627,17 @@ export default function Invoices() {
                 value={paymentForm.notes}
                 onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
                 rows={2}
+                placeholder="Optional notes"
               />
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
               <button className="btn btn-outline" onClick={() => setShowPaymentModal(null)}>
                 Cancel
               </button>
               <button
                 className="btn btn-primary"
                 onClick={handlePayment}
-                disabled={paymentMutation.isPending}
+                disabled={paymentMutation.isPending || !paymentForm.amount}
               >
                 {paymentMutation.isPending ? 'Recording...' : 'Record Payment'}
               </button>

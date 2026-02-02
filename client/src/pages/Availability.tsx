@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { format, addDays, startOfWeek, endOfWeek } from 'date-fns';
-import { Calendar, Plus, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Plus, Clock, ChevronLeft, ChevronRight, CalendarDays, Users } from 'lucide-react';
 
 export default function Availability() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -87,6 +87,7 @@ export default function Availability() {
   const getUtilizationColor = (percent: number) => {
     if (percent >= 90) return 'var(--danger)';
     if (percent >= 70) return 'var(--warning)';
+    if (percent >= 40) return 'var(--primary)';
     return 'var(--success)';
   };
 
@@ -112,40 +113,88 @@ export default function Availability() {
     });
   };
 
+  const totalWindows = calendarData?.length || 0;
+  const totalCapacity = calendarData?.reduce((sum: number, w: any) => sum + w.capacityMinutes, 0) || 0;
+  const usedCapacity = calendarData?.reduce((sum: number, w: any) => sum + w.usedMinutes, 0) || 0;
+  const activeReservations = reservations?.filter((r: any) => ['TENTATIVE', 'CONFIRMED'].includes(r.status)).length || 0;
+
+  if (isLoading) {
+    return (
+      <div className="loading-overlay">
+        <div className="spinner" />
+      </div>
+    );
+  }
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Availability & Capacity</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.25rem' }}>Availability & Capacity</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+            Manage delivery windows and track capacity utilization
+          </p>
+        </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="btn btn-outline" onClick={() => setShowGenerateModal(true)}>
-            <Calendar size={16} /> Generate Windows
+            <CalendarDays size={18} /> Generate Windows
           </button>
           <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-            <Plus size={16} /> Add Window
+            <Plus size={18} /> Add Window
           </button>
         </div>
       </div>
 
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--primary)' }}>
+            {totalWindows}
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Delivery Windows</div>
+        </div>
+        <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--text)' }}>
+            {Math.round(totalCapacity / 60)}h
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Total Capacity</div>
+        </div>
+        <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 600, color: totalCapacity > 0 ? getUtilizationColor((usedCapacity / totalCapacity) * 100) : 'var(--success)' }}>
+            {totalCapacity > 0 ? Math.round((usedCapacity / totalCapacity) * 100) : 0}%
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Utilization</div>
+        </div>
+        <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--warning)' }}>
+            {activeReservations}
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Active Reservations</div>
+        </div>
+      </div>
+
       <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <button
             className="btn btn-outline"
             onClick={() => setCurrentDate(addDays(currentDate, -7))}
           >
-            <ChevronLeft size={16} /> Previous Week
+            <ChevronLeft size={18} /> Previous Week
           </button>
-          <h3 style={{ fontWeight: 600 }}>
-            {format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Calendar size={20} style={{ color: 'var(--primary)' }} />
+            <h3 style={{ fontWeight: 600, fontSize: '1.125rem', margin: 0 }}>
+              {format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}
+            </h3>
+          </div>
           <button
             className="btn btn-outline"
             onClick={() => setCurrentDate(addDays(currentDate, 7))}
           >
-            Next Week <ChevronRight size={16} />
+            Next Week <ChevronRight size={18} />
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.75rem' }}>
           {weekDays.map((day) => {
             const windows = getWindowsForDate(day);
             const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
@@ -156,63 +205,100 @@ export default function Availability() {
                 key={day.toISOString()}
                 style={{
                   border: isToday ? '2px solid var(--primary)' : '1px solid var(--border)',
-                  borderRadius: '0.5rem',
-                  padding: '0.75rem',
-                  minHeight: '150px',
+                  borderRadius: '0.75rem',
+                  padding: '1rem',
+                  minHeight: '180px',
                   backgroundColor: isWeekend ? 'var(--background-secondary)' : 'white',
+                  transition: 'box-shadow 0.2s',
                 }}
               >
-                <div style={{ fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-                  {format(day, 'EEE')}
-                  <span style={{ display: 'block', fontSize: '1.25rem' }}>{format(day, 'd')}</span>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ 
+                    fontSize: '0.75rem', 
+                    fontWeight: 600, 
+                    textTransform: 'uppercase',
+                    color: isToday ? 'var(--primary)' : 'var(--text-muted)',
+                    letterSpacing: '0.05em'
+                  }}>
+                    {format(day, 'EEE')}
+                  </div>
+                  <div style={{ 
+                    fontSize: '1.5rem', 
+                    fontWeight: 600,
+                    color: isToday ? 'var(--primary)' : 'var(--text)'
+                  }}>
+                    {format(day, 'd')}
+                  </div>
                 </div>
 
                 {windows.length > 0 ? (
-                  windows.map((window: any) => (
-                    <div
-                      key={window.id}
-                      style={{
-                        backgroundColor: 'var(--background-secondary)',
-                        borderRadius: '0.25rem',
-                        padding: '0.5rem',
-                        marginBottom: '0.25rem',
-                        fontSize: '0.75rem',
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                        <span>
-                          <Clock size={12} style={{ marginRight: '0.25rem' }} />
-                          {format(new Date(window.startTime), 'HH:mm')}-{format(new Date(window.endTime), 'HH:mm')}
-                        </span>
-                      </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {windows.map((window: any) => (
                       <div
+                        key={window.id}
                         style={{
-                          height: '4px',
-                          backgroundColor: 'var(--border)',
-                          borderRadius: '2px',
-                          overflow: 'hidden',
+                          backgroundColor: 'var(--background-secondary)',
+                          borderRadius: '0.5rem',
+                          padding: '0.625rem',
+                          fontSize: '0.75rem',
+                          border: '1px solid var(--border)',
                         }}
                       >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.5rem' }}>
+                          <Clock size={12} style={{ color: 'var(--text-muted)' }} />
+                          <span style={{ fontWeight: 500 }}>
+                            {format(new Date(window.startTime), 'HH:mm')}-{format(new Date(window.endTime), 'HH:mm')}
+                          </span>
+                        </div>
                         <div
                           style={{
-                            width: `${window.utilizationPercent}%`,
-                            height: '100%',
-                            backgroundColor: getUtilizationColor(window.utilizationPercent),
+                            height: '6px',
+                            backgroundColor: 'var(--border)',
+                            borderRadius: '3px',
+                            overflow: 'hidden',
                           }}
-                        />
-                      </div>
-                      <div style={{ marginTop: '0.25rem', color: 'var(--text-muted)' }}>
-                        {window.availableMinutes} / {window.capacityMinutes} min available
-                      </div>
-                      {window.reservationCount > 0 && (
-                        <div style={{ color: 'var(--primary)', marginTop: '0.25rem' }}>
-                          {window.reservationCount} reservation(s)
+                        >
+                          <div
+                            style={{
+                              width: `${window.utilizationPercent}%`,
+                              height: '100%',
+                              backgroundColor: getUtilizationColor(window.utilizationPercent),
+                              transition: 'width 0.3s',
+                            }}
+                          />
                         </div>
-                      )}
-                    </div>
-                  ))
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.375rem' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>
+                            {window.availableMinutes}m free
+                          </span>
+                          <span style={{ color: getUtilizationColor(window.utilizationPercent), fontWeight: 500 }}>
+                            {window.utilizationPercent}%
+                          </span>
+                        </div>
+                        {window.reservationCount > 0 && (
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '0.25rem',
+                            color: 'var(--primary)', 
+                            marginTop: '0.375rem',
+                            fontSize: '0.6875rem'
+                          }}>
+                            <Users size={10} />
+                            {window.reservationCount} reservation{window.reservationCount > 1 ? 's' : ''}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 ) : (
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textAlign: 'center', paddingTop: '1rem' }}>
+                  <div style={{ 
+                    color: 'var(--text-muted)', 
+                    fontSize: '0.75rem', 
+                    textAlign: 'center', 
+                    paddingTop: '2rem',
+                    opacity: 0.7
+                  }}>
                     No windows
                   </div>
                 )}
@@ -223,7 +309,10 @@ export default function Availability() {
       </div>
 
       <div className="card">
-        <h3 style={{ fontWeight: 600, marginBottom: '1rem' }}>Active Reservations</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+          <Users size={18} style={{ color: 'var(--primary)' }} />
+          <h3 style={{ fontWeight: 600, fontSize: '1rem' }}>Active Reservations</h3>
+        </div>
         <table className="table">
           <thead>
             <tr>
@@ -239,11 +328,11 @@ export default function Availability() {
           <tbody>
             {reservations?.filter((r: any) => ['TENTATIVE', 'CONFIRMED'].includes(r.status)).map((res: any) => (
               <tr key={res.id}>
-                <td style={{ fontFamily: 'monospace' }}>{res.reservationNumber}</td>
+                <td style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>{res.reservationNumber}</td>
                 <td>{res.customer?.name}</td>
                 <td>{res.product?.name}</td>
                 <td>{format(new Date(res.requestedDate), 'MMM d, yyyy')}</td>
-                <td>{res.requestedActivity} {res.activityUnit}</td>
+                <td style={{ fontWeight: 500 }}>{res.requestedActivity} {res.activityUnit}</td>
                 <td>{res.estimatedMinutes} min</td>
                 <td>
                   <span className={`badge badge-${res.status === 'CONFIRMED' ? 'success' : 'warning'}`}>
@@ -254,8 +343,8 @@ export default function Availability() {
             ))}
             {(!reservations || reservations.filter((r: any) => ['TENTATIVE', 'CONFIRMED'].includes(r.status)).length === 0) && (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                  No active reservations
+                <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                  No active reservations for this period
                 </td>
               </tr>
             )}
@@ -266,7 +355,10 @@ export default function Availability() {
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '1rem' }}>Create Delivery Window</h3>
+            <h3 style={{ marginBottom: '0.5rem', fontWeight: 600 }}>Create Delivery Window</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+              Add a new delivery window for a specific date
+            </p>
             <div className="form-group">
               <label>Name</label>
               <input
@@ -312,10 +404,10 @@ export default function Availability() {
                 type="number"
                 className="form-input"
                 value={createForm.capacityMinutes}
-                onChange={(e) => setCreateForm({ ...createForm, capacityMinutes: parseInt(e.target.value) })}
+                onChange={(e) => setCreateForm({ ...createForm, capacityMinutes: parseInt(e.target.value) || 0 })}
               />
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
               <button className="btn btn-outline" onClick={() => setShowCreateModal(false)}>
                 Cancel
               </button>
@@ -334,7 +426,10 @@ export default function Availability() {
       {showGenerateModal && (
         <div className="modal-overlay" onClick={() => setShowGenerateModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '1rem' }}>Generate Delivery Windows</h3>
+            <h3 style={{ marginBottom: '0.5rem', fontWeight: 600 }}>Generate Delivery Windows</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+              Automatically create delivery windows for a date range
+            </p>
             <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div className="form-group">
                 <label>Start Date</label>
@@ -381,20 +476,21 @@ export default function Availability() {
                 type="number"
                 className="form-input"
                 value={generateForm.capacityMinutes}
-                onChange={(e) => setGenerateForm({ ...generateForm, capacityMinutes: parseInt(e.target.value) })}
+                onChange={(e) => setGenerateForm({ ...generateForm, capacityMinutes: parseInt(e.target.value) || 0 })}
               />
             </div>
             <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={generateForm.excludeWeekends}
                   onChange={(e) => setGenerateForm({ ...generateForm, excludeWeekends: e.target.checked })}
+                  style={{ width: '16px', height: '16px' }}
                 />
                 Exclude Weekends
               </label>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
               <button className="btn btn-outline" onClick={() => setShowGenerateModal(false)}>
                 Cancel
               </button>
