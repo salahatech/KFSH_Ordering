@@ -26,6 +26,7 @@ import PortalDashboard from './pages/portal/PortalDashboard';
 import PortalOrders from './pages/portal/PortalOrders';
 import PortalNewOrder from './pages/portal/PortalNewOrder';
 import PortalInvoices from './pages/portal/PortalInvoices';
+import Settings from './pages/Settings';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -149,6 +150,7 @@ export default function App() {
                 <Route path="/availability" element={<Availability />} />
                 <Route path="/contracts" element={<Contracts />} />
                 <Route path="/invoices" element={<Invoices />} />
+                <Route path="/settings" element={<Settings />} />
               </Routes>
             </Layout>
           </InternalRoute>

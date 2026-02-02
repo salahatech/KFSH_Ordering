@@ -406,11 +406,8 @@ async function main() {
       create: {
         name: 'Metro General Hospital',
         code: 'METRO-001',
-        address: '500 Medical Center Drive',
-        city: 'Springfield',
-        state: 'IL',
+        address: '500 Medical Center Drive, Springfield, IL 62701, USA',
         postalCode: '62701',
-        country: 'USA',
         phone: '(217) 555-0100',
         email: 'nuclear.med@metrogen.com',
         licenseNumber: 'NRC-12-34567-01',
@@ -419,8 +416,6 @@ async function main() {
         deliveryWindowEnd: '18:00',
         preferredDeliveryTime: '07:00',
         travelTimeMinutes: 45,
-        region: 'Central',
-        category: 'Hospital',
         permittedProducts: {
           create: products.map(p => ({ productId: p.id })),
         },
@@ -437,11 +432,8 @@ async function main() {
       create: {
         name: 'University Medical Center',
         code: 'UNIV-002',
-        address: '1000 University Avenue',
-        city: 'Chicago',
-        state: 'IL',
+        address: '1000 University Avenue, Chicago, IL 60601, USA',
         postalCode: '60601',
-        country: 'USA',
         phone: '(312) 555-0200',
         email: 'radiology@umc.edu',
         licenseNumber: 'NRC-12-34567-02',
@@ -450,8 +442,6 @@ async function main() {
         deliveryWindowEnd: '20:00',
         preferredDeliveryTime: '06:30',
         travelTimeMinutes: 90,
-        region: 'North',
-        category: 'Academic',
         permittedProducts: {
           create: products.map(p => ({ productId: p.id })),
         },
@@ -468,11 +458,8 @@ async function main() {
       create: {
         name: 'Community Health Center',
         code: 'COMM-003',
-        address: '250 Main Street',
-        city: 'Decatur',
-        state: 'IL',
+        address: '250 Main Street, Decatur, IL 62521, USA',
         postalCode: '62521',
-        country: 'USA',
         phone: '(217) 555-0300',
         email: 'imaging@commhealth.org',
         licenseNumber: 'NRC-12-34567-03',
@@ -481,8 +468,6 @@ async function main() {
         deliveryWindowEnd: '16:00',
         preferredDeliveryTime: '08:00',
         travelTimeMinutes: 30,
-        region: 'Central',
-        category: 'Clinic',
         permittedProducts: {
           create: products.filter(p => p.productType === 'SPECT').map(p => ({ productId: p.id })),
         },
@@ -499,11 +484,8 @@ async function main() {
       create: {
         name: 'Regional Cancer Center',
         code: 'ONCO-004',
-        address: '800 Cancer Care Lane',
-        city: 'Peoria',
-        state: 'IL',
+        address: '800 Cancer Care Lane, Peoria, IL 61602, USA',
         postalCode: '61602',
-        country: 'USA',
         phone: '(309) 555-0400',
         email: 'nuclear@regcancer.org',
         licenseNumber: 'NRC-12-34567-04',
@@ -512,8 +494,6 @@ async function main() {
         deliveryWindowEnd: '17:00',
         preferredDeliveryTime: '07:30',
         travelTimeMinutes: 60,
-        region: 'North',
-        category: 'Specialty',
         permittedProducts: {
           create: products.filter(p => p.productType === 'PET' || p.productType === 'THERAPY').map(p => ({ productId: p.id })),
         },
@@ -530,11 +510,8 @@ async function main() {
       create: {
         name: 'Heartland Cardiology',
         code: 'HEART-005',
-        address: '450 Heart Drive',
-        city: 'Champaign',
-        state: 'IL',
+        address: '450 Heart Drive, Champaign, IL 61820, USA',
         postalCode: '61820',
-        country: 'USA',
         phone: '(217) 555-0500',
         email: 'nuclear@heartlandcardio.com',
         licenseNumber: 'NRC-12-34567-05',
@@ -543,8 +520,6 @@ async function main() {
         deliveryWindowEnd: '15:00',
         preferredDeliveryTime: '07:00',
         travelTimeMinutes: 40,
-        region: 'Central',
-        category: 'Specialty',
         permittedProducts: {
           create: products.filter(p => ['TC99M-MDP', 'TC99M-DTPA'].includes(p.code)).map(p => ({ productId: p.id })),
         },
@@ -1090,6 +1065,196 @@ async function main() {
       console.log(`Created workflow: ${wfDef.name}`);
     }
   }
+
+  // Seed Settings Data
+  console.log('Seeding settings data...');
+
+  // Countries
+  const saudiArabia = await prisma.settingCountry.upsert({
+    where: { code: 'SA' },
+    update: {},
+    create: { code: 'SA', name: 'Saudi Arabia', nameAr: 'المملكة العربية السعودية' },
+  });
+  
+  await prisma.settingCountry.upsert({
+    where: { code: 'AE' },
+    update: {},
+    create: { code: 'AE', name: 'United Arab Emirates', nameAr: 'الإمارات العربية المتحدة' },
+  });
+  
+  await prisma.settingCountry.upsert({
+    where: { code: 'BH' },
+    update: {},
+    create: { code: 'BH', name: 'Bahrain', nameAr: 'البحرين' },
+  });
+  
+  await prisma.settingCountry.upsert({
+    where: { code: 'KW' },
+    update: {},
+    create: { code: 'KW', name: 'Kuwait', nameAr: 'الكويت' },
+  });
+
+  // Saudi Cities
+  const cities = [
+    { code: 'RUH', name: 'Riyadh', nameAr: 'الرياض' },
+    { code: 'JED', name: 'Jeddah', nameAr: 'جدة' },
+    { code: 'DMM', name: 'Dammam', nameAr: 'الدمام' },
+    { code: 'MKK', name: 'Mecca', nameAr: 'مكة المكرمة' },
+    { code: 'MED', name: 'Medina', nameAr: 'المدينة المنورة' },
+    { code: 'KHO', name: 'Khobar', nameAr: 'الخبر' },
+    { code: 'TAB', name: 'Tabuk', nameAr: 'تبوك' },
+    { code: 'ABH', name: 'Abha', nameAr: 'أبها' },
+  ];
+
+  for (const city of cities) {
+    await prisma.settingCity.upsert({
+      where: { countryId_code: { countryId: saudiArabia.id, code: city.code } },
+      update: {},
+      create: { countryId: saudiArabia.id, ...city },
+    });
+  }
+
+  // Saudi Regions
+  const regions = [
+    { code: 'CENT', name: 'Central Region', nameAr: 'المنطقة الوسطى' },
+    { code: 'WEST', name: 'Western Region', nameAr: 'المنطقة الغربية' },
+    { code: 'EAST', name: 'Eastern Region', nameAr: 'المنطقة الشرقية' },
+    { code: 'NORT', name: 'Northern Region', nameAr: 'المنطقة الشمالية' },
+    { code: 'SOUT', name: 'Southern Region', nameAr: 'المنطقة الجنوبية' },
+  ];
+
+  for (const region of regions) {
+    await prisma.settingRegion.upsert({
+      where: { countryId_code: { countryId: saudiArabia.id, code: region.code } },
+      update: {},
+      create: { countryId: saudiArabia.id, ...region },
+    });
+  }
+
+  // Customer Categories
+  const categories = [
+    { code: 'GOV', name: 'Government Hospital', nameAr: 'مستشفى حكومي', description: 'Government-funded healthcare facilities' },
+    { code: 'PRI', name: 'Private Hospital', nameAr: 'مستشفى خاص', description: 'Private healthcare facilities' },
+    { code: 'UNI', name: 'University Hospital', nameAr: 'مستشفى جامعي', description: 'Academic medical centers' },
+    { code: 'MIL', name: 'Military Hospital', nameAr: 'مستشفى عسكري', description: 'Military healthcare facilities' },
+    { code: 'CLI', name: 'Clinic', nameAr: 'عيادة', description: 'Outpatient clinics and imaging centers' },
+  ];
+
+  for (const cat of categories) {
+    await prisma.settingCategory.upsert({
+      where: { code: cat.code },
+      update: {},
+      create: cat,
+    });
+  }
+
+  // Couriers
+  const courier1 = await prisma.settingCourier.upsert({
+    where: { code: 'MED01' },
+    update: {},
+    create: { code: 'MED01', name: 'Medical Express', nameAr: 'ميديكال إكسبرس', phone: '+966 11 234 5678', email: 'dispatch@medexpress.sa' },
+  });
+
+  const courier2 = await prisma.settingCourier.upsert({
+    where: { code: 'RAD01' },
+    update: {},
+    create: { code: 'RAD01', name: 'RadioPharma Fleet', nameAr: 'أسطول راديوفارما', phone: '+966 11 987 6543', email: 'fleet@radiopharma.sa' },
+  });
+
+  // Vehicles
+  await prisma.settingVehicle.upsert({
+    where: { plateNumber: 'ABC 1234' },
+    update: {},
+    create: { courierId: courier1.id, plateNumber: 'ABC 1234', vehicleType: 'Van', model: 'Toyota Hiace 2024', capacity: '50 packages' },
+  });
+
+  await prisma.settingVehicle.upsert({
+    where: { plateNumber: 'XYZ 5678' },
+    update: {},
+    create: { courierId: courier1.id, plateNumber: 'XYZ 5678', vehicleType: 'Car', model: 'Honda CR-V 2023', capacity: '20 packages' },
+  });
+
+  await prisma.settingVehicle.upsert({
+    where: { plateNumber: 'RAD 0001' },
+    update: {},
+    create: { courierId: courier2.id, plateNumber: 'RAD 0001', vehicleType: 'Van', model: 'Mercedes Sprinter 2024', capacity: '100 packages' },
+  });
+
+  // Dose Units
+  const doseUnits = [
+    { code: 'mCi', name: 'Millicurie', symbol: 'mCi', description: 'Unit of radioactivity (1 mCi = 37 MBq)' },
+    { code: 'MBq', name: 'Megabecquerel', symbol: 'MBq', description: 'SI unit of radioactivity' },
+    { code: 'GBq', name: 'Gigabecquerel', symbol: 'GBq', description: 'SI unit of radioactivity (1 GBq = 1000 MBq)' },
+    { code: 'Ci', name: 'Curie', symbol: 'Ci', description: 'Unit of radioactivity (1 Ci = 1000 mCi)' },
+    { code: 'kBq', name: 'Kilobecquerel', symbol: 'kBq', description: 'SI unit of radioactivity (1 kBq = 0.001 MBq)' },
+  ];
+
+  for (const du of doseUnits) {
+    await prisma.settingDoseUnit.upsert({
+      where: { code: du.code },
+      update: {},
+      create: du,
+    });
+  }
+
+  // Product Types
+  const productTypes = [
+    { code: 'PET', name: 'PET Tracer', nameAr: 'متتبع بت', description: 'Positron Emission Tomography tracers' },
+    { code: 'SPECT', name: 'SPECT Tracer', nameAr: 'متتبع سبكت', description: 'Single Photon Emission Computed Tomography tracers' },
+    { code: 'THER', name: 'Therapeutic', nameAr: 'علاجي', description: 'Therapeutic radiopharmaceuticals' },
+    { code: 'DIAG', name: 'Diagnostic', nameAr: 'تشخيصي', description: 'Diagnostic radiopharmaceuticals' },
+  ];
+
+  for (const pt of productTypes) {
+    await prisma.settingProductType.upsert({
+      where: { code: pt.code },
+      update: {},
+      create: pt,
+    });
+  }
+
+  // Production Methods
+  const productionMethods = [
+    { code: 'CYCL', name: 'Cyclotron Production', nameAr: 'إنتاج السيكلوترون', description: 'Production using cyclotron particle accelerator' },
+    { code: 'GEN', name: 'Generator Elution', nameAr: 'استخلاص المولد', description: 'Production from radionuclide generator' },
+    { code: 'REAC', name: 'Reactor Production', nameAr: 'إنتاج المفاعل', description: 'Production using nuclear reactor' },
+    { code: 'SYNTH', name: 'Chemical Synthesis', nameAr: 'التركيب الكيميائي', description: 'Production through chemical synthesis' },
+  ];
+
+  for (const pm of productionMethods) {
+    await prisma.settingProductionMethod.upsert({
+      where: { code: pm.code },
+      update: {},
+      create: pm,
+    });
+  }
+
+  // Currencies (SAR as default)
+  await prisma.settingCurrency.upsert({
+    where: { code: 'SAR' },
+    update: {},
+    create: { code: 'SAR', name: 'Saudi Riyal', nameAr: 'ريال سعودي', symbol: 'ر.س', exchangeRate: 1.0, isDefault: true },
+  });
+
+  await prisma.settingCurrency.upsert({
+    where: { code: 'USD' },
+    update: {},
+    create: { code: 'USD', name: 'US Dollar', nameAr: 'دولار أمريكي', symbol: '$', exchangeRate: 0.2666, isDefault: false },
+  });
+
+  await prisma.settingCurrency.upsert({
+    where: { code: 'EUR' },
+    update: {},
+    create: { code: 'EUR', name: 'Euro', nameAr: 'يورو', symbol: '€', exchangeRate: 0.2450, isDefault: false },
+  });
+
+  await prisma.settingCurrency.upsert({
+    where: { code: 'AED' },
+    update: {},
+    create: { code: 'AED', name: 'UAE Dirham', nameAr: 'درهم إماراتي', symbol: 'د.إ', exchangeRate: 0.9790, isDefault: false },
+  });
+
+  console.log('Settings data seeded.');
 
   console.log('Seed completed successfully!');
   console.log('Admin user: admin@radiopharma.com / admin123');

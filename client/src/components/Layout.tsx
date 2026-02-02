@@ -23,6 +23,7 @@ import {
   CalendarClock,
   FileSignature,
   Receipt,
+  Settings,
 } from 'lucide-react';
 
 const menuItems = [
@@ -42,6 +43,7 @@ const menuItems = [
   { path: '/invoices', label: 'Invoicing', icon: Receipt },
   { path: '/reports', label: 'Reports', icon: BarChart3 },
   { path: '/users', label: 'Users', icon: Users },
+  { path: '/settings', label: 'Settings', icon: Settings },
   { path: '/audit', label: 'Audit Log', icon: FileText },
 ];
 

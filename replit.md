@@ -40,6 +40,7 @@ Key entities:
 - **Invoice**, **InvoiceItem**, **Payment**: Accounts receivable
 - **AuditLogs**: GMP-compliant audit trail
 - **Notifications** & **SystemConfig**: System settings
+- **Settings Tables**: Countries, Cities, Regions, Categories, Couriers, Vehicles, DoseUnits, ProductTypes, ProductionMethods, Currencies
 
 ## Key Features
 
@@ -119,6 +120,18 @@ Key entities:
 - Invoice viewing with payment history
 - Automatic role-based routing (Customer role -> portal, others -> internal system)
 
+### 14. System Settings
+- 10 configurable lookup tables for master data management
+- **Countries/Cities/Regions**: Geographic data with Arabic name support
+- **Categories**: Customer classification (Government, Private, University, Military, Clinic)
+- **Couriers/Vehicles**: Delivery fleet management with vehicle tracking
+- **Dose Units**: Radioactivity units (mCi, MBq, GBq, Ci, kBq)
+- **Product Types**: Classification (PET, SPECT, Therapeutic, Diagnostic)
+- **Production Methods**: Manufacturing processes (Cyclotron, Generator, Reactor, Synthesis)
+- **Currencies**: Multi-currency with SAR as default, exchange rate management
+- Saudi National Address format support for customers
+- Admin-only access for settings management
+
 ## Demo Credentials
 All accounts use password: **admin123**
 
@@ -176,6 +189,7 @@ cd server && npx tsx prisma/seed.ts
 - /api/reservations - Capacity reservations
 - /api/contracts - Customer contracts and pricing
 - /api/invoices - Invoicing and payments
+- /api/settings - System settings and lookup tables
 
 ## Products (Seeded)
 1. FDG-18 (F-18, half-life: 109.8 min) - PET
@@ -186,6 +200,13 @@ cd server && npx tsx prisma/seed.ts
 6. Lu-177 DOTATATE (Lu-177, half-life: 9500 min) - Therapy
 
 ## Recent Changes
+- 2026-02-02: System Settings Module
+  - 10 lookup tables: Countries, Cities, Regions, Categories, Couriers, Vehicles, DoseUnits, ProductTypes, ProductionMethods, Currencies
+  - Settings page with tabbed interface for managing all configuration types
+  - Saudi National Address format for customers (shortAddress, buildingNo, street, district, postalCode)
+  - Currency management with SAR as default, exchange rate tracking
+  - Arabic name support (nameAr) for geographic and classification data
+  - Seed data: 4 countries, 8 Saudi cities, 5 regions, 5 categories, 2 couriers, 3 vehicles, 5 dose units, 4 product types, 4 production methods, 4 currencies
 - 2026-02-02: Client Ordering Portal
   - PortalLayout component with teal theme for customer-facing interface
   - PortalDashboard: Order stats, quick actions, recent orders/invoices

@@ -69,11 +69,19 @@ model Customer {
   id                  String    @id @default(uuid())
   name                String
   code                String    @unique
-  address             String
-  city                String
-  state               String?
+  shortAddress        String?
+  buildingNo          String?
+  street              String?
+  secondaryNo         String?
+  district            String?
   postalCode          String
-  country             String
+  cityId              String?
+  city                SettingCity?   @relation(fields: [cityId], references: [id])
+  regionId            String?
+  region              SettingRegion? @relation(fields: [regionId], references: [id])
+  countryId           String?
+  country             SettingCountry? @relation(fields: [countryId], references: [id])
+  address             String?
   phone               String
   email               String
   licenseNumber       String?
@@ -82,8 +90,8 @@ model Customer {
   deliveryWindowEnd   String?
   preferredDeliveryTime String?
   travelTimeMinutes   Int       @default(60)
-  region              String?
-  category            String?
+  categoryId          String?
+  category            SettingCategory? @relation(fields: [categoryId], references: [id])
   isActive            Boolean   @default(true)
   permittedProducts   CustomerProduct[]
   contacts            CustomerContact[]
@@ -858,4 +866,133 @@ model TimeStandard {
   updatedAt       DateTime @updatedAt
 
   @@unique([productId, processType])
+}
+
+// ==================== SYSTEM SETTINGS ====================
+
+model SettingCountry {
+  id          String          @id @default(uuid())
+  code        String          @unique
+  name        String
+  nameAr      String?
+  isActive    Boolean         @default(true)
+  cities      SettingCity[]
+  regions     SettingRegion[]
+  customers   Customer[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model SettingCity {
+  id          String          @id @default(uuid())
+  countryId   String
+  country     SettingCountry  @relation(fields: [countryId], references: [id])
+  code        String
+  name        String
+  nameAr      String?
+  isActive    Boolean         @default(true)
+  customers   Customer[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([countryId, code])
+}
+
+model SettingRegion {
+  id          String          @id @default(uuid())
+  countryId   String
+  country     SettingCountry  @relation(fields: [countryId], references: [id])
+  code        String
+  name        String
+  nameAr      String?
+  isActive    Boolean         @default(true)
+  customers   Customer[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([countryId, code])
+}
+
+model SettingCategory {
+  id          String     @id @default(uuid())
+  code        String     @unique
+  name        String
+  nameAr      String?
+  description String?
+  isActive    Boolean    @default(true)
+  customers   Customer[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model SettingCourier {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  nameAr      String?
+  phone       String?
+  email       String?
+  isActive    Boolean  @default(true)
+  vehicles    SettingVehicle[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SettingVehicle {
+  id            String          @id @default(uuid())
+  courierId     String?
+  courier       SettingCourier? @relation(fields: [courierId], references: [id])
+  plateNumber   String          @unique
+  vehicleType   String
+  model         String?
+  capacity      String?
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model SettingDoseUnit {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  symbol      String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SettingProductType {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  nameAr      String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SettingProductionMethod {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  nameAr      String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SettingCurrency {
+  id            String   @id @default(uuid())
+  code          String   @unique
+  name          String
+  nameAr        String?
+  symbol        String
+  exchangeRate  Float    @default(1.0)
+  isDefault     Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
