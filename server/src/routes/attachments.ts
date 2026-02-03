@@ -60,7 +60,7 @@ router.get('/types', async (req: Request, res: Response) => {
 
 router.post('/types', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = req.user?.userId;
     const { name, extensions, mimeTypes, maxSizeMB, isActive } = req.body;
     
     const type = await prisma.attachmentType.create({
@@ -86,7 +86,7 @@ router.post('/types', async (req: Request, res: Response) => {
 
 router.put('/types/:id', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = req.user?.userId;
     const { id } = req.params;
     const { name, extensions, mimeTypes, maxSizeMB, isActive } = req.body;
     
@@ -119,7 +119,7 @@ router.put('/types/:id', async (req: Request, res: Response) => {
 
 router.delete('/types/:id', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = req.user?.userId;
     const { id } = req.params;
     
     const attachmentCount = await prisma.attachment.count({
@@ -177,7 +177,7 @@ router.get('/allowed-extensions', async (req: Request, res: Response) => {
 router.get('/:entityType/:entityId', async (req: Request, res: Response) => {
   try {
     const { entityType, entityId } = req.params;
-    const userId = (req as any).user?.id;
+    const userId = req.user?.userId;
     
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -208,7 +208,7 @@ router.post('/:entityType/:entityId', upload.single('file'), async (req: Request
     const { entityType, entityId } = req.params;
     const { description, attachmentTypeId } = req.body;
     const file = req.file;
-    const userId = (req as any).user?.id;
+    const userId = req.user?.userId;
     
     if (!file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -293,7 +293,7 @@ router.post('/:entityType/:entityId', upload.single('file'), async (req: Request
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = (req as any).user?.id;
+    const userId = req.user?.userId;
     
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -329,7 +329,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 router.get('/download/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = (req as any).user?.id;
+    const userId = req.user?.userId;
     
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
