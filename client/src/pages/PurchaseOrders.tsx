@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../lib/api';
 import {
-  Plus, Search, Edit2, Eye, X, Check, Send,
-  Clipboard, Truck, Trash2, FileText, DollarSign, Filter
+  Plus, Edit2, Eye, X, Check, Send,
+  Clipboard, Truck, Trash2, FileText, DollarSign, MoreVertical
 } from 'lucide-react';
 import { useToast } from '../components/ui/Toast';
 import ESignatureModal from '../components/ESignatureModal';
-import { KpiCard } from '../components/shared';
+import { KpiCard, StatusBadge, FilterBar, type FilterWidget } from '../components/shared';
 
 const STATUSES = [
   { value: 'DRAFT', label: 'Draft', color: 'var(--text-muted)' },
@@ -80,9 +80,7 @@ export default function PurchaseOrders() {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [supplierFilter, setSupplierFilter] = useState('');
+  const [filters, setFilters] = useState<Record<string, any>>({});
   const [showModal, setShowModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showESignModal, setShowESignModal] = useState(false);
@@ -113,12 +111,12 @@ export default function PurchaseOrders() {
   });
 
   const { data: purchaseOrders = [], isLoading } = useQuery<PurchaseOrder[]>({
-    queryKey: ['purchase-orders', search, statusFilter, supplierFilter],
+    queryKey: ['purchase-orders', filters],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (search) params.append('search', search);
-      if (statusFilter) params.append('status', statusFilter);
-      if (supplierFilter) params.append('supplierId', supplierFilter);
+      if (filters.search) params.append('search', filters.search);
+      if (filters.status) params.append('status', filters.status);
+      if (filters.supplierId) params.append('supplierId', filters.supplierId);
       const { data } = await api.get(`/purchase-orders?${params}`);
       return data;
     },
@@ -316,123 +314,104 @@ export default function PurchaseOrders() {
     }
   };
 
+  const filterWidgets: FilterWidget[] = [
+    { key: 'search', label: 'Search', type: 'search', placeholder: 'Search PO number, supplier...' },
+    { 
+      key: 'status', 
+      label: 'Status', 
+      type: 'select', 
+      options: [
+        { value: '', label: 'All Statuses' },
+        ...STATUSES.map(s => ({ value: s.value, label: s.label })),
+      ]
+    },
+    {
+      key: 'supplierId',
+      label: 'Supplier',
+      type: 'select',
+      options: [
+        { value: '', label: 'All Suppliers' },
+        ...suppliers.map(s => ({ value: s.id, label: s.name })),
+      ]
+    },
+  ];
+
   return (
-    <div className="page-container">
-      <div className="page-header">
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="page-title">Purchase Orders</h1>
-          <p className="page-subtitle">Manage procurement and supplier orders</p>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Purchase Orders</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+            Manage procurement and supplier orders
+          </p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowModal(true)}>
           <Plus size={16} /> Create PO
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
         <KpiCard 
-          title="Total POs" 
+          title="Total" 
           value={stats?.total || 0} 
-          icon={<FileText size={24} />}
+          icon={<FileText size={20} />}
           color="primary"
-          onClick={() => setStatusFilter('')}
-          active={statusFilter === ''}
+          onClick={() => setFilters({})}
+          selected={!filters.status}
         />
         <KpiCard 
           title="Draft" 
           value={stats?.draft || 0} 
-          icon={<FileText size={24} />}
-          color="default"
-          onClick={() => setStatusFilter('DRAFT')}
-          active={statusFilter === 'DRAFT'}
+          icon={<FileText size={20} />}
+          onClick={() => setFilters({ status: 'DRAFT' })}
+          selected={filters.status === 'DRAFT'}
         />
         <KpiCard 
           title="Pending Approval" 
           value={stats?.pendingApproval || 0} 
-          icon={<Clipboard size={24} />}
+          icon={<Clipboard size={20} />}
           color="warning"
-          onClick={() => setStatusFilter('PENDING_APPROVAL')}
-          active={statusFilter === 'PENDING_APPROVAL'}
+          onClick={() => setFilters({ status: 'PENDING_APPROVAL' })}
+          selected={filters.status === 'PENDING_APPROVAL'}
         />
         <KpiCard 
           title="Sent" 
           value={stats?.sent || 0} 
-          icon={<Send size={24} />}
+          icon={<Send size={20} />}
           color="info"
-          onClick={() => setStatusFilter('SENT')}
-          active={statusFilter === 'SENT'}
+          onClick={() => setFilters({ status: 'SENT' })}
+          selected={filters.status === 'SENT'}
         />
         <KpiCard 
           title="Received" 
           value={stats?.received || 0} 
-          icon={<Check size={24} />}
+          icon={<Check size={20} />}
           color="success"
-          onClick={() => setStatusFilter('RECEIVED')}
-          active={statusFilter === 'RECEIVED'}
+          onClick={() => setFilters({ status: 'RECEIVED' })}
+          selected={filters.status === 'RECEIVED'}
         />
       </div>
 
-      <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Filter size={18} style={{ color: 'var(--text-muted)' }} />
-            <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}>Filters:</span>
-          </div>
-          <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '300px' }}>
-            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Search by name, code, or city..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ paddingLeft: '2.25rem' }}
-            />
-          </div>
-          <select
-            className="form-select"
-            style={{ width: 'auto', minWidth: '150px' }}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All Statuses</option>
-            {STATUSES.map(s => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
-          <select
-            className="form-select"
-            style={{ width: 'auto', minWidth: '150px' }}
-            value={supplierFilter}
-            onChange={(e) => setSupplierFilter(e.target.value)}
-          >
-            <option value="">All Suppliers</option>
-            {suppliers.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-          {(search || statusFilter || supplierFilter) && (
-            <button
-              className="btn btn-sm btn-secondary"
-              onClick={() => {
-                setSearch('');
-                setStatusFilter('');
-                setSupplierFilter('');
-              }}
-            >
-              <X size={14} /> Clear
-            </button>
-          )}
-        </div>
+      <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
+        <FilterBar 
+          widgets={filterWidgets}
+          values={filters}
+          onChange={(key, value) => setFilters(prev => ({ ...prev, [key]: value }))}
+          onReset={() => setFilters({})}
+        />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: detailPO ? '1fr 400px' : '1fr', gap: '1.5rem' }}>
-        <div className="card">
-
+      <div className="card">
+        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 style={{ fontWeight: 600, fontSize: '1rem', margin: 0 }}>
+            Purchase Order List ({purchaseOrders?.length || 0})
+          </h3>
+        </div>
         {isLoading ? (
-          <div className="loading-spinner">Loading...</div>
+          <div className="loading-spinner" style={{ padding: '3rem', textAlign: 'center' }}>Loading...</div>
         ) : purchaseOrders.length === 0 ? (
           <div style={{ padding: '3rem', textAlign: 'center' }}>
-            <FileText style={{ fontSize: '3rem', color: 'var(--text-muted)', marginBottom: '1rem' }} />
+            <FileText size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
             <h3 style={{ marginBottom: '0.5rem' }}>No purchase orders found</h3>
             <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Create your first purchase order</p>
             <button className="btn btn-primary" onClick={() => setShowModal(true)}>
@@ -440,92 +419,86 @@ export default function PurchaseOrders() {
             </button>
           </div>
         ) : (
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>PO Number</th>
-                  <th>Supplier</th>
-                  <th>Order Date</th>
-                  <th>Expected</th>
-                  <th>Items</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {purchaseOrders.map((po) => (
-                  <tr 
-                    key={po.id} 
-                    onClick={() => setDetailPO(po)}
-                    style={{ cursor: 'pointer', background: detailPO?.id === po.id ? 'var(--bg-secondary)' : undefined }}
-                  >
-                    <td><strong>{po.poNumber}</strong></td>
-                    <td>
-                      <div>{po.supplier?.name}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        {po.supplier?.code}
-                      </div>
-                    </td>
-                    <td>{new Date(po.orderDate).toLocaleDateString()}</td>
-                    <td>{po.expectedDate ? new Date(po.expectedDate).toLocaleDateString() : '-'}</td>
-                    <td>{po._count?.items || 0}</td>
-                    <td>{formatCurrency(Number(po.totalAmount), po.currencyCode)}</td>
-                    <td>
-                      <span
-                        className="status-badge"
-                        style={{ backgroundColor: getStatusColor(po.status) + '20', color: getStatusColor(po.status) }}
-                      >
-                        {STATUSES.find(s => s.value === po.status)?.label || po.status}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <table className="table" style={{ marginBottom: 0 }}>
+            <thead>
+              <tr>
+                <th>PO Number</th>
+                <th>Supplier</th>
+                <th>Order Date</th>
+                <th>Expected</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {purchaseOrders.map((po) => (
+                <tr key={po.id}>
+                  <td>
+                    <Link to={`/purchase-orders/${po.id}`} style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '0.8125rem', color: 'var(--primary)' }}>
+                      {po.poNumber}
+                    </Link>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 500 }}>{po.supplier?.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {po.supplier?.code}
+                    </div>
+                  </td>
+                  <td>{new Date(po.orderDate).toLocaleDateString()}</td>
+                  <td>{po.expectedDate ? new Date(po.expectedDate).toLocaleDateString() : '-'}</td>
+                  <td>
+                    <span className="badge badge-default">{po._count?.items || 0} items</span>
+                  </td>
+                  <td style={{ fontWeight: 500 }}>{formatCurrency(Number(po.totalAmount), po.currencyCode)}</td>
+                  <td>
+                    <StatusBadge status={po.status} size="sm" />
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <Link to={`/purchase-orders/${po.id}`} className="btn btn-sm btn-outline" title="View Details">
+                        <Eye size={14} />
+                      </Link>
+                      {['DRAFT', 'PENDING_APPROVAL'].includes(po.status) && (
                         <button
-                          className="icon-button"
-                          onClick={() => navigate(`/purchase-orders/${po.id}`)}
-                          title="View Details"
+                          className="btn btn-sm btn-outline"
+                          onClick={(e) => { e.stopPropagation(); handleEdit(po); }}
+                          title="Edit"
                         >
-                          <Eye size={16} />
+                          <Edit2 size={14} />
                         </button>
-                        {['DRAFT', 'PENDING_APPROVAL'].includes(po.status) && (
+                      )}
+                      {po.status === 'DRAFT' && (
+                        <>
                           <button
-                            className="icon-button"
-                            onClick={() => handleEdit(po)}
-                            title="Edit"
+                            className="btn btn-sm btn-outline"
+                            onClick={(e) => { e.stopPropagation(); actionMutation.mutate({ id: po.id, action: 'submit' }); }}
+                            title="Submit for Approval"
                           >
-                            <Edit2 size={16} />
+                            <Send size={14} />
                           </button>
-                        )}
-                        {po.status === 'DRAFT' && (
-                          <>
-                            <button
-                              className="icon-button"
-                              onClick={() => actionMutation.mutate({ id: po.id, action: 'submit' })}
-                              title="Submit for Approval"
-                            >
-                              <Send size={16} />
-                            </button>
-                            <button
-                              className="icon-button"
-                              onClick={() => {
-                                if (confirm('Delete this purchase order?')) {
-                                  deleteMutation.mutate(po.id);
-                                }
-                              }}
-                              title="Delete"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </>
-                        )}
-                        {po.status === 'PENDING_APPROVAL' && (
                           <button
-                            className="icon-button"
-                            onClick={() => {
-                              setSelectedPO(po);
-                              setShowESignModal(true);
+                            className="btn btn-sm btn-outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm('Delete this purchase order?')) {
+                                deleteMutation.mutate(po.id);
+                              }
+                            }}
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </>
+                      )}
+                      {po.status === 'PENDING_APPROVAL' && (
+                        <button
+                          className="btn btn-sm btn-outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPO(po);
+                            setShowESignModal(true);
                             }}
                             title="Approve"
                             style={{ color: 'var(--success)' }}
@@ -535,11 +508,11 @@ export default function PurchaseOrders() {
                         )}
                         {po.status === 'APPROVED' && (
                           <button
-                            className="icon-button"
-                            onClick={() => actionMutation.mutate({ id: po.id, action: 'send' })}
+                            className="btn btn-sm btn-outline"
+                            onClick={(e) => { e.stopPropagation(); actionMutation.mutate({ id: po.id, action: 'send' }); }}
                             title="Send to Supplier"
                           >
-                            <Truck size={16} />
+                            <Truck size={14} />
                           </button>
                         )}
                       </div>
@@ -548,100 +521,6 @@ export default function PurchaseOrders() {
                 ))}
               </tbody>
             </table>
-          </div>
-        )}
-      </div>
-
-        {detailPO && (
-          <div className="card" style={{ padding: 0, height: 'fit-content', position: 'sticky', top: '1rem' }}>
-            <div style={{ 
-              padding: '1.25rem', 
-              borderBottom: '1px solid var(--border)',
-              background: getStatusColor(detailPO.status) + '15',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <span 
-                    className="badge"
-                    style={{ 
-                      background: getStatusColor(detailPO.status) + '20', 
-                      color: getStatusColor(detailPO.status),
-                      fontWeight: 600,
-                    }}
-                  >
-                    {STATUSES.find(s => s.value === detailPO.status)?.label || detailPO.status}
-                  </span>
-                  <h3 style={{ fontWeight: 600, fontSize: '1.125rem', margin: '0.5rem 0 0.25rem' }}>{detailPO.poNumber}</h3>
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0 }}>
-                    {detailPO.supplier?.name}
-                  </p>
-                </div>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setDetailPO(null)}
-                  style={{ padding: '0.25rem 0.5rem' }}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-
-            <div style={{ padding: '1.25rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Order Date</div>
-                  <div style={{ fontWeight: 600 }}>{new Date(detailPO.orderDate).toLocaleDateString()}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Expected Date</div>
-                  <div style={{ fontWeight: 600 }}>{detailPO.expectedDate ? new Date(detailPO.expectedDate).toLocaleDateString() : '-'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Total Amount</div>
-                  <div style={{ fontWeight: 600, color: 'var(--primary)' }}>{formatCurrency(Number(detailPO.totalAmount), detailPO.currencyCode)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Line Items</div>
-                  <div style={{ fontWeight: 600 }}>{detailPO._count?.items || 0}</div>
-                </div>
-              </div>
-
-              {detailPO.notes && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Notes</div>
-                  <div style={{ fontSize: '0.875rem' }}>{detailPO.notes}</div>
-                </div>
-              )}
-
-              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => navigate(`/purchase-orders/${detailPO.id}`)}
-                  >
-                    <Eye size={14} /> View Full Details
-                  </button>
-                  {['DRAFT', 'PENDING_APPROVAL'].includes(detailPO.status) && (
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => handleEdit(detailPO)}
-                    >
-                      <Edit2 size={14} /> Edit
-                    </button>
-                  )}
-                  {detailPO.status === 'DRAFT' && (
-                    <button
-                      className="btn btn-sm"
-                      style={{ background: 'var(--info)', color: '#fff' }}
-                      onClick={() => actionMutation.mutate({ id: detailPO.id, action: 'submit' })}
-                    >
-                      <Send size={14} /> Submit
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
         )}
       </div>
 
