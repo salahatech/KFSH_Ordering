@@ -477,6 +477,161 @@ router.delete('/exchange-rates/:id', authenticateToken, requireRole('Admin'), as
   }
 });
 
+// Fetch exchange rates from online providers
+router.post('/exchange-rates/fetch-online', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { provider = 'exchangerate-api', apiKey, currencies } = req.body;
+    const user = (req as any).user;
+    const userId = user.userId || user.id;
+    
+    const targetCurrencies = currencies || ['USD', 'EUR', 'GBP', 'AED', 'KWD', 'BHD', 'QAR', 'OMR', 'EGP', 'JOD'];
+    const baseCurrency = 'SAR';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let rates: { fromCurrency: string; rate: number }[] = [];
+    let providerName = provider;
+    
+    try {
+      if (provider === 'exchangerate-api' || provider === 'free') {
+        // Free ExchangeRate-API (no key required, limited requests)
+        const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${baseCurrency}`);
+        if (!response.ok) throw new Error('Failed to fetch from ExchangeRate-API');
+        const data = await response.json();
+        
+        providerName = 'ExchangeRate-API';
+        for (const currency of targetCurrencies) {
+          if (data.rates[currency]) {
+            // API returns SAR -> XXX, we need XXX -> SAR (inverse)
+            rates.push({
+              fromCurrency: currency,
+              rate: parseFloat((1 / data.rates[currency]).toFixed(6)),
+            });
+          }
+        }
+      } else if (provider === 'openexchangerates' && apiKey) {
+        // Open Exchange Rates (requires API key)
+        const response = await fetch(`https://openexchangerates.org/api/latest.json?app_id=${apiKey}&base=USD`);
+        if (!response.ok) throw new Error('Failed to fetch from Open Exchange Rates');
+        const data = await response.json();
+        
+        providerName = 'Open Exchange Rates';
+        const sarRate = data.rates['SAR'] || 3.75;
+        
+        for (const currency of targetCurrencies) {
+          if (data.rates[currency]) {
+            // Convert through USD: XXX -> USD -> SAR
+            const usdToXxx = data.rates[currency];
+            const xxxToSar = sarRate / usdToXxx;
+            rates.push({
+              fromCurrency: currency,
+              rate: parseFloat(xxxToSar.toFixed(6)),
+            });
+          }
+        }
+      } else if (provider === 'frankfurter') {
+        // Frankfurter API (free, no key required, ECB data)
+        const currencyList = targetCurrencies.join(',');
+        const response = await fetch(`https://api.frankfurter.app/latest?from=${baseCurrency}&to=${currencyList}`);
+        if (!response.ok) throw new Error('Failed to fetch from Frankfurter API');
+        const data = await response.json();
+        
+        providerName = 'Frankfurter (ECB)';
+        for (const currency of targetCurrencies) {
+          if (data.rates[currency]) {
+            // API returns SAR -> XXX, we need XXX -> SAR (inverse)
+            rates.push({
+              fromCurrency: currency,
+              rate: parseFloat((1 / data.rates[currency]).toFixed(6)),
+            });
+          }
+        }
+      } else if (provider === 'fixer' && apiKey) {
+        // Fixer.io (requires API key)
+        const response = await fetch(`http://data.fixer.io/api/latest?access_key=${apiKey}&base=EUR`);
+        if (!response.ok) throw new Error('Failed to fetch from Fixer.io');
+        const data = await response.json();
+        
+        if (!data.success) throw new Error(data.error?.info || 'Fixer API error');
+        
+        providerName = 'Fixer.io';
+        const sarRate = data.rates['SAR'] || 4.06;
+        
+        for (const currency of targetCurrencies) {
+          if (data.rates[currency]) {
+            // Convert through EUR: XXX -> EUR -> SAR
+            const eurToXxx = data.rates[currency];
+            const xxxToSar = sarRate / eurToXxx;
+            rates.push({
+              fromCurrency: currency,
+              rate: parseFloat(xxxToSar.toFixed(6)),
+            });
+          }
+        }
+      } else {
+        res.status(400).json({ error: 'Unsupported provider or missing API key' });
+        return;
+      }
+    } catch (fetchError: any) {
+      console.error('Fetch rates error:', fetchError);
+      res.status(502).json({ error: fetchError.message || 'Failed to fetch rates from provider' });
+      return;
+    }
+    
+    if (rates.length === 0) {
+      res.status(404).json({ error: 'No rates returned from provider' });
+      return;
+    }
+    
+    // Save rates to database
+    const results = await Promise.all(
+      rates.map(async (r) => {
+        return prisma.exchangeRate.upsert({
+          where: {
+            date_fromCurrency_toCurrency: {
+              date: today,
+              fromCurrency: r.fromCurrency,
+              toCurrency: baseCurrency,
+            },
+          },
+          create: {
+            date: today,
+            fromCurrency: r.fromCurrency,
+            toCurrency: baseCurrency,
+            rate: r.rate,
+            source: providerName,
+            createdBy: userId,
+          },
+          update: {
+            rate: r.rate,
+            source: providerName,
+          },
+        });
+      })
+    );
+    
+    res.json({
+      message: `Fetched ${results.length} exchange rates from ${providerName}`,
+      provider: providerName,
+      date: today.toISOString().split('T')[0],
+      rates: results,
+    });
+  } catch (error) {
+    console.error('Fetch online rates error:', error);
+    res.status(500).json({ error: 'Failed to fetch exchange rates' });
+  }
+});
+
+// Get available rate providers
+router.get('/exchange-rates/providers', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  res.json([
+    { id: 'exchangerate-api', name: 'ExchangeRate-API', requiresKey: false, description: 'Free tier with rate limits' },
+    { id: 'frankfurter', name: 'Frankfurter (ECB)', requiresKey: false, description: 'European Central Bank rates' },
+    { id: 'openexchangerates', name: 'Open Exchange Rates', requiresKey: true, description: 'Requires free API key' },
+    { id: 'fixer', name: 'Fixer.io', requiresKey: true, description: 'Requires API key' },
+  ]);
+});
+
 // ==================== SYSTEM LOCALIZATION SETTINGS ====================
 
 router.get('/settings', authenticateToken, async (req: Request, res: Response): Promise<void> => {

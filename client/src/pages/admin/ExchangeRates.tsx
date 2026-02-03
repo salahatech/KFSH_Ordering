@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import api from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';
 import { PageHeader } from '../../components/shared';
-import { Plus, Edit2, Trash2, X, DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, DollarSign, TrendingUp, Calendar, RefreshCw, Cloud } from 'lucide-react';
 
 interface ExchangeRate {
   id: string;
@@ -30,13 +30,23 @@ const COMMON_CURRENCIES = [
   { code: 'JOD', name: 'Jordanian Dinar' },
 ];
 
+interface RateProvider {
+  id: string;
+  name: string;
+  requiresKey: boolean;
+  description: string;
+}
+
 export default function ExchangeRates() {
   const toast = useToast();
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
+  const [showFetchModal, setShowFetchModal] = useState(false);
   const [editingRate, setEditingRate] = useState<ExchangeRate | null>(null);
   const [filterCurrency, setFilterCurrency] = useState('');
   const [page, setPage] = useState(1);
+  const [selectedProvider, setSelectedProvider] = useState('exchangerate-api');
+  const [apiKey, setApiKey] = useState('');
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     fromCurrency: 'USD',
@@ -59,6 +69,31 @@ export default function ExchangeRates() {
     queryFn: async () => {
       const { data } = await api.get('/localization/exchange-rates/latest');
       return data;
+    },
+  });
+
+  const { data: providers = [] } = useQuery<RateProvider[]>({
+    queryKey: ['rate-providers'],
+    queryFn: async () => {
+      const { data } = await api.get('/localization/exchange-rates/providers');
+      return data;
+    },
+  });
+
+  const fetchRatesMutation = useMutation({
+    mutationFn: async (data: { provider: string; apiKey?: string }) => {
+      const { data: result } = await api.post('/localization/exchange-rates/fetch-online', data);
+      return result;
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['exchange-rates'] });
+      queryClient.invalidateQueries({ queryKey: ['latest-exchange-rates'] });
+      toast.success('Rates Updated', result.message);
+      setShowFetchModal(false);
+      setApiKey('');
+    },
+    onError: (error: any) => {
+      toast.error('Error', error.response?.data?.error || 'Failed to fetch rates');
     },
   });
 
@@ -139,10 +174,16 @@ export default function ExchangeRates() {
         title="Exchange Rates"
         subtitle="Manage currency exchange rates to SAR (base currency)"
         actions={
-          <button className="btn btn-primary" onClick={() => openModal()}>
-            <Plus size={16} />
-            Add Rate
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-secondary" onClick={() => setShowFetchModal(true)}>
+              <Cloud size={16} />
+              Fetch from Provider
+            </button>
+            <button className="btn btn-primary" onClick={() => openModal()}>
+              <Plus size={16} />
+              Add Rate
+            </button>
+          </div>
         }
       />
 
@@ -381,6 +422,129 @@ export default function ExchangeRates() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showFetchModal && (
+        <div className="modal-overlay" onClick={() => setShowFetchModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h3>Fetch Rates from Provider</h3>
+              <button className="modal-close" onClick={() => setShowFetchModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                Fetch today's exchange rates from an online provider. Rates will be saved to SAR (Saudi Riyal).
+              </p>
+              
+              <div className="form-group">
+                <label className="form-label">Provider</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {providers.map((provider) => (
+                    <label 
+                      key={provider.id}
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'flex-start', 
+                        gap: '0.75rem',
+                        padding: '0.75rem',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        background: selectedProvider === provider.id ? 'var(--bg-secondary)' : 'transparent',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="provider"
+                        value={provider.id}
+                        checked={selectedProvider === provider.id}
+                        onChange={(e) => setSelectedProvider(e.target.value)}
+                        style={{ marginTop: '2px' }}
+                      />
+                      <div>
+                        <div style={{ fontWeight: 500 }}>{provider.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {provider.description}
+                          {provider.requiresKey && (
+                            <span style={{ color: 'var(--warning)', marginLeft: '0.5rem' }}>
+                              (API key required)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {providers.find(p => p.id === selectedProvider)?.requiresKey && (
+                <div className="form-group">
+                  <label className="form-label">API Key *</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="Enter your API key"
+                  />
+                  <small style={{ color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
+                    Get a free API key from the provider's website
+                  </small>
+                </div>
+              )}
+
+              <div style={{ 
+                marginTop: '1rem', 
+                padding: '0.75rem', 
+                background: 'var(--bg-secondary)', 
+                borderRadius: '8px',
+                fontSize: '0.8125rem',
+                color: 'var(--text-secondary)',
+              }}>
+                <strong>Currencies to fetch:</strong> USD, EUR, GBP, AED, KWD, BHD, QAR, OMR, EGP, JOD
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={() => setShowFetchModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-primary"
+                onClick={() => {
+                  const provider = providers.find(p => p.id === selectedProvider);
+                  if (provider?.requiresKey && !apiKey) {
+                    toast.error('API Key Required', 'Please enter your API key');
+                    return;
+                  }
+                  fetchRatesMutation.mutate({ 
+                    provider: selectedProvider, 
+                    apiKey: apiKey || undefined 
+                  });
+                }}
+                disabled={fetchRatesMutation.isPending}
+              >
+                {fetchRatesMutation.isPending ? (
+                  <>
+                    <RefreshCw size={16} className="spin" />
+                    Fetching...
+                  </>
+                ) : (
+                  <>
+                    <Cloud size={16} />
+                    Fetch Rates
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
