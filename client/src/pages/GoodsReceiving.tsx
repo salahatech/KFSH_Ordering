@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Package, Plus, Search, Eye, Check, X, Send, FileText, ClipboardCheck } from 'lucide-react';
-import api from '../api';
+import api from '../lib/api';
 
 interface POItem {
   id: string;

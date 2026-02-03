@@ -58,15 +58,18 @@ async function main() {
   console.log('11. Creating Time Standards...');
   await seedTimeStandards(products);
 
+  console.log('12. Creating Warehouses...');
+  await seedWarehouses();
+
   console.log('\n--- DEMO JOURNEY DATA ---\n');
 
-  console.log('12. Creating Happy Path Journey...');
+  console.log('13. Creating Happy Path Journey...');
   await seedHappyPathJourney(users, customers, products, drivers);
 
-  console.log('13. Creating Planner Demo Data...');
+  console.log('14. Creating Planner Demo Data...');
   await seedPlannerData(users, customers, products);
 
-  console.log('14. Creating Additional Demo Cases...');
+  console.log('15. Creating Additional Demo Cases...');
   await seedAdditionalCases(users, customers, products, drivers);
 
   printCredentials();
@@ -528,6 +531,68 @@ async function seedTimeStandards(products: Record<string, any>) {
       update: {},
       create: ts,
     });
+  }
+}
+
+async function seedWarehouses() {
+  const warehouses = [
+    { code: 'WH-RM', name: 'Raw Materials Warehouse', nameAr: 'مستودع المواد الخام', type: 'RAW_MATERIALS', address: 'Building A, Ground Floor' },
+    { code: 'WH-QR', name: 'Quarantine Storage', nameAr: 'مستودع الحجر', type: 'QUARANTINE', address: 'Building A, Basement' },
+    { code: 'WH-PROD', name: 'Production Area', nameAr: 'منطقة الإنتاج', type: 'PRODUCTION', address: 'Building B, Floor 1' },
+    { code: 'WH-FG', name: 'Finished Goods', nameAr: 'مستودع المنتجات النهائية', type: 'FINISHED_GOODS', address: 'Building C, Floor 1' },
+    { code: 'WH-COLD', name: 'Cold Storage', nameAr: 'التخزين البارد', type: 'COLD_STORAGE', address: 'Building A, Temperature Controlled', temperatureMin: 2, temperatureMax: 8 },
+    { code: 'WH-RAD', name: 'Radioactive Storage', nameAr: 'مستودع المواد المشعة', type: 'RADIOACTIVE', address: 'Building D, Shielded Area', isRadioactive: true },
+  ];
+
+  for (const wh of warehouses) {
+    const warehouse = await prisma.warehouse.upsert({
+      where: { code: wh.code },
+      update: {},
+      create: wh as any,
+    });
+
+    if (wh.code === 'WH-RM') {
+      const locations = [
+        { warehouseId: warehouse.id, code: 'RM-A1-01', name: 'A1-01', zone: 'A', aisle: '1', rack: '01', shelf: '1', bin: '01' },
+        { warehouseId: warehouse.id, code: 'RM-A1-02', name: 'A1-02', zone: 'A', aisle: '1', rack: '01', shelf: '2', bin: '01' },
+        { warehouseId: warehouse.id, code: 'RM-A2-01', name: 'A2-01', zone: 'A', aisle: '2', rack: '01', shelf: '1', bin: '01' },
+      ];
+      for (const loc of locations) {
+        await prisma.warehouseLocation.upsert({
+          where: { warehouseId_code: { warehouseId: loc.warehouseId, code: loc.code } },
+          update: {},
+          create: loc,
+        });
+      }
+    }
+
+    if (wh.code === 'WH-FG') {
+      const locations = [
+        { warehouseId: warehouse.id, code: 'FG-A1-01', name: 'A1-01', zone: 'A', aisle: '1', rack: '01', shelf: '1', bin: '01' },
+        { warehouseId: warehouse.id, code: 'FG-B1-01', name: 'B1-01', zone: 'B', aisle: '1', rack: '01', shelf: '1', bin: '01' },
+      ];
+      for (const loc of locations) {
+        await prisma.warehouseLocation.upsert({
+          where: { warehouseId_code: { warehouseId: loc.warehouseId, code: loc.code } },
+          update: {},
+          create: loc,
+        });
+      }
+    }
+
+    if (wh.code === 'WH-COLD') {
+      const locations = [
+        { warehouseId: warehouse.id, code: 'COLD-01', name: 'Cold 01', zone: 'COLD', aisle: '1', rack: '01', shelf: '1', bin: '01' },
+        { warehouseId: warehouse.id, code: 'COLD-02', name: 'Cold 02', zone: 'COLD', aisle: '1', rack: '01', shelf: '2', bin: '01' },
+      ];
+      for (const loc of locations) {
+        await prisma.warehouseLocation.upsert({
+          where: { warehouseId_code: { warehouseId: loc.warehouseId, code: loc.code } },
+          update: {},
+          create: loc,
+        });
+      }
+    }
   }
 }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Package, Search, ArrowLeftRight, TrendingUp, TrendingDown, AlertTriangle, Clock, Eye, Filter } from 'lucide-react';
-import api from '../api';
+import api from '../lib/api';
 
 interface Material {
   id: string;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Warehouse, Plus, Search, MapPin, Thermometer, Package, Edit, Trash2, Eye, ChevronDown, ChevronUp } from 'lucide-react';
-import api from '../api';
+import api from '../lib/api';
 
 interface WarehouseLocation {
   id: string;
