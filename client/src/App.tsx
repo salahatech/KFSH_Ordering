@@ -50,6 +50,8 @@ import Roles from './pages/Roles';
 import DriverDashboard from './pages/driver/DriverDashboard';
 import DriverShipments from './pages/driver/DriverShipments';
 import DriverShipmentDetail from './pages/driver/DriverShipmentDetail';
+import Materials from './pages/Materials';
+import Recipes from './pages/Recipes';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -208,6 +210,8 @@ export default function App() {
                   <Route path="/customers/new" element={<CustomerForm />} />
                   <Route path="/customers/:id/edit" element={<CustomerForm />} />
                   <Route path="/products" element={<Products />} />
+                  <Route path="/materials" element={<Materials />} />
+                  <Route path="/recipes" element={<Recipes />} />
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/orders/new" element={<OrderForm />} />
                   <Route path="/orders/:id" element={<OrderForm />} />

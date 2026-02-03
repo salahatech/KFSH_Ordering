@@ -1516,6 +1516,95 @@ async function main() {
 
   console.log(`Created ${timeStandards.length} time standards (production recipe) for FDG.`);
 
+  // Create Materials for BOM
+  const materialsData = [
+    { code: 'MAT-O18-WATER', name: 'O-18 Enriched Water', category: 'TARGET_MATERIAL', unit: 'mL', isRadioactive: false, storageConditions: 'Room temperature, sealed container' },
+    { code: 'MAT-FDG-PREC', name: 'FDG Precursor (Mannose Triflate)', category: 'REAGENT', unit: 'mg', isRadioactive: false, storageConditions: '-20°C, anhydrous' },
+    { code: 'MAT-NaCl-INJ', name: 'Sodium Chloride 0.9% Injection', category: 'REAGENT', unit: 'mL', isRadioactive: false },
+    { code: 'MAT-ETHANOL', name: 'Ethanol USP Grade', category: 'SOLVENT', unit: 'mL', isRadioactive: false },
+    { code: 'MAT-ACETONITRILE', name: 'Acetonitrile HPLC Grade', category: 'SOLVENT', unit: 'mL', isRadioactive: false, hazardClass: 'Flammable' },
+    { code: 'MAT-FILTER-022', name: 'Sterile Filter 0.22µm', category: 'FILTER', unit: 'pcs', isRadioactive: false },
+    { code: 'MAT-VIAL-10ML', name: 'Sterile Vial 10mL', category: 'CONTAINER', unit: 'pcs', isRadioactive: false },
+    { code: 'MAT-VIAL-30ML', name: 'Sterile Vial 30mL', category: 'CONTAINER', unit: 'pcs', isRadioactive: false },
+    { code: 'MAT-SEPTUM', name: 'Rubber Septum', category: 'PACKAGING', unit: 'pcs', isRadioactive: false },
+    { code: 'MAT-KRYPTOFIX', name: 'Kryptofix 2.2.2', category: 'REAGENT', unit: 'mg', isRadioactive: false, hazardClass: 'Toxic' },
+    { code: 'MAT-K2CO3', name: 'Potassium Carbonate', category: 'REAGENT', unit: 'mg', isRadioactive: false },
+    { code: 'MAT-HCl', name: 'Hydrochloric Acid 1M', category: 'REAGENT', unit: 'mL', isRadioactive: false, hazardClass: 'Corrosive' },
+  ];
+
+  const existingMaterials = await prisma.material.count();
+  if (existingMaterials === 0) {
+    const materials = await Promise.all(
+      materialsData.map(mat => 
+        prisma.material.create({
+          data: {
+            code: mat.code,
+            name: mat.name,
+            category: mat.category as any,
+            unit: mat.unit,
+            isRadioactive: mat.isRadioactive,
+            storageConditions: mat.storageConditions,
+            hazardClass: mat.hazardClass,
+            status: 'ACTIVE',
+          },
+        })
+      )
+    );
+    console.log(`Created ${materials.length} demo materials for BOM.`);
+
+    // Create Recipes for products
+    const fdgProduct = products.find(p => p.code === 'FDG-18');
+    if (fdgProduct && materials.length > 0) {
+      const o18Water = materials.find(m => m.code === 'MAT-O18-WATER');
+      const precursor = materials.find(m => m.code === 'MAT-FDG-PREC');
+      const saline = materials.find(m => m.code === 'MAT-NaCl-INJ');
+      const filter = materials.find(m => m.code === 'MAT-FILTER-022');
+      const vial = materials.find(m => m.code === 'MAT-VIAL-10ML');
+
+      const fdgRecipe = await prisma.recipe.create({
+        data: {
+          code: 'RCP-FDG-001',
+          name: 'FDG Standard Synthesis',
+          productId: fdgProduct.id,
+          version: 1,
+          status: 'ACTIVE',
+          description: 'Standard synthesis protocol for F-18 FDG production',
+          yieldQuantity: 500,
+          yieldUnit: 'mCi',
+          yieldTolerance: 10,
+          synthesisTimeMinutes: 45,
+          totalTimeMinutes: 90,
+          equipmentRequirements: 'FASTlab or TRACERlab FX-FDG synthesis module, Hot cell with laminar flow',
+          safetyPrecautions: 'Follow radiation safety protocols. Use shielding for all F-18 handling.',
+          activatedAt: new Date(),
+          effectiveDate: new Date(),
+          components: {
+            create: [
+              { materialId: o18Water!.id, sequence: 1, quantity: 2.5, unit: 'mL', isCritical: true, additionNotes: 'Target water for cyclotron irradiation' },
+              { materialId: precursor!.id, sequence: 2, quantity: 40, unit: 'mg', isCritical: true, additionNotes: 'Loaded into synthesis module' },
+              { materialId: saline!.id, sequence: 3, quantity: 10, unit: 'mL', isCritical: false, additionNotes: 'For final formulation' },
+              { materialId: filter!.id, sequence: 4, quantity: 1, unit: 'pcs', isCritical: true, additionNotes: 'Terminal sterilization' },
+              { materialId: vial!.id, sequence: 5, quantity: 1, unit: 'pcs', isCritical: false, additionNotes: 'Product vial' },
+            ],
+          },
+          steps: {
+            create: [
+              { stepNumber: 1, title: 'Target Irradiation', description: 'Irradiate O-18 enriched water target in cyclotron', durationMinutes: 30, qualityCheckpoint: false },
+              { stepNumber: 2, title: 'F-18 Transfer', description: 'Transfer F-18 fluoride to synthesis module', durationMinutes: 5, qualityCheckpoint: false },
+              { stepNumber: 3, title: 'Nucleophilic Fluorination', description: 'Perform nucleophilic substitution with precursor', durationMinutes: 15, temperature: '85°C', qualityCheckpoint: false },
+              { stepNumber: 4, title: 'Hydrolysis', description: 'Hydrolyze protecting groups', durationMinutes: 10, qualityCheckpoint: false },
+              { stepNumber: 5, title: 'Purification', description: 'HPLC or SPE purification', durationMinutes: 15, qualityCheckpoint: true, checkpointCriteria: 'Check radiochemical purity >95%' },
+              { stepNumber: 6, title: 'Sterile Filtration', description: 'Pass through 0.22µm filter into product vial', durationMinutes: 5, qualityCheckpoint: true, checkpointCriteria: 'Visual inspection for clarity' },
+            ],
+          },
+        },
+      });
+      console.log(`Created FDG recipe: ${fdgRecipe.code} v${fdgRecipe.version}`);
+    }
+  } else {
+    console.log(`Materials already exist (${existingMaterials}), skipping material/recipe seeding...`);
+  }
+
   console.log('Seed completed successfully!');
   console.log('Admin user: admin@radiopharma.com / admin123');
   console.log(`Created: ${orders.length} orders, ${batches.length} batches, ${releasedBatches.length} releases, ${shippedOrders.length} shipments`);

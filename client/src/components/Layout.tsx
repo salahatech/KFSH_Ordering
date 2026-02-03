@@ -49,6 +49,8 @@ const menuItems = [
   { path: '/approvals', label: 'Approvals', icon: FileCheck },
   { path: '/customers', label: 'Customers', icon: Building2 },
   { path: '/products', label: 'Products', icon: Package },
+  { path: '/materials', label: 'Materials', icon: FlaskConical },
+  { path: '/recipes', label: 'Recipes/BOM', icon: FileText },
   { path: '/orders', label: 'Orders', icon: ShoppingCart },
   { path: '/availability', label: 'Availability', icon: CalendarClock },
   { path: '/reservations', label: 'Reservations', icon: CalendarCheck },
