@@ -49,6 +49,7 @@ import ebrEquipmentRoutes from './routes/ebr-equipment.js';
 import ebrDeviationRoutes from './routes/ebr-deviations.js';
 import oosInvestigationRoutes from './routes/oos-investigations.js';
 import notificationSettingsRoutes from './routes/notificationSettings.js';
+import notificationChannelRoutes from './routes/notificationChannels.js';
 import localizationRoutes from './routes/localization.js';
 import zatcaRoutes from './routes/zatca.js';
 
@@ -107,6 +108,7 @@ app.use('/api/batch-records', ebrEquipmentRoutes);
 app.use('/api/deviations', ebrDeviationRoutes);
 app.use('/api/oos-investigations', oosInvestigationRoutes);
 app.use('/api/notification-settings', notificationSettingsRoutes);
+app.use('/api/notification-channels', notificationChannelRoutes);
 app.use('/api/localization', localizationRoutes);
 app.use('/api/zatca', zatcaRoutes);
 

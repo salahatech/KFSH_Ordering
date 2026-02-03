@@ -38,18 +38,36 @@ export async function getResendClient() {
   };
 }
 
-export async function sendEmail(to: string, subject: string, html: string) {
+export async function sendEmail(
+  to: string, 
+  subject: string, 
+  html: string,
+  fromName?: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
     const { client, fromEmail } = await getResendClient();
+    const from = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
+    
     const result = await client.emails.send({
-      from: fromEmail,
+      from,
       to,
       subject,
       html
     });
-    return result;
-  } catch (error) {
+    
+    console.log(`Email sent to ${to}: ${result.data?.id}`);
+    return { success: true, messageId: result.data?.id };
+  } catch (error: any) {
     console.error('Failed to send email:', error);
-    throw error;
+    return { success: false, error: error.message || 'Failed to send email' };
+  }
+}
+
+export async function testResendConnection(): Promise<{ connected: boolean; fromEmail?: string; error?: string }> {
+  try {
+    const { client, fromEmail } = await getResendClient();
+    return { connected: true, fromEmail };
+  } catch (error: any) {
+    return { connected: false, error: error.message };
   }
 }

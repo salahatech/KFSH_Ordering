@@ -1,0 +1,199 @@
+You are Replit AI acting as a Senior Full-Stack Engineer + UX Designer.
+
+Goal:
+Implement a global “Announcement Message Bar” (news ticker / banner) that:
+1) Admin can create announcements (news) with rich text and audience targeting
+2) Announcement appears on ALL pages (internal portal + customer portal + seller/technician portals)
+3) Can be pushed immediately OR scheduled (start/end time)
+4) Also creates notifications for targeted users (top bar + notification center) and optionally triggers email/SMS/WhatsApp depending on channel settings and user preferences.
+
+Tech:
+- React + TypeScript
+- Node.js + TypeScript
+- PostgreSQL + Prisma
+- RBAC + multi-role audiences
+- Existing notification center system exists
+
+========================================================
+1) FEATURES (MANDATORY)
+========================================================
+1.1 Announcement Bar UI
+- A slim banner fixed at the top (under main header) or integrated inside top bar area.
+- Behavior:
+  - If multiple active announcements, rotate/scroll them (marquee or carousel).
+  - Each announcement clickable → opens Announcement detail modal/drawer.
+  - Severity styles: INFO / WARNING / CRITICAL (colors consistent with design system).
+  - “Dismiss” button per user (stores dismissal state).
+  - “View all announcements” link to Notification Center filter or Announcements page.
+
+1.2 Announcement Scheduling
+- Admin defines:
+  - publishMode: IMMEDIATE or SCHEDULED
+  - startAt (UTC)
+  - endAt (UTC) optional
+- An announcement is “Active” if:
+  - isPublished = true
+  - current time between startAt and endAt (if endAt exists)
+  - not expired
+
+1.3 Audience Targeting
+Admin can target:
+- Customers (all customer portal users) OR specific Customer(s)
+- Sellers
+- Technicians
+- Internal users (optional)
+- Specific roles (multi-select)
+- Specific users (optional override)
+
+========================================================
+2) DATA MODEL (PRISMA) — MUST IMPLEMENT
+========================================================
+2.1 Announcement
+- id
+- title
+- body (rich text or markdown)
+- severity (INFO/WARNING/CRITICAL)
+- publishMode (IMMEDIATE/SCHEDULED)
+- startAt (UTC)
+- endAt (UTC nullable)
+- isPublished (boolean)
+- createdByUserId
+- createdAt, updatedAt
+
+2.2 AnnouncementAudience
+- id
+- announcementId
+- audienceType (ROLE/CUSTOMER/USER)
+- roleCode (nullable)          // CUSTOMER, SELLER, TECHNICIAN, etc.
+- customerId (nullable)
+- userId (nullable)
+
+2.3 AnnouncementDelivery (per user tracking)
+- id
+- announcementId
+- userId
+- deliveredAt
+- isRead (boolean)
+- readAt (nullable)
+- isDismissed (boolean)
+- dismissedAt (nullable)
+
+NOTE:
+This table enables:
+- per-user dismiss
+- show unread counts
+- ensure notifications are created exactly once per user
+
+========================================================
+3) ADMIN UI (MANDATORY)
+========================================================
+Create Admin pages:
+- /admin/announcements
+  - list announcements with status: Draft / Scheduled / Active / Expired
+  - filters: status, severity, date
+  - actions: edit, publish, unpublish, duplicate
+
+- /admin/announcements/new and /admin/announcements/:id/edit
+  Form fields:
+  - Title (required)
+  - Message body (required)
+  - Severity (Info/Warning/Critical)
+  - Publish mode:
+      - Immediate (startAt = now)
+      - Scheduled (startAt + optional endAt)
+  - Audience targeting:
+      - checkboxes: Customers, Sellers, Technicians
+      - optional: specific customers
+      - optional: specific users
+  - Channel options:
+      - In-app notification (default ON)
+      - Email (optional)
+      - SMS (optional)
+      - WhatsApp (optional)
+
+Admin UX requirements:
+- Validation: startAt < endAt
+- Preview announcement bar rendering
+- “Send test to me” option
+
+========================================================
+4) ANNOUNCEMENT BAR IMPLEMENTATION (FRONTEND) — MUST APPLY TO ALL PAGES
+========================================================
+- Add <AnnouncementBar /> to the global AppLayout so it appears on all pages.
+- Fetch active announcements for the logged-in user:
+  - GET /announcements/active
+- Display order:
+  - CRITICAL first, then WARNING, then INFO
+  - Within same severity, most recent startAt first
+- Rotation behavior:
+  - If >1 active announcement:
+    - rotate every 8–12 seconds
+    - allow manual next/previous
+- Dismiss:
+  - POST /announcements/:id/dismiss
+  - removed from bar for that user but still visible in Notification Center
+
+========================================================
+5) NOTIFICATIONS INTEGRATION (MANDATORY)
+========================================================
+On publish (or when announcement becomes active via schedule):
+- Create in-app notifications for all targeted recipients:
+  - eventType = ANNOUNCEMENT_PUBLISHED
+  - title = announcement.title
+  - body preview = first 120 chars
+  - linkUrl = /notifications?type=announcements or /announcements/:id
+- Also create AnnouncementDelivery rows per user.
+- Optional channels (Email/SMS/WhatsApp):
+  - send only if:
+    - channel enabled globally in Notification settings
+    - user preference enabled
+    - admin checked the channel for this announcement
+  - For CRITICAL announcements, allow override: “force send” (optional; keep off by default)
+
+Scheduling engine:
+- A background job runs every minute:
+  - activates scheduled announcements whose startAt <= now and not yet delivered
+  - generates AnnouncementDelivery + notifications for recipients
+- Ensure idempotency: do not deliver twice.
+
+========================================================
+6) ENDPOINTS (MANDATORY)
+========================================================
+Admin:
+- GET /admin/announcements
+- POST /admin/announcements
+- PUT /admin/announcements/:id
+- POST /admin/announcements/:id/publish
+- POST /admin/announcements/:id/unpublish
+
+User:
+- GET /announcements/active
+- POST /announcements/:id/read
+- POST /announcements/:id/dismiss
+
+========================================================
+7) NOTIFICATION CENTER UX (MANDATORY)
+========================================================
+- Add a filter “Announcements”
+- Announcement notification opens:
+  - full announcement content
+  - read status
+  - related metadata (publish dates, severity)
+
+========================================================
+8) SEED + DEMO (MANDATORY)
+========================================================
+Seed:
+- 1 Active announcement (INFO): “Welcome to the new portal…”
+- 1 Scheduled announcement (WARNING) starting tomorrow
+- 1 Critical announcement targeted to technicians only
+
+========================================================
+9) ACCEPTANCE CRITERIA
+========================================================
+- Announcement bar appears on all pages for all portals.
+- Admin can publish immediately or schedule announcements.
+- Targeted audiences receive in-app notification + announcement appears in bar.
+- Dismiss works per user.
+- Scheduled announcements go live automatically and deliver notifications once.
+- Optional email/SMS/WhatsApp sending respects global channel enablement + user preferences.
