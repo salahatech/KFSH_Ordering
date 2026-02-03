@@ -1,7 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Package, Search, ArrowLeftRight, TrendingUp, TrendingDown, AlertTriangle, Clock, Eye, Filter, CheckCircle, AlertOctagon } from 'lucide-react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { 
+  Package, Search, ArrowLeftRight, TrendingUp, TrendingDown, AlertTriangle, Clock, 
+  Filter, CheckCircle, AlertOctagon, X, Warehouse, MapPin, Calendar, DollarSign,
+  Layers, Hash
+} from 'lucide-react';
 import api from '../lib/api';
-import { KpiCard } from '../components/shared';
+import { KpiCard, EmptyState } from '../components/shared';
+import { useToast } from '../components/ui/Toast';
 
 interface Material {
   id: string;
@@ -11,7 +17,7 @@ interface Material {
   minStockLevel: number;
 }
 
-interface Warehouse {
+interface WarehouseData {
   id: string;
   code: string;
   name: string;
@@ -28,7 +34,7 @@ interface StockItem {
   materialId: string;
   material: Material;
   warehouseId: string;
-  warehouse: Warehouse;
+  warehouse: WarehouseData;
   locationId?: string;
   location?: Location;
   quantity: number;
@@ -43,6 +49,7 @@ interface StockItem {
   status: string;
   unitCost?: number;
   totalValue?: number;
+  movements?: any[];
 }
 
 interface StockMovement {
@@ -93,26 +100,36 @@ const MOVEMENT_TYPES = [
   { value: 'SCRAP', label: 'Scrap', color: '#dc2626' },
 ];
 
+const getStatusStyle = (status: string) => {
+  const s = STOCK_STATUSES.find(st => st.value === status);
+  return { bg: `${s?.color}20`, color: s?.color || '#6b7280' };
+};
+
+const getMovementStyle = (type: string) => {
+  const m = MOVEMENT_TYPES.find(mt => mt.value === type);
+  return { backgroundColor: `${m?.color}20`, color: m?.color };
+};
+
 export default function Inventory() {
-  const [stockItems, setStockItems] = useState<StockItem[]>([]);
-  const [movements, setMovements] = useState<StockMovement[]>([]);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
   const [activeTab, setActiveTab] = useState<'stock' | 'movements'>('stock');
   const [search, setSearch] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [lowStockFilter, setLowStockFilter] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [detailItem, setDetailItem] = useState<StockItem | null>(null);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<StockItem | null>(null);
+
   const [adjustFormData, setAdjustFormData] = useState({
     adjustmentQty: 0,
     reason: '',
     notes: '',
   });
+
   const [transferFormData, setTransferFormData] = useState({
     toWarehouseId: '',
     toLocationId: '',
@@ -121,91 +138,104 @@ export default function Inventory() {
     notes: '',
   });
 
-  useEffect(() => {
-    fetchData();
-    fetchWarehouses();
-  }, [warehouseFilter, statusFilter, search, lowStockFilter]);
+  const { data: stats } = useQuery<Stats>({
+    queryKey: ['stock-stats'],
+    queryFn: async () => {
+      const { data } = await api.get('/stock/stats');
+      return data;
+    },
+  });
 
-  useEffect(() => {
-    if (activeTab === 'movements') {
-      fetchMovements();
-    }
-  }, [activeTab, warehouseFilter]);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
+  const { data: stockItems = [], isLoading } = useQuery<StockItem[]>({
+    queryKey: ['stock', search, warehouseFilter, statusFilter, lowStockFilter],
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (warehouseFilter) params.append('warehouseId', warehouseFilter);
       if (statusFilter) params.append('status', statusFilter);
       if (search) params.append('search', search);
       if (lowStockFilter) params.append('lowStock', 'true');
-      
-      const [stockRes, statsRes] = await Promise.all([
-        api.get(`/stock?${params}`),
-        api.get('/stock/stats'),
-      ]);
-      
-      setStockItems(stockRes.data);
-      setStats(statsRes.data);
-    } catch (error) {
-      console.error('Error fetching stock:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      const { data } = await api.get(`/stock?${params}`);
+      return data;
+    },
+    enabled: activeTab === 'stock',
+  });
 
-  const fetchMovements = async () => {
-    try {
+  const { data: movements = [] } = useQuery<StockMovement[]>({
+    queryKey: ['stock-movements', warehouseFilter],
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (warehouseFilter) params.append('warehouseId', warehouseFilter);
-      
-      const res = await api.get(`/stock/movements?${params}`);
-      setMovements(res.data);
-    } catch (error) {
-      console.error('Error fetching movements:', error);
-    }
+      const { data } = await api.get(`/stock/movements?${params}`);
+      return data;
+    },
+    enabled: activeTab === 'movements',
+  });
+
+  const { data: warehouses = [] } = useQuery<WarehouseData[]>({
+    queryKey: ['warehouses-active'],
+    queryFn: async () => {
+      const { data } = await api.get('/warehouses?status=ACTIVE');
+      return data;
+    },
+  });
+
+  const { data: itemDetail } = useQuery<StockItem>({
+    queryKey: ['stock-item', detailItem?.id],
+    queryFn: async () => {
+      const { data } = await api.get(`/stock/${detailItem?.id}`);
+      return data;
+    },
+    enabled: !!detailItem?.id,
+  });
+
+  const adjustMutation = useMutation({
+    mutationFn: async (data: typeof adjustFormData & { stockItemId: string }) => {
+      return api.post('/stock/adjust', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stock'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-item', detailItem?.id] });
+      toast.success('Stock adjusted successfully');
+      setShowAdjustModal(false);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error || 'Failed to adjust stock');
+    },
+  });
+
+  const transferMutation = useMutation({
+    mutationFn: async (data: typeof transferFormData & { stockItemId: string }) => {
+      return api.post('/stock/transfer', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stock'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-item', detailItem?.id] });
+      toast.success('Stock transferred successfully');
+      setShowTransferModal(false);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error || 'Failed to transfer stock');
+    },
+  });
+
+  const isLowStock = (item: StockItem) => {
+    return item.material.minStockLevel > 0 && item.availableQty < item.material.minStockLevel;
   };
 
-  const fetchWarehouses = async () => {
-    try {
-      const res = await api.get('/warehouses?status=ACTIVE');
-      setWarehouses(res.data);
-    } catch (error) {
-      console.error('Error fetching warehouses:', error);
-    }
-  };
-
-  const handleViewDetail = async (item: StockItem) => {
-    try {
-      const res = await api.get(`/stock/${item.id}`);
-      setSelectedItem(res.data);
-      setShowDetailModal(true);
-    } catch (error) {
-      console.error('Error fetching stock details:', error);
-    }
+  const isExpiringSoon = (item: StockItem) => {
+    if (!item.expiryDate) return false;
+    const expiry = new Date(item.expiryDate);
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    return expiry <= thirtyDaysFromNow && expiry > new Date();
   };
 
   const handleOpenAdjust = (item: StockItem) => {
     setSelectedItem(item);
     setAdjustFormData({ adjustmentQty: 0, reason: '', notes: '' });
     setShowAdjustModal(true);
-  };
-
-  const handleAdjustSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedItem) return;
-    
-    try {
-      await api.post('/stock/adjust', {
-        stockItemId: selectedItem.id,
-        ...adjustFormData,
-      });
-      setShowAdjustModal(false);
-      fetchData();
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to adjust stock');
-    }
   };
 
   const handleOpenTransfer = (item: StockItem) => {
@@ -220,58 +250,30 @@ export default function Inventory() {
     setShowTransferModal(true);
   };
 
-  const handleTransferSubmit = async (e: React.FormEvent) => {
+  const handleAdjustSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedItem) return;
-    
-    try {
-      await api.post('/stock/transfer', {
-        stockItemId: selectedItem.id,
-        ...transferFormData,
-      });
-      setShowTransferModal(false);
-      fetchData();
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to transfer stock');
-    }
+    adjustMutation.mutate({ stockItemId: selectedItem.id, ...adjustFormData });
   };
 
-  const handleStatusChange = async (item: StockItem, newStatus: string) => {
-    const reason = prompt('Enter reason for status change:');
-    if (!reason) return;
-    
-    try {
-      await api.put(`/stock/${item.id}/status`, { status: newStatus, reason });
-      fetchData();
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to update status');
-    }
+  const handleTransferSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedItem) return;
+    transferMutation.mutate({ stockItemId: selectedItem.id, ...transferFormData });
   };
 
-  const getStatusStyle = (status: string) => {
-    const s = STOCK_STATUSES.find(st => st.value === status);
-    return { backgroundColor: `${s?.color}20`, color: s?.color };
-  };
+  const displayItem = itemDetail || detailItem;
 
-  const getMovementStyle = (type: string) => {
-    const m = MOVEMENT_TYPES.find(mt => mt.value === type);
-    return { backgroundColor: `${m?.color}20`, color: m?.color };
-  };
-
-  const isLowStock = (item: StockItem) => {
-    return item.material.minStockLevel > 0 && item.availableQty < item.material.minStockLevel;
-  };
-
-  const isExpiringSoon = (item: StockItem) => {
-    if (!item.expiryDate) return false;
-    const expiry = new Date(item.expiryDate);
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-    return expiry <= thirtyDaysFromNow && expiry > new Date();
-  };
+  if (isLoading && activeTab === 'stock') {
+    return (
+      <div className="loading-overlay">
+        <div className="spinner" />
+      </div>
+    );
+  }
 
   return (
-    <div className="page-container">
+    <div style={{ padding: '1.5rem' }}>
       <div className="page-header">
         <div>
           <h1>Inventory</h1>
@@ -281,7 +283,7 @@ export default function Inventory() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <KpiCard 
           title="Total Items" 
           value={stats?.totalItems || 0} 
@@ -314,39 +316,43 @@ export default function Inventory() {
         />
       </div>
 
-      <div className="card">
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
-          <button
-            className={`btn ${activeTab === 'stock' ? 'btn-primary' : ''}`}
-            onClick={() => setActiveTab('stock')}
-          >
-            <Package size={16} /> Stock Items
-          </button>
-          <button
-            className={`btn ${activeTab === 'movements' ? 'btn-primary' : ''}`}
-            onClick={() => setActiveTab('movements')}
-          >
-            <ArrowLeftRight size={16} /> Movements
-          </button>
-        </div>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+        <button
+          className={`btn ${activeTab === 'stock' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveTab('stock')}
+        >
+          <Package size={16} /> Stock Items
+        </button>
+        <button
+          className={`btn ${activeTab === 'movements' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveTab('movements')}
+        >
+          <ArrowLeftRight size={16} /> Movements
+        </button>
+      </div>
 
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-            <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+      <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Filter size={18} style={{ color: 'var(--text-muted)' }} />
+            <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}>Filters:</span>
+          </div>
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '300px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
-              placeholder="Search by material, lot, or batch..."
+              className="form-input"
+              placeholder="Search material, lot, batch..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="form-input"
-              style={{ paddingLeft: '2.5rem' }}
+              style={{ paddingLeft: '2.25rem' }}
             />
           </div>
-          <select
-            value={warehouseFilter}
-            onChange={(e) => setWarehouseFilter(e.target.value)}
+          <select 
             className="form-select"
-            style={{ minWidth: '150px' }}
+            style={{ width: 'auto', minWidth: '160px' }}
+            value={warehouseFilter} 
+            onChange={(e) => setWarehouseFilter(e.target.value)}
           >
             <option value="">All Warehouses</option>
             {warehouses.map(wh => (
@@ -355,11 +361,11 @@ export default function Inventory() {
           </select>
           {activeTab === 'stock' && (
             <>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+              <select 
                 className="form-select"
-                style={{ minWidth: '150px' }}
+                style={{ width: 'auto', minWidth: '130px' }}
+                value={statusFilter} 
+                onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="">All Statuses</option>
                 {STOCK_STATUSES.map(s => (
@@ -367,104 +373,331 @@ export default function Inventory() {
                 ))}
               </select>
               <button
-                className={`btn ${lowStockFilter ? 'btn-warning' : ''}`}
+                className={`btn btn-sm ${lowStockFilter ? 'btn-warning' : 'btn-secondary'}`}
                 onClick={() => setLowStockFilter(!lowStockFilter)}
               >
-                <AlertTriangle size={16} /> Low Stock
+                <AlertTriangle size={14} /> Low Stock
               </button>
             </>
           )}
+          {(search || warehouseFilter || statusFilter || lowStockFilter) && (
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => {
+                setSearch('');
+                setWarehouseFilter('');
+                setStatusFilter('');
+                setLowStockFilter(false);
+              }}
+            >
+              <X size={14} /> Clear
+            </button>
+          )}
         </div>
+      </div>
 
-        {activeTab === 'stock' && (
-          loading ? (
-            <div style={{ textAlign: 'center', padding: '3rem' }}>Loading...</div>
-          ) : stockItems.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-              <Package size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-              <p>No stock items found</p>
-            </div>
-          ) : (
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Material</th>
-                    <th>Warehouse</th>
-                    <th>Lot/Batch</th>
-                    <th>Quantity</th>
-                    <th>Reserved</th>
-                    <th>Available</th>
-                    <th>Expiry</th>
-                    <th>Status</th>
-                    <th style={{ width: '120px' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stockItems.map((item) => (
-                    <tr key={item.id} style={{ backgroundColor: isLowStock(item) ? '#fef2f2' : undefined }}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <div>
-                            <strong>{item.material.code}</strong>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.material.name}</div>
-                          </div>
-                          {isLowStock(item) && <AlertTriangle size={14} color="#ef4444" />}
-                        </div>
-                      </td>
-                      <td>
-                        <div>{item.warehouse.code}</div>
-                        {item.location && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.location.code}</div>}
-                      </td>
-                      <td>
-                        <div>{item.lotNumber || '-'}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.batchNumber || ''}</div>
-                      </td>
-                      <td>{item.quantity} {item.unit}</td>
-                      <td style={{ color: '#3b82f6' }}>{item.reservedQty}</td>
-                      <td style={{ color: '#22c55e', fontWeight: 600 }}>{item.availableQty}</td>
-                      <td>
-                        {item.expiryDate ? (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: isExpiringSoon(item) ? '#f59e0b' : undefined }}>
-                            {isExpiringSoon(item) && <Clock size={14} />}
-                            {new Date(item.expiryDate).toLocaleDateString()}
+      {activeTab === 'stock' && (
+        <div className="grid" style={{ gridTemplateColumns: detailItem ? '1fr 420px' : '1fr', gap: '1.5rem' }}>
+          <div>
+            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+              {stockItems.map((item) => {
+                const statusStyle = getStatusStyle(item.status);
+                const isSelected = detailItem?.id === item.id;
+                const lowStock = isLowStock(item);
+                const expiring = isExpiringSoon(item);
+                return (
+                  <div 
+                    key={item.id} 
+                    className="card" 
+                    style={{ 
+                      padding: '1.25rem', 
+                      cursor: 'pointer',
+                      border: isSelected ? '2px solid var(--primary)' : lowStock ? '2px solid var(--error)' : '1px solid var(--border)',
+                      transition: 'all 0.2s',
+                      background: lowStock ? 'rgba(239, 68, 68, 0.03)' : undefined,
+                    }}
+                    onClick={() => setDetailItem(item)}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                      <span 
+                        className="badge"
+                        style={{ 
+                          background: statusStyle.bg, 
+                          color: statusStyle.color,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {STOCK_STATUSES.find(s => s.value === item.status)?.label || item.status}
+                      </span>
+                      <div style={{ display: 'flex', gap: '0.25rem' }}>
+                        {lowStock && (
+                          <span className="badge" style={{ fontSize: '0.625rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+                            <AlertTriangle size={10} /> Low
                           </span>
-                        ) : '-'}
-                      </td>
-                      <td>
-                        <span className="badge" style={getStatusStyle(item.status)}>
-                          {STOCK_STATUSES.find(s => s.value === item.status)?.label}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.25rem' }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => handleViewDetail(item)} title="View">
-                            <Eye size={16} />
-                          </button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => handleOpenAdjust(item)} title="Adjust">
-                            <TrendingUp size={16} />
-                          </button>
-                          {item.availableQty > 0 && (
-                            <button className="btn btn-ghost btn-sm" onClick={() => handleOpenTransfer(item)} title="Transfer">
-                              <ArrowLeftRight size={16} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
-        )}
+                        )}
+                        {expiring && (
+                          <span className="badge" style={{ fontSize: '0.625rem', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
+                            <Clock size={10} /> Expiring
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <h3 style={{ fontWeight: 600, marginBottom: '0.25rem', fontSize: '1rem' }}>{item.material.name}</h3>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                      <span style={{ fontFamily: 'monospace' }}>{item.material.code}</span>
+                    </p>
+                    
+                    <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      <div style={{ textAlign: 'center', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total</div>
+                        <div style={{ fontWeight: 600 }}>{item.quantity}</div>
+                      </div>
+                      <div style={{ textAlign: 'center', padding: '0.5rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: 'var(--radius)' }}>
+                        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Reserved</div>
+                        <div style={{ fontWeight: 600, color: '#3b82f6' }}>{item.reservedQty}</div>
+                      </div>
+                      <div style={{ textAlign: 'center', padding: '0.5rem', background: 'rgba(34, 197, 94, 0.1)', borderRadius: 'var(--radius)' }}>
+                        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Available</div>
+                        <div style={{ fontWeight: 600, color: '#22c55e' }}>{item.availableQty}</div>
+                      </div>
+                    </div>
 
-        {activeTab === 'movements' && (
-          movements.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-              <ArrowLeftRight size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-              <p>No stock movements found</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', fontSize: '0.8125rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                        <Warehouse size={14} style={{ color: 'var(--text-muted)' }} />
+                        <span>{item.warehouse.code}</span>
+                        {item.location && <span style={{ color: 'var(--text-muted)' }}>/ {item.location.code}</span>}
+                      </div>
+                      {item.lotNumber && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                          <Hash size={14} style={{ color: 'var(--text-muted)' }} />
+                          <span>Lot: {item.lotNumber}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {item.expiryDate && (
+                      <div style={{ 
+                        marginTop: '0.75rem', 
+                        paddingTop: '0.75rem', 
+                        borderTop: '1px solid var(--border)', 
+                        fontSize: '0.75rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.375rem',
+                        color: expiring ? '#f59e0b' : 'var(--text-muted)',
+                      }}>
+                        <Calendar size={12} />
+                        Expires: {new Date(item.expiryDate).toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+
+            {stockItems.length === 0 && (
+              <div className="card" style={{ padding: '2rem' }}>
+                <EmptyState 
+                  title="No stock items found"
+                  message={search || warehouseFilter || statusFilter ? 'Try adjusting your filters' : 'No stock items available'}
+                  icon="package"
+                />
+              </div>
+            )}
+          </div>
+
+          {detailItem && displayItem && (
+            <div className="card" style={{ padding: 0, height: 'fit-content', position: 'sticky', top: '1rem' }}>
+              <div style={{ 
+                padding: '1.25rem', 
+                borderBottom: '1px solid var(--border)',
+                background: getStatusStyle(displayItem.status).bg,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <span 
+                      className="badge"
+                      style={{ 
+                        background: getStatusStyle(displayItem.status).color, 
+                        color: 'white',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      {STOCK_STATUSES.find(s => s.value === displayItem.status)?.label || displayItem.status}
+                    </span>
+                    <h3 style={{ fontWeight: 600, fontSize: '1.125rem', margin: '0.5rem 0 0.25rem' }}>{displayItem.material.name}</h3>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: 0 }}>
+                      {displayItem.material.code}
+                    </p>
+                  </div>
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => setDetailItem(null)}
+                    style={{ borderRadius: '50%', width: '28px', height: '28px', padding: 0 }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ padding: '1.25rem', maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+                    Quantity Summary
+                  </div>
+                  <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                    <div style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Total</div>
+                      <div style={{ fontWeight: 700, fontSize: '1.25rem' }}>{displayItem.quantity}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{displayItem.unit}</div>
+                    </div>
+                    <div style={{ padding: '0.75rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: 'var(--radius)', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Reserved</div>
+                      <div style={{ fontWeight: 700, fontSize: '1.25rem', color: '#3b82f6' }}>{displayItem.reservedQty}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{displayItem.unit}</div>
+                    </div>
+                    <div style={{ padding: '0.75rem', background: 'rgba(34, 197, 94, 0.1)', borderRadius: 'var(--radius)', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Available</div>
+                      <div style={{ fontWeight: 700, fontSize: '1.25rem', color: '#22c55e' }}>{displayItem.availableQty}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{displayItem.unit}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+                    Location Details
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                      <Warehouse size={16} style={{ color: 'var(--primary)' }} />
+                      <div>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 500 }}>{displayItem.warehouse.code} - {displayItem.warehouse.name}</div>
+                        {displayItem.location && (
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Location: {displayItem.location.code}</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                    Batch Information
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', fontSize: '0.875rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Lot Number</span>
+                      <span style={{ fontWeight: 500 }}>{displayItem.lotNumber || '-'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Batch Number</span>
+                      <span style={{ fontWeight: 500 }}>{displayItem.batchNumber || '-'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                    Dates
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', fontSize: '0.875rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Manufacturing Date</span>
+                      <span style={{ fontWeight: 500 }}>{displayItem.manufacturingDate ? new Date(displayItem.manufacturingDate).toLocaleDateString() : '-'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Received Date</span>
+                      <span style={{ fontWeight: 500 }}>{displayItem.receivedDate ? new Date(displayItem.receivedDate).toLocaleDateString() : '-'}</span>
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      padding: '0.5rem', 
+                      border: '1px solid var(--border)', 
+                      borderRadius: 'var(--radius)',
+                      background: isExpiringSoon(displayItem) ? 'rgba(245, 158, 11, 0.1)' : undefined,
+                    }}>
+                      <span style={{ color: isExpiringSoon(displayItem) ? '#f59e0b' : 'var(--text-muted)' }}>Expiry Date</span>
+                      <span style={{ fontWeight: 500, color: isExpiringSoon(displayItem) ? '#f59e0b' : undefined }}>
+                        {displayItem.expiryDate ? new Date(displayItem.expiryDate).toLocaleDateString() : '-'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {displayItem.unitCost && (
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                      Cost Information
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                      <DollarSign size={16} style={{ color: 'var(--success)' }} />
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Unit Cost</div>
+                        <div style={{ fontWeight: 600 }}>SAR {displayItem.unitCost.toFixed(2)}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {displayItem.movements && displayItem.movements.length > 0 && (
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                      Recent Movements
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                      {displayItem.movements.slice(0, 5).map((mov: any) => (
+                        <div key={mov.id} style={{ padding: '0.5rem', border: '1px solid var(--border)', borderRadius: 'var(--radius)', fontSize: '0.8125rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span className="badge" style={getMovementStyle(mov.type)}>
+                              {MOVEMENT_TYPES.find(m => m.value === mov.type)?.label}
+                            </span>
+                            <span style={{ fontWeight: 500 }}>{mov.quantity} {mov.unit}</span>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                            {new Date(mov.performedAt).toLocaleString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ flex: 1 }}
+                    onClick={() => handleOpenAdjust(displayItem)}
+                  >
+                    <TrendingUp size={16} /> Adjust
+                  </button>
+                  {displayItem.availableQty > 0 && (
+                    <button
+                      className="btn btn-primary"
+                      style={{ flex: 1 }}
+                      onClick={() => handleOpenTransfer(displayItem)}
+                    >
+                      <ArrowLeftRight size={16} /> Transfer
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'movements' && (
+        <div className="card" style={{ padding: '1rem' }}>
+          {movements.length === 0 ? (
+            <EmptyState 
+              title="No movements found"
+              message="Stock movements will appear here"
+              icon="package"
+            />
           ) : (
             <div className="table-container">
               <table className="data-table">
@@ -495,8 +728,8 @@ export default function Inventory() {
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{mov.stockItem.material.name}</div>
                       </td>
                       <td>{mov.warehouse.code}</td>
-                      <td style={{ fontWeight: 600, color: mov.type.includes('IN') || mov.type === 'RECEIPT' ? '#22c55e' : '#ef4444' }}>
-                        {mov.type.includes('IN') || mov.type === 'RECEIPT' ? '+' : '-'}{mov.quantity} {mov.unit}
+                      <td style={{ fontWeight: 600, color: mov.type.includes('IN') || mov.type === 'RECEIPT' || mov.type === 'ADJUSTMENT_IN' || mov.type === 'RETURN' ? '#22c55e' : '#ef4444' }}>
+                        {mov.type.includes('IN') || mov.type === 'RECEIPT' || mov.type === 'ADJUSTMENT_IN' || mov.type === 'RETURN' ? '+' : '-'}{mov.quantity} {mov.unit}
                       </td>
                       <td>
                         {mov.referenceType && mov.referenceNumber ? (
@@ -509,105 +742,7 @@ export default function Inventory() {
                 </tbody>
               </table>
             </div>
-          )
-        )}
-      </div>
-
-      {showDetailModal && selectedItem && (
-        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
-            <div className="modal-header">
-              <h2>Stock Item Details</h2>
-              <button className="btn btn-ghost" onClick={() => setShowDetailModal(false)}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Material</div>
-                  <div><strong>{selectedItem.material.code}</strong> - {selectedItem.material.name}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Warehouse</div>
-                  <div>{selectedItem.warehouse.code} - {selectedItem.warehouse.name}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Lot Number</div>
-                  <div>{selectedItem.lotNumber || '-'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Batch Number</div>
-                  <div>{selectedItem.batchNumber || '-'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Quantity</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{selectedItem.quantity} {selectedItem.unit}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Available</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#22c55e' }}>{selectedItem.availableQty} {selectedItem.unit}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Reserved</div>
-                  <div>{selectedItem.reservedQty} {selectedItem.unit}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Status</div>
-                  <span className="badge" style={getStatusStyle(selectedItem.status)}>
-                    {STOCK_STATUSES.find(s => s.value === selectedItem.status)?.label}
-                  </span>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Manufacturing Date</div>
-                  <div>{selectedItem.manufacturingDate ? new Date(selectedItem.manufacturingDate).toLocaleDateString() : '-'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Expiry Date</div>
-                  <div>{selectedItem.expiryDate ? new Date(selectedItem.expiryDate).toLocaleDateString() : '-'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Received Date</div>
-                  <div>{selectedItem.receivedDate ? new Date(selectedItem.receivedDate).toLocaleDateString() : '-'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Unit Cost</div>
-                  <div>{selectedItem.unitCost ? `SAR ${selectedItem.unitCost.toFixed(2)}` : '-'}</div>
-                </div>
-              </div>
-
-              {(selectedItem as any).movements && (selectedItem as any).movements.length > 0 && (
-                <>
-                  <h4 style={{ marginTop: '1.5rem', marginBottom: '0.5rem' }}>Recent Movements</h4>
-                  <table className="data-table" style={{ fontSize: '0.875rem' }}>
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th>Qty</th>
-                        <th>Reason</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(selectedItem as any).movements.slice(0, 10).map((mov: any) => (
-                        <tr key={mov.id}>
-                          <td>{new Date(mov.performedAt).toLocaleString()}</td>
-                          <td>
-                            <span className="badge" style={getMovementStyle(mov.type)}>
-                              {MOVEMENT_TYPES.find(m => m.value === mov.type)?.label}
-                            </span>
-                          </td>
-                          <td>{mov.quantity} {mov.unit}</td>
-                          <td>{mov.reason || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button className="btn" onClick={() => setShowDetailModal(false)}>Close</button>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -675,8 +810,8 @@ export default function Inventory() {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn" onClick={() => setShowAdjustModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={adjustFormData.adjustmentQty === 0}>
-                  Adjust Stock
+                <button type="submit" className="btn btn-primary" disabled={adjustFormData.adjustmentQty === 0 || adjustMutation.isPending}>
+                  {adjustMutation.isPending ? 'Adjusting...' : 'Adjust Stock'}
                 </button>
               </div>
             </form>
@@ -758,9 +893,9 @@ export default function Inventory() {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={!transferFormData.toWarehouseId || transferFormData.quantity <= 0}
+                  disabled={!transferFormData.toWarehouseId || transferFormData.quantity <= 0 || transferMutation.isPending}
                 >
-                  Transfer
+                  {transferMutation.isPending ? 'Transferring...' : 'Transfer'}
                 </button>
               </div>
             </form>
