@@ -1,10 +1,10 @@
 import React from 'react';
-import { FileQuestion, Search, Package, AlertCircle, CheckCircle, Plus } from 'lucide-react';
+import { FileQuestion, Search, Package, AlertCircle, CheckCircle, Plus, Beaker, Clock, FileText, Truck, User, Box } from 'lucide-react';
 
 interface EmptyStateProps {
   title: string;
   message: string;
-  icon?: 'search' | 'package' | 'alert' | 'success' | 'question';
+  icon?: 'search' | 'package' | 'alert' | 'success' | 'question' | 'beaker' | 'clock' | 'file' | 'truck' | 'user' | 'box';
   ctaLabel?: string;
   onCta?: () => void;
   variant?: 'default' | 'compact';
@@ -16,6 +16,12 @@ const icons = {
   alert: AlertCircle,
   success: CheckCircle,
   question: FileQuestion,
+  beaker: Beaker,
+  clock: Clock,
+  file: FileText,
+  truck: Truck,
+  user: User,
+  box: Box,
 };
 
 export function EmptyState({ 

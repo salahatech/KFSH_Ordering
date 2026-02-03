@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Package, Plus, Search, Eye, Check, X, Send, FileText, ClipboardCheck, Clock, Calendar } from 'lucide-react';
 import api from '../lib/api';
 import { KpiCard } from '../components/shared';
@@ -80,6 +81,7 @@ const GRN_STATUSES = [
 ];
 
 export default function GoodsReceiving() {
+  const navigate = useNavigate();
   const [grns, setGrns] = useState<GRN[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [pendingPOs, setPendingPOs] = useState<PurchaseOrder[]>([]);
@@ -407,7 +409,7 @@ export default function GoodsReceiving() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.25rem' }}>
-                        <button className="btn btn-ghost btn-sm" onClick={() => handleViewDetail(grn)} title="View">
+                        <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/grn/${grn.id}`)} title="View">
                           <Eye size={16} />
                         </button>
                         {grn.status === 'DRAFT' && (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Warehouse, Plus, Search, MapPin, Thermometer, Package, Edit, Trash2, Eye, ChevronDown, ChevronUp, CheckCircle, Wrench, Grid } from 'lucide-react';
 import api from '../lib/api';
 import { KpiCard } from '../components/shared';
@@ -65,6 +66,7 @@ const WAREHOUSE_STATUSES = [
 ];
 
 export default function Warehouses() {
+  const navigate = useNavigate();
   const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -428,7 +430,7 @@ export default function Warehouses() {
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: '0.25rem' }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => handleViewDetail(wh)} title="View">
+                          <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/warehouses/${wh.id}`)} title="View">
                             <Eye size={16} />
                           </button>
                           <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(wh)} title="Edit">

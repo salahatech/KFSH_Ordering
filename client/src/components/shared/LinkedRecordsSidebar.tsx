@@ -1,13 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Box, Truck, FileText, FlaskConical, Pill, ChevronRight, ExternalLink } from 'lucide-react';
+import { Package, Box, Truck, FileText, FlaskConical, Pill, ChevronRight, ExternalLink, User, Beaker, Warehouse, ShoppingCart, ClipboardList, Building2 } from 'lucide-react';
 
 export interface LinkedRecord {
-  type: 'order' | 'batch' | 'shipment' | 'doseUnit' | 'qcTest' | 'invoice';
-  id: string;
+  type: 'order' | 'batch' | 'shipment' | 'doseUnit' | 'qcTest' | 'invoice' | 'supplier' | 'material' | 'recipe' | 'warehouse' | 'purchaseOrder' | 'grn' | 'customer';
+  id?: string;
   label: string;
   status?: string;
   link: string;
+  count?: number;
 }
 
 interface LinkedRecordsSidebarProps {
@@ -24,6 +25,13 @@ const typeIcons = {
   doseUnit: Pill,
   qcTest: Package,
   invoice: FileText,
+  supplier: User,
+  material: Beaker,
+  recipe: ClipboardList,
+  warehouse: Warehouse,
+  purchaseOrder: ShoppingCart,
+  grn: Box,
+  customer: Building2,
 };
 
 const typeLabels = {
@@ -33,6 +41,13 @@ const typeLabels = {
   doseUnit: 'Dose Unit',
   qcTest: 'QC Test',
   invoice: 'Invoice',
+  supplier: 'Supplier',
+  material: 'Material',
+  recipe: 'Recipe',
+  warehouse: 'Warehouse',
+  purchaseOrder: 'Purchase Order',
+  grn: 'GRN',
+  customer: 'Customer',
 };
 
 const statusColors: Record<string, string> = {

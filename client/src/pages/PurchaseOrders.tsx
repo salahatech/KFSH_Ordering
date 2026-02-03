@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import {
   Plus, Search, Edit2, Eye, X, Check, Send,
@@ -77,6 +78,7 @@ interface POStats {
 export default function PurchaseOrders() {
   const queryClient = useQueryClient();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -437,10 +439,7 @@ export default function PurchaseOrders() {
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
                           className="icon-button"
-                          onClick={() => {
-                            setSelectedPO(po);
-                            setShowDetailModal(true);
-                          }}
+                          onClick={() => navigate(`/purchase-orders/${po.id}`)}
                           title="View Details"
                         >
                           <Eye size={16} />

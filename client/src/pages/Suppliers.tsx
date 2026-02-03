@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import {
   Plus, Search, Edit2, Eye, X, User, Mail, Phone,
@@ -59,6 +60,7 @@ interface SupplierStats {
 export default function Suppliers() {
   const queryClient = useQueryClient();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -354,10 +356,7 @@ export default function Suppliers() {
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
                           className="icon-button"
-                          onClick={() => {
-                            setSelectedSupplier(supplier);
-                            setShowDetailModal(true);
-                          }}
+                          onClick={() => navigate(`/suppliers/${supplier.id}`)}
                           title="View Details"
                         >
                           <Eye size={16} />

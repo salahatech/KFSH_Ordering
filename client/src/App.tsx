@@ -51,11 +51,16 @@ import DriverDashboard from './pages/driver/DriverDashboard';
 import DriverShipments from './pages/driver/DriverShipments';
 import DriverShipmentDetail from './pages/driver/DriverShipmentDetail';
 import Materials from './pages/Materials';
+import MaterialDetail from './pages/MaterialDetail';
 import Recipes from './pages/Recipes';
 import Suppliers from './pages/Suppliers';
+import SupplierDetail from './pages/SupplierDetail';
 import PurchaseOrders from './pages/PurchaseOrders';
+import PurchaseOrderDetail from './pages/PurchaseOrderDetail';
 import Warehouses from './pages/Warehouses';
+import WarehouseDetail from './pages/WarehouseDetail';
 import GoodsReceiving from './pages/GoodsReceiving';
+import GRNDetail from './pages/GRNDetail';
 import Inventory from './pages/Inventory';
 import ManufacturingExecution from './pages/ManufacturingExecution';
 import OOSInvestigations from './pages/OOSInvestigations';
@@ -219,11 +224,16 @@ export default function App() {
                   <Route path="/customers/:id/edit" element={<CustomerForm />} />
                   <Route path="/products" element={<Products />} />
                   <Route path="/materials" element={<Materials />} />
+                  <Route path="/materials/:id" element={<MaterialDetail />} />
                   <Route path="/recipes" element={<Recipes />} />
                   <Route path="/suppliers" element={<Suppliers />} />
+                  <Route path="/suppliers/:id" element={<SupplierDetail />} />
                   <Route path="/purchase-orders" element={<PurchaseOrders />} />
+                  <Route path="/purchase-orders/:id" element={<PurchaseOrderDetail />} />
                   <Route path="/warehouses" element={<Warehouses />} />
+                  <Route path="/warehouses/:id" element={<WarehouseDetail />} />
                   <Route path="/grn" element={<GoodsReceiving />} />
+                  <Route path="/grn/:id" element={<GRNDetail />} />
                   <Route path="/inventory" element={<Inventory />} />
                   <Route path="/manufacturing" element={<ManufacturingExecution />} />
                   <Route path="/oos-investigations" element={<OOSInvestigations />} />

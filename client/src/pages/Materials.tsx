@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { 
   Plus, 
   Edit2, 
+  Eye,
   X, 
   Search,
   Filter,
@@ -48,6 +50,7 @@ export default function Materials() {
   const [searchQuery, setSearchQuery] = useState('');
   const queryClient = useQueryClient();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const { data: materials, isLoading } = useQuery({
     queryKey: ['materials', categoryFilter, statusFilter, searchQuery],
@@ -307,6 +310,13 @@ export default function Materials() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => navigate(`/materials/${material.id}`)}
+                          title="View Details"
+                        >
+                          <Eye size={14} />
+                        </button>
                         <button
                           className="btn btn-secondary btn-sm"
                           onClick={() => {

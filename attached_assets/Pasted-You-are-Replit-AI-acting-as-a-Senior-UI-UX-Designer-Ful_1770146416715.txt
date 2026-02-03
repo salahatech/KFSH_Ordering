@@ -1,0 +1,298 @@
+You are Replit AI acting as a Senior UI/UX Designer + Full-Stack Engineer.
+
+Context:
+We have a RadioPharma ERP/OMS app with a consistent modern UI/UX pattern already used in Products and Orders (clean header, KPI widgets, stepper/timeline where relevant, filter bar, consistent tables, drawers/modals, actions with feedback, logs/audit).
+The following modules/pages exist (or will be added in Phase 2) but their “Details” pages UI/UX is inconsistent and needs enhancement to match Products/Orders:
+- Materials
+- Recipes & BOM
+- Suppliers
+- Purchase Orders
+- Warehouses
+- Goods Receiving (GRN)
+- Inventory
+- Manufacturing Execution (eBR)
+
+Goal:
+Standardize and redesign the DETAILS pages for these modules to match the same UI/UX system used in Product/Orders, including consistent layout, status widgets, filters, pathway/journey where applicable, logs/timeline, and linked records.
+
+Tech:
+- React + TypeScript
+- Node.js (NestJS/Express) + TypeScript
+- PostgreSQL + Prisma
+- RBAC
+- Use the same design system components across the app
+
+========================================================
+1) GLOBAL UI STANDARD (MANDATORY) — APPLY TO ALL DETAIL PAGES
+Implement a shared “Entity Detail Layout” and refactor all the listed pages to use it.
+
+1.1 Detail Page Layout Structure (same as Products/Orders)
+A) Sticky Header
+- Entity title (e.g., “Material: M-001 Sterile Vial”)
+- Status badge (Active/Inactive/Approved/etc.)
+- Key metadata line (code, category, created date)
+- Primary actions on right (Edit, Approve, Activate, etc.)
+
+B) Summary KPI Cards Row (widgets)
+- 3–6 KPI cards relevant to the entity (counts, totals, balances, utilization, last activity)
+
+C) Tabs (consistent)
+Minimum tabs pattern:
+- Overview (default)
+- Transactions / Usage (if applicable)
+- Documents / Attachments
+- Linked Records
+- Timeline / Logs
+- Audit (Admin-only)
+
+D) Right Side “Linked Records” Sidebar
+- chips with clickable links to related entities:
+  - supplier, PO, GRN, inventory lots, batches, orders, etc.
+
+E) Timeline (Events)
+- A unified timeline component that shows status changes + key actions with timestamps and actor
+- Expandable metadata for internal roles
+- Export timeline (CSV) optional
+
+1.2 Consistent Components (build once, reuse)
+- <EntityHeader />
+- <StatusBadge />
+- <KpiCardRow />
+- <FilterBar />
+- <EntityTabs />
+- <LinkedRecordsSidebar />
+- <Timeline />
+- <DocumentUploader maxSize=5MB />
+- <ActionMenu / ConfirmationModal />
+- <Toast notifications />
+
+========================================================
+2) PAGE-SPECIFIC UI/UX REQUIREMENTS (DETAIL PAGES)
+For each entity, implement the above standard layout + the following content.
+
+--------------------------------------------------------
+2.1 MATERIALS – Detail Page
+--------------------------------------------------------
+Route: /materials/:id
+Header:
+- Material code + name
+- Status badge: Active/Inactive + InventoryTracked
+KPI widgets:
+- On-hand qty (total)
+- Quarantine qty
+- Released qty
+- Expired qty
+- Near-expiry lots count
+Tabs:
+- Overview:
+  - category/type, base UOM, standard cost, preferred vendor
+- Lots/Stock:
+  - lots table: lot no, expiry, status, qty, warehouse/bin
+- Transactions:
+  - stock movements timeline (GRN, issue, adjustments)
+- Documents:
+  - SDS/COA uploads
+- Linked Records:
+  - POs, GRNs, batches consumed in
+- Timeline/Logs:
+  - changes, approvals, cost updates
+
+--------------------------------------------------------
+2.2 RECIPES & BOM – Detail Page
+--------------------------------------------------------
+Route: /recipes/:id or /products/:id/production (recipe version detail)
+Header:
+- Product + Recipe version + status (Draft/Active/Expired)
+KPI widgets:
+- Standard cost per unit
+- # materials lines
+- last activated date
+- yield factor
+Tabs:
+- Overview:
+  - effective dates, method, notes
+- BOM Lines:
+  - editable grid (material, qty, uom, line cost)
+  - totals footer
+- Versions:
+  - list of recipe versions with compare button
+- Usage:
+  - batches that used this recipe snapshot
+- Approvals:
+  - e-signatures for activation + critical changes
+- Timeline/Logs:
+  - changes & approvals
+
+UX:
+- Add “Compare versions” modal highlighting deltas
+
+--------------------------------------------------------
+2.3 SUPPLIERS – Detail Page
+--------------------------------------------------------
+Route: /suppliers/:id
+Header:
+- Supplier name + status (Active/Hold/Blocked)
+KPI widgets:
+- Open POs count
+- Total spend (period)
+- On-time delivery rate
+- Quality issues count (if tracked)
+Tabs:
+- Overview:
+  - contacts, address, VAT/CR, payment terms
+- Items supplied:
+  - materials list with pricing history
+- POs:
+  - POs list filtered to supplier
+- Receiving:
+  - GRNs list filtered to supplier
+- Documents:
+  - contracts, licenses (5MB/file)
+- Timeline/Logs:
+  - status changes, approvals
+
+--------------------------------------------------------
+2.4 PURCHASE ORDERS – Detail Page
+--------------------------------------------------------
+Route: /purchase-orders/:id
+Header:
+- PO number + status badge (Draft/Approved/Sent/Partially Received/Closed/Cancelled)
+KPI widgets:
+- Total value
+- Received value
+- Remaining value
+- # lines received
+Tabs:
+- Overview:
+  - supplier, terms, delivery date, shipping address
+- Lines:
+  - PO lines grid: item, qty, received, remaining, unit price, VAT
+- Receiving:
+  - linked GRNs + receiving progress
+- 3-Way Match:
+  - PO vs GRN vs Supplier Invoice (pass/fail)
+- Approvals:
+  - approval history + e-signature
+- Timeline/Logs:
+  - approve/send/receive/close events
+
+UX:
+- Show a “Receiving progress bar” (received vs remaining)
+- Disable actions based on status with tooltip reason
+
+--------------------------------------------------------
+2.5 WAREHOUSES – Detail Page
+--------------------------------------------------------
+Route: /warehouses/:id
+Header:
+- Warehouse name + status
+KPI widgets:
+- Total SKU count
+- Total on-hand value
+- Quarantine lots count
+- Expiring soon count
+Tabs:
+- Overview:
+  - zones/bins hierarchy
+- Bins:
+  - bins table with occupancy and counts
+- Stock:
+  - inventory balance filtered to this warehouse
+- Transactions:
+  - movements in/out
+- Timeline/Logs:
+  - config changes
+
+--------------------------------------------------------
+2.6 GOODS RECEIVING (GRN) – Detail Page
+--------------------------------------------------------
+Route: /goods-receiving/:id
+Header:
+- GRN number + status badge (Draft/Posted/Cancelled)
+KPI widgets:
+- Received qty
+- # lots created
+- Quarantine created qty
+Tabs:
+- Overview:
+  - supplier, PO link, received date, receiver
+- Lines:
+  - received lines (material, qty, uom, lot/expiry, status)
+- Putaway:
+  - assign bins/location
+- Inspection:
+  - quarantine → release workflow (if QC/inspection enabled)
+- Documents:
+  - COA, delivery note
+- Timeline/Logs:
+  - created/posted/putaway events
+
+--------------------------------------------------------
+2.7 INVENTORY – Detail Page (Item-centric + Lot-centric)
+--------------------------------------------------------
+Routes:
+- /inventory/items/:materialId (item view)
+- /inventory/lots/:lotId (lot view)
+
+Item view:
+- KPI: on-hand, quarantined, released, expiring, avg cost
+- Tabs: lots, transactions, reservations, consumption in batches
+
+Lot view:
+- KPI: qty, status, expiry, warehouse/bin
+- Tabs: movements, usage, documents, genealogy (where consumed)
+
+--------------------------------------------------------
+2.8 MANUFACTURING EXECUTION (eBR) – Batch Detail Page Enhancement
+--------------------------------------------------------
+Route: /mfg/batches/:id (or existing /batches/:id)
+Header:
+- Batch number + status
+KPI widgets:
+- step completion %
+- yield variance
+- deviations open
+- time in stage
+Tabs:
+- Overview (journey stepper + timeline always visible)
+- eBR Steps:
+  - step list with status (pending/done/blocked)
+  - parameter capture forms
+- Materials consumed:
+  - planned vs actual consumption
+- Deviations:
+  - deviation list + workflow
+- QC:
+  - link to QC results
+- Release:
+  - QP disposition + e-signature
+- Timeline/Logs:
+  - all batch events
+
+UX:
+- Show “Next required step” prominently
+- Blocked reason messages (e.g., “Cannot proceed until deviation closed”)
+
+========================================================
+3) LIST PAGE CONSISTENCY (SECONDARY)
+Ensure the list pages for these modules use the same style as Products/Orders:
+- Filter bar widgets
+- Status badges
+- Search
+- Column chooser
+- Row action menus that actually open and show feedback
+
+========================================================
+4) VISUAL CONSISTENCY (MANDATORY)
+- Use the same typography, spacing, card style, and colors used in Products/Orders.
+- Use consistent badges for statuses.
+- Use the same table component and drawer patterns.
+- Provide skeleton loaders and empty states.
+
+========================================================
+5) ACCEPTANCE CRITERIA
+- Each of the listed detail pages matches Products/Orders UX layout and components.
+- Each page includes: header + KPI widgets + tabs + linked records + timeline/logs.
+- Actions are role-based, validated, and give clear toasts/errors.
+- Navigation between linked records is seamless.
+- Audit and logs are available (admin/internal only where needed).

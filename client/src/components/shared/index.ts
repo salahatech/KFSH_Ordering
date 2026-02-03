@@ -11,3 +11,7 @@ export { LinkedRecordsSidebar } from './LinkedRecordsSidebar';
 export type { LinkedRecord } from './LinkedRecordsSidebar';
 export { EmptyState } from './EmptyState';
 export { ExportButton } from './ExportButton';
+export { EntityDetailLayout } from './EntityDetailLayout';
+export type { EntityKpi, EntityTab, EntityAction, EntityMetadata } from './EntityDetailLayout';
+export { EntityTabs } from './EntityTabs';
+export type { Tab } from './EntityTabs';
