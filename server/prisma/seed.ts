@@ -733,19 +733,100 @@ async function main() {
     batches.push(batch);
   }
 
-  // Create QC results for batches that have passed QC (10+ results)
-  const qcBatches = batches.filter((_, i) => i < 10);
-  for (let i = 0; i < qcBatches.length; i++) {
-    const batch = qcBatches[i];
+  // Create additional batches specifically for QC and QP Release demo data
+  const qcDemoBatchData = [
+    { product: products[0], status: 'QC_PENDING', notes: 'Awaiting quality control testing' },
+    { product: products[0], status: 'QC_IN_PROGRESS', notes: 'QC testing in progress - Visual inspection complete' },
+    { product: products[1], status: 'QC_IN_PROGRESS', notes: 'QC testing in progress - pH and visual done' },
+    { product: products[2], status: 'QC_PASSED', notes: 'All QC tests passed - awaiting QP review' },
+    { product: products[0], status: 'QP_REVIEW', notes: 'QC complete - pending Qualified Person release' },
+    { product: products[1], status: 'QP_REVIEW', notes: 'Rapid release requested - urgent delivery' },
+    { product: products[3], status: 'FAILED_QC', notes: 'Failed radiochemical purity test - under investigation' },
+    { product: products[0], status: 'QC_PENDING', notes: 'Production complete - samples sent to QC lab' },
+  ];
+
+  for (let i = 0; i < qcDemoBatchData.length; i++) {
+    const data = qcDemoBatchData[i];
+    const batchNumber = `BTH-${new Date().getFullYear()}-${String(2001 + i).padStart(4, '0')}`;
+    const startTime = new Date();
+    startTime.setHours(startTime.getHours() - (i + 1));
+    const endTime = new Date();
+    endTime.setHours(endTime.getHours() + 2);
+    
+    const batch = await prisma.batch.upsert({
+      where: { batchNumber },
+      update: {},
+      create: {
+        batchNumber,
+        productId: data.product.id,
+        status: data.status as any,
+        plannedStartTime: startTime,
+        plannedEndTime: endTime,
+        actualStartTime: startTime,
+        actualEndTime: ['QC_PENDING', 'QC_IN_PROGRESS', 'QC_PASSED', 'QP_REVIEW', 'FAILED_QC'].includes(data.status) ? new Date() : null,
+        targetActivity: 15 + Math.floor(Math.random() * 20),
+        actualActivity: 14 + Math.floor(Math.random() * 18),
+        synthesisModuleId: equipment.find(e => e.type === 'Synthesis')?.id,
+        hotCellId: equipment.find(e => e.type === 'HotCell')?.id,
+        notes: data.notes,
+        operators: { create: { userId: adminUser.id, role: 'Lead Operator' } },
+      },
+    });
+    batches.push(batch);
+  }
+
+  // Create QC results with varying statuses for demo
+  for (let i = 0; i < batches.length; i++) {
+    const batch = batches[i];
     const product = products.find(p => p.id === batch.productId)!;
     const templates = await prisma.qCTemplate.findMany({ where: { productId: product.id } });
     
-    for (const template of templates) {
-      const passed = Math.random() > 0.05; // 95% pass rate
+    // Determine how complete the QC should be based on batch status
+    const isQcPending = batch.status === 'QC_PENDING';
+    const isQcInProgress = batch.status === 'QC_IN_PROGRESS';
+    const isFailedQc = batch.status === 'FAILED_QC';
+    const isQcComplete = ['QC_PASSED', 'QP_REVIEW', 'RELEASED', 'DISPENSING_IN_PROGRESS', 'DISPENSED', 'PACKED', 'DISPATCHED', 'CLOSED'].includes(batch.status);
+    
+    for (let j = 0; j < templates.length; j++) {
+      const template = templates[j];
+      
+      // For QC_PENDING batches, create pending results
+      if (isQcPending) {
+        await prisma.qCResult.create({
+          data: {
+            batchId: batch.id,
+            templateId: template.id,
+            status: 'PENDING',
+          },
+        });
+        continue;
+      }
+      
+      // For QC_IN_PROGRESS batches, complete only some tests
+      if (isQcInProgress && j >= templates.length / 2) {
+        await prisma.qCResult.create({
+          data: {
+            batchId: batch.id,
+            templateId: template.id,
+            status: j === Math.floor(templates.length / 2) ? 'IN_PROGRESS' : 'PENDING',
+          },
+        });
+        continue;
+      }
+      
+      // For failed batches, make one test fail
+      const shouldFail = isFailedQc && j === 1;
+      const passed = shouldFail ? false : Math.random() > 0.02;
+      
       let numericResult = null;
       if (template.minValue !== null && template.maxValue !== null) {
         const range = template.maxValue - template.minValue;
-        numericResult = template.minValue + (range * 0.3) + (Math.random() * range * 0.4);
+        if (shouldFail) {
+          // Generate an out-of-spec result
+          numericResult = template.minValue - (range * 0.1);
+        } else {
+          numericResult = template.minValue + (range * 0.3) + (Math.random() * range * 0.4);
+        }
       }
       
       await prisma.qCResult.create({
@@ -755,15 +836,16 @@ async function main() {
           numericResult,
           textResult: passed ? 'Pass' : 'Fail',
           passed,
-          status: 'PASSED',
-          testedAt: new Date(),
+          status: passed ? 'PASSED' : 'FAILED',
+          testedAt: new Date(Date.now() - Math.random() * 3600000),
           testedById: adminUser.id,
+          notes: shouldFail ? 'Out of specification - investigation required' : undefined,
         },
       });
     }
   }
 
-  // Create batch releases for released batches (8 releases)
+  // Create batch releases for released batches
   const releasedBatches = batches.filter(b => b.status === 'RELEASED');
   for (let i = 0; i < releasedBatches.length; i++) {
     const batch = releasedBatches[i];
@@ -773,9 +855,11 @@ async function main() {
         batchId: batch.id,
         releasedById: adminUser.id,
         releaseType: i % 3 === 0 ? 'RAPID' : 'FULL',
-        electronicSignature: `QP-${adminUser.email}-${Date.now()}`,
-        signatureTimestamp: new Date(),
-        reason: `Batch ${batch.batchNumber} released for distribution`,
+        disposition: 'RELEASE',
+        electronicSignature: `QP-${adminUser.email}-${Date.now()}-${i}`,
+        signatureTimestamp: new Date(Date.now() - i * 3600000),
+        meaning: 'I certify that this batch meets all quality specifications and is suitable for human use.',
+        reason: `Batch ${batch.batchNumber} released for distribution after successful QC review`,
       },
     });
   }
