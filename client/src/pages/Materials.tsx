@@ -570,47 +570,41 @@ export default function Materials() {
 
       {showModal && (
         <div className="modal-overlay" onClick={() => { setShowModal(false); setSelectedMaterial(null); }}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '700px', maxHeight: '90vh', overflow: 'auto' }}>
+          <div className="modal" style={{ maxWidth: '40rem' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{selectedMaterial ? 'Edit Material' : 'Add Material'}</h2>
-              <button className="btn btn-secondary btn-sm" onClick={() => { setShowModal(false); setSelectedMaterial(null); }}>
-                <X size={16} />
-              </button>
+              <h3 style={{ fontWeight: 600, margin: 0 }}>{selectedMaterial ? 'Edit Material' : 'Add Material'}</h3>
+              <button onClick={() => { setShowModal(false); setSelectedMaterial(null); }} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div className="form-group">
-                    <label>Code *</label>
-                    <input name="code" defaultValue={selectedMaterial?.code || ''} required />
+                    <label className="form-label">Code</label>
+                    <input name="code" className="form-input" defaultValue={selectedMaterial?.code || ''} required disabled={!!selectedMaterial} />
                   </div>
                   <div className="form-group">
-                    <label>Category *</label>
-                    <select name="category" defaultValue={selectedMaterial?.category || 'RAW_MATERIAL'} required>
+                    <label className="form-label">Category</label>
+                    <select name="category" className="form-select" defaultValue={selectedMaterial?.category || 'RAW_MATERIAL'} required>
                       {CATEGORIES.map(cat => (
                         <option key={cat.value} value={cat.value}>{cat.label}</option>
                       ))}
                     </select>
                   </div>
-                </div>
-                <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div className="form-group">
-                    <label>Name (English) *</label>
-                    <input name="name" defaultValue={selectedMaterial?.name || ''} required />
+                    <label className="form-label">Name (English)</label>
+                    <input name="name" className="form-input" defaultValue={selectedMaterial?.name || ''} required />
                   </div>
                   <div className="form-group">
-                    <label>Name (Arabic)</label>
-                    <input name="nameAr" defaultValue={selectedMaterial?.nameAr || ''} dir="rtl" />
+                    <label className="form-label">Name (Arabic)</label>
+                    <input name="nameAr" className="form-input" defaultValue={selectedMaterial?.nameAr || ''} dir="rtl" />
                   </div>
-                </div>
-                <div className="form-group">
-                  <label>Description</label>
-                  <textarea name="description" defaultValue={selectedMaterial?.description || ''} rows={2} />
-                </div>
-                <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="form-label">Description</label>
+                    <textarea name="description" className="form-input" defaultValue={selectedMaterial?.description || ''} rows={2} />
+                  </div>
                   <div className="form-group">
-                    <label>Unit *</label>
-                    <select name="unit" defaultValue={selectedMaterial?.unit || 'EA'} required>
+                    <label className="form-label">Unit</label>
+                    <select name="unit" className="form-select" defaultValue={selectedMaterial?.unit || 'EA'} required>
                       <option value="EA">Each (EA)</option>
                       <option value="KG">Kilogram (KG)</option>
                       <option value="G">Gram (G)</option>
@@ -626,55 +620,49 @@ export default function Materials() {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Status</label>
-                    <select name="status" defaultValue={selectedMaterial?.status || 'ACTIVE'}>
+                    <label className="form-label">Status</label>
+                    <select name="status" className="form-select" defaultValue={selectedMaterial?.status || 'ACTIVE'}>
                       {STATUSES.map(s => (
                         <option key={s.value} value={s.value}>{s.label}</option>
                       ))}
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Preferred Supplier</label>
-                    <select name="supplierId" defaultValue={selectedMaterial?.supplierId || ''}>
+                    <label className="form-label">Preferred Supplier</label>
+                    <select name="supplierId" className="form-select" defaultValue={selectedMaterial?.supplierId || ''}>
                       <option value="">Select Supplier</option>
                       {suppliers?.map((s: any) => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>
                   </div>
-                </div>
-                <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                   <div className="form-group">
-                    <label>Reorder Point</label>
-                    <input name="reorderPoint" type="number" step="0.01" defaultValue={selectedMaterial?.reorderPoint || 0} />
+                    <label className="form-label">Reorder Point</label>
+                    <input name="reorderPoint" className="form-input" type="number" step="0.01" defaultValue={selectedMaterial?.reorderPoint || 0} />
                   </div>
                   <div className="form-group">
-                    <label>Reorder Qty</label>
-                    <input name="reorderQty" type="number" step="0.01" defaultValue={selectedMaterial?.reorderQty || 0} />
+                    <label className="form-label">Reorder Qty</label>
+                    <input name="reorderQty" className="form-input" type="number" step="0.01" defaultValue={selectedMaterial?.reorderQty || 0} />
                   </div>
                   <div className="form-group">
-                    <label>Lead Time (days)</label>
-                    <input name="leadTimeDays" type="number" defaultValue={selectedMaterial?.leadTimeDays || 0} />
-                  </div>
-                </div>
-                <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group">
-                    <label>Storage Conditions</label>
-                    <input name="storageConditions" defaultValue={selectedMaterial?.storageConditions || ''} placeholder="e.g., 2-8°C" />
+                    <label className="form-label">Lead Time (days)</label>
+                    <input name="leadTimeDays" className="form-input" type="number" defaultValue={selectedMaterial?.leadTimeDays || 0} />
                   </div>
                   <div className="form-group">
-                    <label>Shelf Life (days)</label>
-                    <input name="shelfLifeDays" type="number" defaultValue={selectedMaterial?.shelfLifeDays || ''} />
-                  </div>
-                </div>
-                <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group">
-                    <label>Hazard Class</label>
-                    <input name="hazardClass" defaultValue={selectedMaterial?.hazardClass || ''} placeholder="e.g., Class 7" />
+                    <label className="form-label">Storage Conditions</label>
+                    <input name="storageConditions" className="form-input" defaultValue={selectedMaterial?.storageConditions || ''} placeholder="e.g., 2-8°C" />
                   </div>
                   <div className="form-group">
-                    <label>Radioactive?</label>
-                    <select name="isRadioactive" defaultValue={selectedMaterial?.isRadioactive ? 'true' : 'false'}>
+                    <label className="form-label">Shelf Life (days)</label>
+                    <input name="shelfLifeDays" className="form-input" type="number" defaultValue={selectedMaterial?.shelfLifeDays || ''} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Hazard Class</label>
+                    <input name="hazardClass" className="form-input" defaultValue={selectedMaterial?.hazardClass || ''} placeholder="e.g., Class 7" />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Radioactive</label>
+                    <select name="isRadioactive" className="form-select" defaultValue={selectedMaterial?.isRadioactive ? 'true' : 'false'}>
                       <option value="false">No</option>
                       <option value="true">Yes</option>
                     </select>
@@ -682,11 +670,9 @@ export default function Materials() {
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowModal(false); setSelectedMaterial(null); }}>
-                  Cancel
-                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowModal(false); setSelectedMaterial(null); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? 'Saving...' : (selectedMaterial ? 'Update' : 'Create')}
+                  {createMutation.isPending ? 'Saving...' : 'Save Material'}
                 </button>
               </div>
             </form>
