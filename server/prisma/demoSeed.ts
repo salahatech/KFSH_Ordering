@@ -63,7 +63,10 @@ async function main() {
   console.log('12. Creating Happy Path Journey...');
   await seedHappyPathJourney(users, customers, products, drivers);
 
-  console.log('13. Creating Additional Demo Cases...');
+  console.log('13. Creating Planner Demo Data...');
+  await seedPlannerData(users, customers, products);
+
+  console.log('14. Creating Additional Demo Cases...');
   await seedAdditionalCases(users, customers, products, drivers);
 
   printCredentials();
@@ -1001,6 +1004,103 @@ async function seedNotifications(users: Record<string, any>, customers: any, ord
       },
     });
   }
+}
+
+async function seedPlannerData(users: Record<string, any>, customers: any, products: Record<string, any>) {
+  const { customerA, customerB } = customers;
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const plannerOrders = [
+    {
+      orderNumber: 'O-20001',
+      customerId: customerA.id,
+      productId: products['FDG'].id,
+      deliveryHour: 9,
+      deliveryMinute: 0,
+      requestedActivity: 30,
+      numberOfDoses: 3,
+      patientCount: 3,
+      specialNotes: 'Planner demo - FDG morning delivery',
+    },
+    {
+      orderNumber: 'O-20002',
+      customerId: customerA.id,
+      productId: products['FDG'].id,
+      deliveryHour: 10,
+      deliveryMinute: 30,
+      requestedActivity: 45,
+      numberOfDoses: 4,
+      patientCount: 4,
+      specialNotes: 'Planner demo - FDG late morning',
+    },
+    {
+      orderNumber: 'O-20003',
+      customerId: customerB?.id || customerA.id,
+      productId: products['FDG'].id,
+      deliveryHour: 11,
+      deliveryMinute: 0,
+      requestedActivity: 25,
+      numberOfDoses: 2,
+      patientCount: 2,
+      specialNotes: 'Planner demo - FDG different customer',
+    },
+    {
+      orderNumber: 'O-20004',
+      customerId: customerA.id,
+      productId: products['TC99M-MDP'].id,
+      deliveryHour: 14,
+      deliveryMinute: 0,
+      requestedActivity: 20,
+      numberOfDoses: 2,
+      patientCount: 2,
+      specialNotes: 'Planner demo - Tc-99m afternoon',
+    },
+    {
+      orderNumber: 'O-20005',
+      customerId: customerB?.id || customerA.id,
+      productId: products['TC99M-MDP'].id,
+      deliveryHour: 15,
+      deliveryMinute: 0,
+      requestedActivity: 35,
+      numberOfDoses: 3,
+      patientCount: 3,
+      specialNotes: 'Planner demo - Tc-99m late afternoon',
+    },
+  ];
+
+  for (const orderData of plannerOrders) {
+    const deliveryTime = new Date(today);
+    deliveryTime.setHours(orderData.deliveryHour, orderData.deliveryMinute, 0, 0);
+    
+    const injectionTime = new Date(deliveryTime);
+    injectionTime.setMinutes(injectionTime.getMinutes() + 30);
+
+    await prisma.order.upsert({
+      where: { orderNumber: orderData.orderNumber },
+      update: {},
+      create: {
+        orderNumber: orderData.orderNumber,
+        customerId: orderData.customerId,
+        productId: orderData.productId,
+        deliveryDate: deliveryTime,
+        deliveryTimeStart: deliveryTime,
+        deliveryTimeEnd: new Date(deliveryTime.getTime() + 30 * 60000),
+        requestedActivity: orderData.requestedActivity,
+        activityUnit: 'mCi',
+        numberOfDoses: orderData.numberOfDoses,
+        injectionTime: injectionTime,
+        patientCount: orderData.patientCount,
+        specialNotes: orderData.specialNotes,
+        status: OrderStatus.VALIDATED,
+      },
+    });
+  }
+
+  console.log('   Created planner demo data:');
+  console.log(`     - ${plannerOrders.length} orders in VALIDATED status for today`);
+  console.log('     - Products: FDG (3 orders), Tc-99m MDP (2 orders)');
 }
 
 async function seedAdditionalCases(users: Record<string, any>, customers: any, products: Record<string, any>, drivers: any) {

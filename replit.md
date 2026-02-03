@@ -170,6 +170,14 @@ npm run seed:demo:complete # FULLY_COMPLETED mode - entire journey finished
 - Shipment: S-30001
 - Invoice: INV-40001
 
+### Planner Demo Data
+Orders ready for scheduling today (VALIDATED status):
+- O-20001: FDG, 9:00 AM, 30 mCi (Al Noor Hospital)
+- O-20002: FDG, 10:30 AM, 45 mCi (Al Noor Hospital)
+- O-20003: FDG, 11:00 AM, 25 mCi (King Fahd Medical City)
+- O-20004: Tc-99m MDP, 2:00 PM, 20 mCi (Al Noor Hospital)
+- O-20005: Tc-99m MDP, 3:00 PM, 35 mCi (King Fahd Medical City)
+
 ### Admin Demo Actions Panel
 Navigate to `/admin/demo` as Admin to:
 1. Mark shipment ARRIVED
