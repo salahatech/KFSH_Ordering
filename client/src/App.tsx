@@ -54,6 +54,9 @@ import Materials from './pages/Materials';
 import Recipes from './pages/Recipes';
 import Suppliers from './pages/Suppliers';
 import PurchaseOrders from './pages/PurchaseOrders';
+import Warehouses from './pages/Warehouses';
+import GoodsReceiving from './pages/GoodsReceiving';
+import Inventory from './pages/Inventory';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -216,6 +219,9 @@ export default function App() {
                   <Route path="/recipes" element={<Recipes />} />
                   <Route path="/suppliers" element={<Suppliers />} />
                   <Route path="/purchase-orders" element={<PurchaseOrders />} />
+                  <Route path="/warehouses" element={<Warehouses />} />
+                  <Route path="/grn" element={<GoodsReceiving />} />
+                  <Route path="/inventory" element={<Inventory />} />
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/orders/new" element={<OrderForm />} />
                   <Route path="/orders/:id" element={<OrderForm />} />

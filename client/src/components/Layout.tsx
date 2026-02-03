@@ -31,6 +31,9 @@ import {
   CreditCard,
   Check,
   Shield,
+  Warehouse,
+  PackageCheck,
+  Boxes,
 } from 'lucide-react';
 
 interface Notification {
@@ -53,6 +56,9 @@ const menuItems = [
   { path: '/recipes', label: 'Recipes/BOM', icon: FileText },
   { path: '/suppliers', label: 'Suppliers', icon: Building2 },
   { path: '/purchase-orders', label: 'Purchase Orders', icon: ShoppingCart },
+  { path: '/warehouses', label: 'Warehouses', icon: Warehouse },
+  { path: '/grn', label: 'Goods Receiving', icon: PackageCheck },
+  { path: '/inventory', label: 'Inventory', icon: Boxes },
   { path: '/orders', label: 'Orders', icon: ShoppingCart },
   { path: '/availability', label: 'Availability', icon: CalendarClock },
   { path: '/reservations', label: 'Reservations', icon: CalendarCheck },
