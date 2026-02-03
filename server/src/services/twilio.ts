@@ -140,10 +140,11 @@ export async function sendWhatsApp(to: string, message: string): Promise<{ succe
 
 export async function testTwilioConnection(): Promise<{ connected: boolean; phoneNumber?: string; error?: string }> {
   try {
+    const creds = await getCredentials();
     const client = await getTwilioClient();
-    const phoneNumber = await getTwilioFromPhoneNumber();
+    const phoneNumber = creds.phoneNumber;
     
-    const account = await client.api.accounts(connectionSettings.settings.account_sid).fetch();
+    const account = await client.api.accounts(creds.accountSid).fetch();
     
     return { 
       connected: true, 
