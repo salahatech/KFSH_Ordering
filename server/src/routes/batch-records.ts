@@ -1,12 +1,12 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
 
 type BatchRecordStatus = 'DRAFT' | 'IN_PROGRESS' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
-type BatchRecordStepStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED' | 'FAILED' | 'ON_HOLD';
+type StepExecutionStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED' | 'FAILED' | 'ON_HOLD';
 
 router.use(authenticateToken);
 
@@ -19,8 +19,8 @@ router.get('/', async (req: Request, res: Response) => {
     if (batchId) where.batchId = batchId as string;
     if (search) {
       where.OR = [
-        { recordNumber: { contains: search as string, mode: 'insensitive' } },
-        { batch: { batchNumber: { contains: search as string, mode: 'insensitive' } } }
+        { batch: { batchNumber: { contains: search as string, mode: 'insensitive' } } },
+        { batch: { product: { name: { contains: search as string, mode: 'insensitive' } } } }
       ];
     }
 
@@ -46,7 +46,12 @@ router.get('/', async (req: Request, res: Response) => {
       prisma.batchRecord.count({ where })
     ]);
 
-    res.json({ records, total, page: parseInt(page as string), limit: parseInt(limit as string), totalPages: Math.ceil(total / take) });
+    const recordsWithNumber = records.map((r, idx) => ({
+      ...r,
+      recordNumber: `EBR-${String(total - skip - idx).padStart(6, '0')}`
+    }));
+
+    res.json({ records: recordsWithNumber, total, page: parseInt(page as string), limit: parseInt(limit as string), totalPages: Math.ceil(total / take) });
   } catch (error) {
     console.error('Error fetching batch records:', error);
     res.status(500).json({ error: 'Failed to fetch batch records' });
@@ -58,22 +63,20 @@ router.get('/:id', async (req: Request, res: Response) => {
     const record = await prisma.batchRecord.findUnique({
       where: { id: req.params.id },
       include: {
-        batch: { include: { product: true, order: { select: { id: true, orderNumber: true } } } },
+        batch: { include: { product: true } },
         recipe: { include: { components: { include: { material: true } }, steps: true } },
         startedBy: { select: { id: true, firstName: true, lastName: true } },
         completedBy: { select: { id: true, firstName: true, lastName: true } },
         reviewedBy: { select: { id: true, firstName: true, lastName: true } },
         approvedBy: { select: { id: true, firstName: true, lastName: true } },
-        reviewSignature: true,
         approvalSignature: true,
         steps: {
           include: {
-            recipeStep: true,
             executedBy: { select: { id: true, firstName: true, lastName: true } },
             verifiedBy: { select: { id: true, firstName: true, lastName: true } },
-            verificationSignature: true
+            signature: true
           },
-          orderBy: { sequence: 'asc' }
+          orderBy: { stepNumber: 'asc' }
         },
         materialConsumptions: {
           include: {
@@ -84,8 +87,7 @@ router.get('/:id', async (req: Request, res: Response) => {
         },
         equipmentUsages: {
           include: {
-            equipment: true,
-            operatedBy: { select: { id: true, firstName: true, lastName: true } }
+            equipment: true
           }
         },
         deviations: {
@@ -103,7 +105,13 @@ router.get('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Batch record not found' });
     }
 
-    res.json(record);
+    const count = await prisma.batchRecord.count({ where: { createdAt: { lte: record.createdAt } } });
+    const recordWithNumber = {
+      ...record,
+      recordNumber: `EBR-${String(count).padStart(6, '0')}`
+    };
+
+    res.json(recordWithNumber);
   } catch (error) {
     console.error('Error fetching batch record:', error);
     res.status(500).json({ error: 'Failed to fetch batch record' });
@@ -127,35 +135,30 @@ router.post('/', async (req: Request, res: Response) => {
 
     const recipe = await prisma.recipe.findUnique({
       where: { id: recipeId },
-      include: { steps: { orderBy: { sequence: 'asc' } } }
+      include: { steps: { orderBy: { stepNumber: 'asc' } } }
     });
     if (!recipe) {
       return res.status(404).json({ error: 'Recipe not found' });
     }
 
-    const count = await prisma.batchRecord.count();
-    const recordNumber = `EBR-${String(count + 1).padStart(6, '0')}`;
-
     const record = await prisma.batchRecord.create({
       data: {
-        recordNumber,
         batchId,
         recipeId,
         recipeVersion: recipe.version,
-        notes,
+        plannedYield: recipe.yieldQuantity || 0,
+        yieldUnit: recipe.yieldUnit || 'units',
+        remarks: notes,
         status: 'DRAFT',
         steps: {
-          create: recipe.steps.map((step: any, index: number) => ({
-            sequence: step.sequence,
+          create: recipe.steps.map((step: any) => ({
             stepNumber: step.stepNumber,
-            stepName: step.name,
-            description: step.description,
-            category: step.category,
-            instructions: step.instructions,
-            expectedDuration: step.expectedDuration,
-            isQualityCheckpoint: step.isQualityCheckpoint,
-            requiresVerification: step.requiresVerification,
-            acceptanceCriteria: step.acceptanceCriteria,
+            title: step.title,
+            description: step.description || '',
+            instructions: step.safetyNotes,
+            plannedDuration: step.durationMinutes,
+            isQualityCheckpoint: step.qualityCheckpoint || false,
+            checkpointCriteria: step.checkpointCriteria,
             status: 'PENDING',
             recipeStepId: step.id
           }))
@@ -164,7 +167,7 @@ router.post('/', async (req: Request, res: Response) => {
       include: {
         batch: { include: { product: true } },
         recipe: true,
-        steps: { orderBy: { sequence: 'asc' } }
+        steps: { orderBy: { stepNumber: 'asc' } }
       }
     });
 
@@ -174,11 +177,12 @@ router.post('/', async (req: Request, res: Response) => {
         action: 'CREATE',
         entityType: 'BatchRecord',
         entityId: record.id,
-        newValues: { recordNumber, batchId, recipeId }
+        newValues: { batchId, recipeId }
       }
     });
 
-    res.status(201).json(record);
+    const count = await prisma.batchRecord.count();
+    res.status(201).json({ ...record, recordNumber: `EBR-${String(count).padStart(6, '0')}` });
   } catch (error) {
     console.error('Error creating batch record:', error);
     res.status(500).json({ error: 'Failed to create batch record' });
@@ -206,7 +210,7 @@ router.post('/:id/start', async (req: Request, res: Response) => {
       },
       include: {
         batch: { include: { product: true } },
-        steps: { orderBy: { sequence: 'asc' } }
+        steps: { orderBy: { stepNumber: 'asc' } }
       }
     });
 
@@ -231,7 +235,7 @@ router.post('/:id/start', async (req: Request, res: Response) => {
 router.post('/:id/complete', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { notes, actualYield, yieldUnit } = req.body;
+    const { actualYield, yieldUnit } = req.body;
 
     const record = await prisma.batchRecord.findUnique({
       where: { id: req.params.id },
@@ -256,9 +260,8 @@ router.post('/:id/complete', async (req: Request, res: Response) => {
         status: 'PENDING_REVIEW',
         completedAt: new Date(),
         completedById: userId,
-        notes: notes || record.notes,
-        actualYield,
-        yieldUnit
+        actualYield: actualYield || record.actualYield,
+        yieldUnit: yieldUnit || record.yieldUnit
       }
     });
 
@@ -294,23 +297,11 @@ router.post('/:id/review', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Batch record must be in PENDING_REVIEW status' });
     }
 
-    const signature = await prisma.eSignature.create({
-      data: {
-        scope: 'BATCH_RELEASE',
-        entityType: 'BatchRecord',
-        entityId: record.id,
-        signedById: userId,
-        meaning: meaning || 'Reviewed and verified batch record execution',
-        comment
-      }
-    });
-
     const updated = await prisma.batchRecord.update({
       where: { id: req.params.id },
       data: {
         reviewedAt: new Date(),
-        reviewedById: userId,
-        reviewSignatureId: signature.id
+        reviewedById: userId
       }
     });
 
@@ -320,7 +311,7 @@ router.post('/:id/review', async (req: Request, res: Response) => {
         action: 'REVIEW',
         entityType: 'BatchRecord',
         entityId: record.id,
-        newValues: { reviewedAt: updated.reviewedAt, signatureId: signature.id }
+        newValues: { reviewedAt: updated.reviewedAt }
       }
     });
 
@@ -434,7 +425,7 @@ router.post('/:id/steps/:stepId/complete', async (req: Request, res: Response) =
   try {
     const userId = (req as any).userId;
     const { id, stepId } = req.params;
-    const { actualValue, actualDuration, notes, parameters } = req.body;
+    const { actualDuration, remarks, checkpointPassed, checkpointNotes, actualTemperature, actualPressure, observations } = req.body;
 
     const step = await prisma.batchRecordStep.findFirst({
       where: { id: stepId, batchRecordId: id }
@@ -452,10 +443,13 @@ router.post('/:id/steps/:stepId/complete', async (req: Request, res: Response) =
       data: {
         status: 'COMPLETED',
         completedAt: new Date(),
-        actualValue,
         actualDuration,
-        notes,
-        parameters
+        remarks,
+        checkpointPassed,
+        checkpointNotes,
+        actualTemperature,
+        actualPressure,
+        observations
       }
     });
 
@@ -493,8 +487,8 @@ router.post('/:id/steps/:stepId/verify', async (req: Request, res: Response) => 
     if (step.status !== 'COMPLETED') {
       return res.status(400).json({ error: 'Step must be completed before verification' });
     }
-    if (!step.requiresVerification) {
-      return res.status(400).json({ error: 'This step does not require verification' });
+    if (!step.isQualityCheckpoint) {
+      return res.status(400).json({ error: 'This step is not a quality checkpoint' });
     }
 
     const signature = await prisma.eSignature.create({
@@ -511,9 +505,8 @@ router.post('/:id/steps/:stepId/verify', async (req: Request, res: Response) => 
     const updated = await prisma.batchRecordStep.update({
       where: { id: stepId },
       data: {
-        verifiedAt: new Date(),
         verifiedById: userId,
-        verificationSignatureId: signature.id
+        signatureId: signature.id
       }
     });
 
@@ -523,7 +516,7 @@ router.post('/:id/steps/:stepId/verify', async (req: Request, res: Response) => 
         action: 'VERIFY',
         entityType: 'BatchRecordStep',
         entityId: stepId,
-        newValues: { verifiedAt: updated.verifiedAt, signatureId: signature.id }
+        newValues: { verifiedById: userId, signatureId: signature.id }
       }
     });
 
@@ -556,7 +549,7 @@ router.get('/:id/kpis', async (req: Request, res: Response) => {
     const onHoldSteps = record.steps.filter((s: any) => s.status === 'ON_HOLD').length;
 
     const totalDuration = record.steps.reduce((sum: number, s: any) => sum + (s.actualDuration || 0), 0);
-    const expectedDuration = record.steps.reduce((sum: number, s: any) => sum + (s.expectedDuration || 0), 0);
+    const expectedDuration = record.steps.reduce((sum: number, s: any) => sum + (s.plannedDuration || 0), 0);
 
     const criticalDeviations = record.deviations.filter((d: any) => d.severity === 'CRITICAL').length;
     const majorDeviations = record.deviations.filter((d: any) => d.severity === 'MAJOR').length;

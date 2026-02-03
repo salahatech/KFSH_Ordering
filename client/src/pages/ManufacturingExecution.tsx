@@ -34,23 +34,20 @@ interface BatchRecord {
 
 interface BatchRecordStep {
   id: string;
-  sequence: number;
-  stepNumber: string;
-  stepName: string;
+  stepNumber: number;
+  title: string;
   description?: string;
-  category: string;
   instructions?: string;
-  expectedDuration?: number;
+  plannedDuration?: number;
+  actualDuration?: number;
   isQualityCheckpoint: boolean;
-  requiresVerification: boolean;
-  acceptanceCriteria?: string;
+  checkpointCriteria?: string;
+  checkpointPassed?: boolean;
+  checkpointNotes?: string;
   status: string;
   startedAt?: string;
   completedAt?: string;
-  verifiedAt?: string;
-  actualValue?: string;
-  actualDuration?: number;
-  notes?: string;
+  remarks?: string;
   executedBy?: { firstName: string; lastName: string };
   verifiedBy?: { firstName: string; lastName: string };
 }
@@ -716,24 +713,21 @@ export default function ManufacturingExecution() {
                           fontWeight: 600,
                           fontSize: '0.875rem',
                         }}>
-                          {step.sequence}
+                          {step.stepNumber}
                         </div>
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontWeight: 500 }}>{step.stepNumber}: {step.stepName}</span>
+                            <span style={{ fontWeight: 500 }}>Step {step.stepNumber}: {step.title}</span>
                             {step.isQualityCheckpoint && (
                               <span className="badge" style={{ fontSize: '0.625rem', background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>QC</span>
                             )}
-                            {step.requiresVerification && (
-                              <span className="badge" style={{ fontSize: '0.625rem', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>Verify</span>
-                            )}
                           </div>
-                          <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{step.description || step.category}</div>
+                          <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{step.description}</div>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        {step.expectedDuration && (
-                          <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>~{step.expectedDuration} min</span>
+                        {step.plannedDuration && (
+                          <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>~{step.plannedDuration} min</span>
                         )}
                         <span className="badge" style={getStepStatusStyle(step.status)}>
                           {STEP_STATUSES.find(s => s.value === step.status)?.label}
