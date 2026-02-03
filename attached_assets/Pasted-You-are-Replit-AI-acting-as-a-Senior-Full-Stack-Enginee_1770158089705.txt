@@ -1,0 +1,205 @@
+You are Replit AI acting as a Senior Full-Stack Engineer + Notifications Platform Architect.
+
+Context:
+We already implemented (or are implementing) a unified notifications system:
+- In-app notifications (top bar + notification center)
+- Optional channels: Email, SMS
+Now we must ENHANCE the Notification Settings to support:
+- Email SMTP configuration
+- SMS configuration (Twilio-style: Account SID, Auth Token, Phone Number)
+- WhatsApp configuration (Meta WhatsApp Business Cloud API style: Access Token, Phone Number ID, Business Account ID)
+Each channel must have:
+- Enable Channel toggle (if disabled, do not send via that channel)
+- Credentials and settings stored securely
+- “Test Send” function
+- Delivery attempt logs (SENT/FAILED/SKIPPED)
+- RBAC (Admin only for configs; others can only change their preferences)
+
+Brand default:
+From Name default = “TechMarket Pro” (editable)
+
+========================================================
+1) ADMIN UI: NOTIFICATION CHANNEL SETTINGS (MANDATORY)
+========================================================
+Create page: /admin/settings/notifications/channels
+
+Layout:
+- Tabs: In-App (info only), Email (SMTP), SMS, WhatsApp
+- Each tab shows:
+  - Enable Channel toggle
+  - Credentials form
+  - “Save” button
+  - “Test” section (send to selected user or custom email/phone)
+  - Current status badge (Enabled/Disabled) + last test result
+
+Validation & UX:
+- Inline validation errors for required fields
+- Password/AuthToken/AccessToken fields masked with “Show/Hide”
+- Do not display secrets after saving (show “••••••” only)
+- Add “Reset/Replace credential” flow
+- Clear success/error toasts
+
+========================================================
+2) SMTP EMAIL CONFIG (MANDATORY)
+========================================================
+Fields:
+- smtpHost (required)
+- smtpPort (required, number)
+- useSslTls (boolean)  // “Use SSL/TLS - Enable secure connection for SMTP”
+- username (optional/required depending on server; treat as required by default)
+- password (secret, required)
+- fromEmail (required, validate email)
+- fromName (required, default “TechMarket Pro”)
+
+Rules:
+- If Enable Channel OFF → no emails sent
+- If Enable Channel ON but missing config → block saving and show required errors
+
+Test Email:
+- Input: testRecipientEmail
+- Button: “Send Test Email”
+- Result:
+  - show toast + store attempt in NotificationDeliveryAttempt
+
+========================================================
+3) SMS CONFIG (MANDATORY)
+========================================================
+This is provider-agnostic but fields match Twilio-like credentials:
+
+Fields:
+- accountSid (required)
+- authToken (secret, required)
+- phoneNumber (required) // sender number
+- enableChannel (toggle)
+
+Test SMS:
+- Input: testRecipientPhone
+- Button: “Send Test SMS”
+- Validate phone format (E.164 preferred, KSA accepted + normalize)
+
+========================================================
+4) WHATSAPP CONFIG (MANDATORY)
+========================================================
+Meta WhatsApp Business Cloud API style:
+
+Fields:
+- accessToken (secret, required)
+- phoneNumberId (required)
+- businessAccountId (required)
+- enableChannel (toggle)
+
+Test WhatsApp:
+- Input: testRecipientPhone
+- Button: “Send Test WhatsApp”
+- Use a basic template message (or freeform if allowed by provider)
+- Log response status and provider message id
+
+========================================================
+5) DATA MODEL (PRISMA) — MUST IMPLEMENT
+========================================================
+Create/extend these tables:
+
+5.1 NotificationChannelConfig
+- id
+- channel: EMAIL | SMS | WHATSAPP
+- isEnabled (boolean)
+- providerType (SMTP | TWILIO_LIKE | META_WHATSAPP)
+- settingsJson (non-secret fields)
+- secretRef (reference to encrypted secrets store) OR encryptedSecretsJson
+- updatedAt, updatedByUserId
+- lastTestedAt, lastTestStatus (SENT/FAILED), lastTestMessage
+
+IMPORTANT SECURITY:
+- Do NOT store raw secrets in plaintext.
+- Use one of:
+  A) encryptedSecretsJson using server-side encryption key
+  B) store secrets in environment variables + only store “enabled” + “fromEmail” etc in DB
+  C) store in a dedicated vault service abstraction (recommended design)
+
+5.2 NotificationDeliveryAttempt (already exists)
+Ensure it supports:
+- channel IN_APP/EMAIL/SMS/WHATSAPP
+- providerMessageId
+- errorMessage
+- attemptedAt
+- status SENT/FAILED/SKIPPED
+
+========================================================
+6) BACKEND SERVICES (MANDATORY)
+========================================================
+Create a NotificationChannelManager with methods:
+- sendEmail(to, subject, html/text, templateId, metadata)
+- sendSms(to, text, metadata)
+- sendWhatsApp(to, text or template, metadata)
+
+Routing logic:
+- Always create in-app Notification row.
+- For each channel:
+  - if channel config isEnabled
+  - AND user preference enables that channel
+  - AND recipient has required destination (email/mobile)
+Then create delivery attempt:
+  - status PENDING → SENT/FAILED
+
+Fail-safe:
+- Channel failures must not break core business operations.
+- Always log FAILED with errorMessage.
+
+========================================================
+7) USER PREFERENCES (MANDATORY)
+========================================================
+Page: /me/notification-preferences (and customer portal equivalent)
+
+User can set:
+- Email on/off
+- SMS on/off
+- WhatsApp on/off
+- Severity threshold (INFO/ACTION_REQUIRED/WARNING/CRITICAL)
+
+Rules:
+- If admin disables a channel globally, user toggle is shown disabled with tooltip “Disabled by administrator”.
+
+========================================================
+8) LOGS UI (MANDATORY)
+========================================================
+Admin page: /admin/notifications/delivery-logs
+- Filter: date range, channel, status, user, event type
+- View details: provider response, error message
+- Export CSV
+
+========================================================
+9) API ENDPOINTS (MANDATORY)
+========================================================
+Admin:
+- GET /admin/notification-channels
+- PUT /admin/notification-channels/:channel  (save config)
+- POST /admin/notification-channels/:channel/test (send test message)
+
+User:
+- GET /me/notification-preferences
+- PUT /me/notification-preferences
+
+Logs:
+- GET /admin/notification-delivery-attempts
+
+========================================================
+10) VALIDATIONS (MANDATORY)
+========================================================
+SMTP:
+- Port is 1..65535
+- Host required
+- From Email valid format
+SMS/WhatsApp:
+- Normalize phone to E.164 if possible
+- Validate required IDs/fields
+Secrets:
+- Password/AuthToken/AccessToken cannot be read back; only replaced
+
+========================================================
+11) ACCEPTANCE CRITERIA
+========================================================
+- Admin can configure SMTP/SMS/WhatsApp and enable/disable each channel.
+- Test send works per channel and logs attempts.
+- Production sends follow channel enablement + user preference.
+- Secrets are stored securely and never shown in plain text.
+- Delivery logs show SENT/FAILED with provider ids and errors.

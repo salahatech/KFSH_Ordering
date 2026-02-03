@@ -23,6 +23,7 @@ import {
   Bell,
   Languages,
   Clock,
+  FileCheck,
 } from 'lucide-react';
 
 const tabs = [
@@ -42,6 +43,7 @@ const tabs = [
   { id: 'exchange-rates', label: 'Exchange Rates', icon: DollarSign, link: '/admin/exchange-rates' },
   { id: 'localization', label: 'Localization', icon: Clock, link: '/admin/localization' },
   { id: 'translations', label: 'Translations', icon: Globe, link: '/admin/translations' },
+  { id: 'zatca', label: 'ZATCA Integration', icon: FileCheck, link: '/admin/zatca' },
 ];
 
 export default function Settings() {
