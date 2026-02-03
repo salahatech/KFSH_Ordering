@@ -190,16 +190,56 @@ export default function Planner() {
                         </button>
                       </div>
                       <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <Users size={14} />
-                          {suggestion.orderCount} orders grouped
-                        </div>
                         <div>Total Activity: {suggestion.totalActivity.toFixed(1)} mCi</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
                           <Clock size={14} />
                           Start: {format(new Date(suggestion.suggestedStartTime), 'HH:mm')}
                         </div>
                       </div>
+                      
+                      {suggestion.orders?.length > 0 && (
+                        <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <Users size={12} />
+                            Orders in this batch ({suggestion.orders.length})
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {suggestion.orders.map((order: any) => (
+                              <div
+                                key={order.id}
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  padding: '0.5rem',
+                                  background: 'var(--bg-primary)',
+                                  borderRadius: 'var(--radius-sm)',
+                                  border: '1px solid var(--border)',
+                                  fontSize: '0.8rem',
+                                }}
+                              >
+                                <div>
+                                  <span style={{ fontWeight: 500 }}>{order.orderNumber}</span>
+                                  <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>
+                                    {order.customer?.name || order.customer?.nameEn}
+                                  </span>
+                                  <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>
+                                    ({order.requestedActivity} mCi)
+                                  </span>
+                                </div>
+                                <button
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={() => navigate(`/orders/${order.id}/journey`)}
+                                  title="View Order History"
+                                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem' }}
+                                >
+                                  <Eye size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
