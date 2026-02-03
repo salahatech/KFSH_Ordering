@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuthStore } from '../stores/authStore';
+import { useAuthStore } from '../store/authStore';
 import {
-  FiPlus, FiSearch, FiEdit2, FiEye, FiX, FiUser, FiMail, FiPhone,
-  FiMapPin, FiFileText, FiShoppingCart, FiCheck, FiAlertCircle
-} from 'react-icons/fi';
-import { Modal, ModalHeader, ModalBody, ModalFooter } from '../components/ui/Modal';
-import { Button } from '../components/ui/Button';
+  Plus, Search, Edit2, Eye, X, User, Mail, Phone,
+  MapPin, FileText, ShoppingCart, Check, AlertCircle
+} from 'lucide-react';
 import { useToast } from '../components/ui/Toast';
-import { KpiCard, EmptyState } from '../components/shared';
 
 const STATUSES = [
   { value: 'ACTIVE', label: 'Active', color: 'var(--success)' },
@@ -268,42 +265,38 @@ export default function Suppliers() {
           <h1 className="page-title">Suppliers</h1>
           <p className="page-subtitle">Manage vendor and supplier information</p>
         </div>
-        <Button onClick={() => setShowModal(true)}>
-          <FiPlus /> Add Supplier
-        </Button>
+        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+          <Plus size={16} /> Add Supplier
+        </button>
       </div>
 
-      <div className="kpi-grid" style={{ marginBottom: '1.5rem' }}>
-        <KpiCard
-          title="Total Suppliers"
-          value={stats?.total || 0}
-          icon={<FiUser />}
-          color="primary"
-        />
-        <KpiCard
-          title="Active"
-          value={stats?.active || 0}
-          icon={<FiCheck />}
-          color="success"
-        />
-        <KpiCard
-          title="On Hold"
-          value={stats?.onHold || 0}
-          icon={<FiAlertCircle />}
-          color="warning"
-        />
-        <KpiCard
-          title="Blocked"
-          value={stats?.blocked || 0}
-          icon={<FiX />}
-          color="danger"
-        />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
+          <div style={{ color: 'var(--primary)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><User size={16} /></div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{stats?.total || 0}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Total Suppliers</div>
+        </div>
+        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
+          <div style={{ color: 'var(--success)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><Check size={16} /></div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{stats?.active || 0}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Active</div>
+        </div>
+        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
+          <div style={{ color: 'var(--warning)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><AlertCircle size={16} /></div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{stats?.onHold || 0}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>On Hold</div>
+        </div>
+        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
+          <div style={{ color: 'var(--error)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><X size={16} /></div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{stats?.blocked || 0}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Blocked</div>
+        </div>
       </div>
 
       <div className="card">
         <div className="filter-bar">
           <div className="search-box">
-            <FiSearch className="search-icon" />
+            <Search className="search-icon" />
             <input
               type="text"
               placeholder="Search suppliers..."
@@ -326,16 +319,14 @@ export default function Suppliers() {
         {isLoading ? (
           <div className="loading-spinner">Loading...</div>
         ) : suppliers.length === 0 ? (
-          <EmptyState
-            icon="package"
-            title="No suppliers found"
-            description="Add your first supplier to get started"
-            action={
-              <Button onClick={() => setShowModal(true)}>
-                <FiPlus /> Add Supplier
-              </Button>
-            }
-          />
+          <div style={{ padding: '3rem', textAlign: 'center' }}>
+            <ShoppingCart style={{ fontSize: '3rem', color: 'var(--text-muted)', marginBottom: '1rem' }} />
+            <h3 style={{ marginBottom: '0.5rem' }}>No suppliers found</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Add your first supplier to get started</p>
+            <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+              <Plus size={16} /> Add Supplier
+            </button>
+          </div>
         ) : (
           <div className="table-container">
             <table className="data-table">
@@ -366,12 +357,12 @@ export default function Suppliers() {
                     <td>
                       {supplier.email && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}>
-                          <FiMail size={12} /> {supplier.email}
+                          <Mail size={12} /> {supplier.email}
                         </div>
                       )}
                       {supplier.phone && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}>
-                          <FiPhone size={12} /> {supplier.phone}
+                          <Phone size={12} /> {supplier.phone}
                         </div>
                       )}
                     </td>
@@ -396,14 +387,14 @@ export default function Suppliers() {
                           }}
                           title="View Details"
                         >
-                          <FiEye />
+                          <Eye size={16} />
                         </button>
                         <button
                           className="icon-button"
                           onClick={() => handleEdit(supplier)}
                           title="Edit"
                         >
-                          <FiEdit2 />
+                          <Edit2 size={16} />
                         </button>
                       </div>
                     </td>
@@ -415,12 +406,15 @@ export default function Suppliers() {
         )}
       </div>
 
-      <Modal isOpen={showModal} onClose={handleCloseModal} size="lg">
-        <form onSubmit={handleSubmit}>
-          <ModalHeader onClose={handleCloseModal}>
-            {editingSupplier ? 'Edit Supplier' : 'Add Supplier'}
-          </ModalHeader>
-          <ModalBody>
+      {showModal && (
+        <div className="modal-overlay" onClick={handleCloseModal}>
+          <div className="modal" style={{ maxWidth: '50rem' }} onClick={(e) => e.stopPropagation()}>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-header">
+                <h3 style={{ fontWeight: 600, margin: 0 }}>{editingSupplier ? 'Edit Supplier' : 'Add Supplier'}</h3>
+                <button type="button" onClick={handleCloseModal} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
+              </div>
+              <div className="modal-body">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div className="form-group">
                 <label>Supplier Code *</label>
@@ -599,32 +593,36 @@ export default function Suppliers() {
                 min={0}
               />
             </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button type="button" variant="secondary" onClick={handleCloseModal}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-            >
-              {(createMutation.isPending || updateMutation.isPending) ? 'Saving...' : (editingSupplier ? 'Update' : 'Create')}
-            </Button>
-          </ModalFooter>
-        </form>
-      </Modal>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                >
+                  {(createMutation.isPending || updateMutation.isPending) ? 'Saving...' : (editingSupplier ? 'Update' : 'Create')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-      <Modal isOpen={showDetailModal} onClose={() => setShowDetailModal(false)} size="lg">
-        <ModalHeader onClose={() => setShowDetailModal(false)}>
-          Supplier Details
-        </ModalHeader>
-        <ModalBody>
-          {supplierDetail && (
-            <div>
+      {showDetailModal && supplierDetail && (
+        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
+          <div className="modal" style={{ maxWidth: '50rem' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 600, margin: 0 }}>Supplier Details</h3>
+              <button type="button" onClick={() => setShowDetailModal(false)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
+            </div>
+            <div className="modal-body">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                 <div>
                   <h4 style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FiUser /> General Information
+                    <User size={16} /> General Information
                   </h4>
                   <div className="detail-list">
                     <div><strong>Code:</strong> {supplierDetail.code}</div>
@@ -644,7 +642,7 @@ export default function Suppliers() {
 
                 <div>
                   <h4 style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FiMail /> Contact
+                    <Mail size={16} /> Contact
                   </h4>
                   <div className="detail-list">
                     <div><strong>Email:</strong> {supplierDetail.email || '-'}</div>
@@ -656,7 +654,7 @@ export default function Suppliers() {
 
                 <div>
                   <h4 style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FiMapPin /> Address
+                    <MapPin size={16} /> Address
                   </h4>
                   <div className="detail-list">
                     <div>{supplierDetail.address || '-'}</div>
@@ -667,7 +665,7 @@ export default function Suppliers() {
 
                 <div>
                   <h4 style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FiFileText /> Tax & Financial
+                    <FileText size={16} /> Tax & Financial
                   </h4>
                   <div className="detail-list">
                     <div><strong>Tax Number:</strong> {supplierDetail.taxNumber || '-'}</div>
@@ -698,7 +696,7 @@ export default function Suppliers() {
                           <td>{contact.title || '-'}</td>
                           <td>{contact.email || '-'}</td>
                           <td>{contact.phone || '-'}</td>
-                          <td>{contact.isPrimary ? <FiCheck color="var(--success)" /> : '-'}</td>
+                          <td>{contact.isPrimary ? <Check color="var(--success)" /> : '-'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -706,20 +704,20 @@ export default function Suppliers() {
                 </div>
               )}
             </div>
-          )}
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="secondary" onClick={() => setShowDetailModal(false)}>
-            Close
-          </Button>
-          <Button onClick={() => {
-            setShowDetailModal(false);
-            if (supplierDetail) handleEdit(supplierDetail);
-          }}>
-            <FiEdit2 /> Edit
-          </Button>
-        </ModalFooter>
-      </Modal>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => setShowDetailModal(false)}>
+                Close
+              </button>
+              <button type="button" className="btn btn-primary" onClick={() => {
+                setShowDetailModal(false);
+                if (supplierDetail) handleEdit(supplierDetail);
+              }}>
+                <Edit2 size={16} /> Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .detail-list {

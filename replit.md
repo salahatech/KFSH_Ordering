@@ -46,6 +46,7 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
 - **Role Management**: Admin page to view, create, and edit user roles with permission assignment, supporting full RBAC configuration.
 - **E-Signature Framework**: GMP-compliant electronic signatures with 8 scopes (BATCH_RELEASE, QC_APPROVAL, DEVIATION_APPROVAL, MASTERDATA_CHANGE, RECIPE_ACTIVATION, PO_APPROVAL, FINANCIAL_APPROVAL, DISPENSING_APPROVAL), server-side meaning validation, and immutability enforcement with audit logging.
 - **Master Data Management - Recipes/BOM**: Material master data (12 categories), Recipe versioning (DRAFT → PENDING_APPROVAL → ACTIVE → SUPERSEDED), BOM components with quantities/tolerances, process steps with quality checkpoints, and e-signature activation workflow.
+- **Procurement - Supplier & PO Management**: Supplier master data with contacts and documents, bilingual support (English/Arabic), Saudi business identifiers (Tax/VAT/CR numbers), Purchase Order workflow (DRAFT → PENDING_APPROVAL → APPROVED → SENT → ACKNOWLEDGED → PARTIALLY_RECEIVED → RECEIVED → CLOSED/CANCELLED), e-signature approval using PO_APPROVAL scope, line item management with automatic VAT calculation (15%), and comprehensive audit logging for all state transitions.
 
 ## External Dependencies
 - **PostgreSQL**: Primary database for all application data.

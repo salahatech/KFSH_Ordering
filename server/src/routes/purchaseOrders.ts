@@ -62,13 +62,17 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.get('/stats', async (req: Request, res: Response) => {
   try {
-    const [total, draft, pendingApproval, approved, sent, received] = await Promise.all([
+    const [total, draft, pendingApproval, approved, sent, acknowledged, partiallyReceived, received, closed, cancelled] = await Promise.all([
       prisma.purchaseOrder.count(),
       prisma.purchaseOrder.count({ where: { status: 'DRAFT' } }),
       prisma.purchaseOrder.count({ where: { status: 'PENDING_APPROVAL' } }),
       prisma.purchaseOrder.count({ where: { status: 'APPROVED' } }),
       prisma.purchaseOrder.count({ where: { status: 'SENT' } }),
+      prisma.purchaseOrder.count({ where: { status: 'ACKNOWLEDGED' } }),
+      prisma.purchaseOrder.count({ where: { status: 'PARTIALLY_RECEIVED' } }),
       prisma.purchaseOrder.count({ where: { status: 'RECEIVED' } }),
+      prisma.purchaseOrder.count({ where: { status: 'CLOSED' } }),
+      prisma.purchaseOrder.count({ where: { status: 'CANCELLED' } }),
     ]);
     
     const totalValue = await prisma.purchaseOrder.aggregate({
@@ -82,7 +86,11 @@ router.get('/stats', async (req: Request, res: Response) => {
       pendingApproval,
       approved,
       sent,
+      acknowledged,
+      partiallyReceived,
       received,
+      closed,
+      cancelled,
       totalValue: totalValue._sum.totalAmount || 0,
     });
   } catch (error) {

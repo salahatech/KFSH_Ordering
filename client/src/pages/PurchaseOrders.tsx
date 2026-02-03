@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuthStore } from '../stores/authStore';
+import { useAuthStore } from '../store/authStore';
 import {
-  FiPlus, FiSearch, FiEdit2, FiEye, FiX, FiCheck, FiSend,
-  FiClipboard, FiTruck, FiTrash2, FiFileText, FiDollarSign
-} from 'react-icons/fi';
-import { Modal, ModalHeader, ModalBody, ModalFooter } from '../components/ui/Modal';
-import { Button } from '../components/ui/Button';
+  Plus, Search, Edit2, Eye, X, Check, Send,
+  Clipboard, Truck, Trash2, FileText, DollarSign
+} from 'lucide-react';
 import { useToast } from '../components/ui/Toast';
-import { KpiCard, EmptyState } from '../components/shared';
 import ESignatureModal from '../components/ESignatureModal';
 
 const STATUSES = [
@@ -378,42 +375,38 @@ export default function PurchaseOrders() {
           <h1 className="page-title">Purchase Orders</h1>
           <p className="page-subtitle">Manage procurement and supplier orders</p>
         </div>
-        <Button onClick={() => setShowModal(true)}>
-          <FiPlus /> Create PO
-        </Button>
+        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+          <Plus size={16} /> Create PO
+        </button>
       </div>
 
-      <div className="kpi-grid" style={{ marginBottom: '1.5rem' }}>
-        <KpiCard
-          title="Total POs"
-          value={stats?.total || 0}
-          icon={<FiFileText />}
-          color="primary"
-        />
-        <KpiCard
-          title="Pending Approval"
-          value={stats?.pendingApproval || 0}
-          icon={<FiClipboard />}
-          color="warning"
-        />
-        <KpiCard
-          title="Sent to Suppliers"
-          value={stats?.sent || 0}
-          icon={<FiSend />}
-          color="info"
-        />
-        <KpiCard
-          title="Total Value"
-          value={formatCurrency(Number(stats?.totalValue) || 0)}
-          icon={<FiDollarSign />}
-          color="success"
-        />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
+          <div style={{ color: 'var(--primary)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><FileText size={16} /></div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{stats?.total || 0}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Total POs</div>
+        </div>
+        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
+          <div style={{ color: 'var(--warning)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><Clipboard size={16} /></div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{stats?.pendingApproval || 0}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Pending Approval</div>
+        </div>
+        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
+          <div style={{ color: 'var(--info)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><Send size={16} /></div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{stats?.sent || 0}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Sent to Suppliers</div>
+        </div>
+        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
+          <div style={{ color: 'var(--success)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><DollarSign size={16} /></div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{formatCurrency(Number(stats?.totalValue) || 0)}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Total Value</div>
+        </div>
       </div>
 
       <div className="card">
         <div className="filter-bar">
           <div className="search-box">
-            <FiSearch className="search-icon" />
+            <Search className="search-icon" />
             <input
               type="text"
               placeholder="Search PO number or supplier..."
@@ -446,16 +439,14 @@ export default function PurchaseOrders() {
         {isLoading ? (
           <div className="loading-spinner">Loading...</div>
         ) : purchaseOrders.length === 0 ? (
-          <EmptyState
-            icon="package"
-            title="No purchase orders found"
-            description="Create your first purchase order"
-            action={
-              <Button onClick={() => setShowModal(true)}>
-                <FiPlus /> Create PO
-              </Button>
-            }
-          />
+          <div style={{ padding: '3rem', textAlign: 'center' }}>
+            <FileText style={{ fontSize: '3rem', color: 'var(--text-muted)', marginBottom: '1rem' }} />
+            <h3 style={{ marginBottom: '0.5rem' }}>No purchase orders found</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Create your first purchase order</p>
+            <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+              <Plus size={16} /> Create PO
+            </button>
+          </div>
         ) : (
           <div className="table-container">
             <table className="data-table">
@@ -503,7 +494,7 @@ export default function PurchaseOrders() {
                           }}
                           title="View Details"
                         >
-                          <FiEye />
+                          <Eye size={16} />
                         </button>
                         {['DRAFT', 'PENDING_APPROVAL'].includes(po.status) && (
                           <button
@@ -511,7 +502,7 @@ export default function PurchaseOrders() {
                             onClick={() => handleEdit(po)}
                             title="Edit"
                           >
-                            <FiEdit2 />
+                            <Edit2 size={16} />
                           </button>
                         )}
                         {po.status === 'DRAFT' && (
@@ -521,7 +512,7 @@ export default function PurchaseOrders() {
                               onClick={() => actionMutation.mutate({ id: po.id, action: 'submit' })}
                               title="Submit for Approval"
                             >
-                              <FiSend />
+                              <Send size={16} />
                             </button>
                             <button
                               className="icon-button"
@@ -532,7 +523,7 @@ export default function PurchaseOrders() {
                               }}
                               title="Delete"
                             >
-                              <FiTrash2 />
+                              <Trash2 size={16} />
                             </button>
                           </>
                         )}
@@ -546,7 +537,7 @@ export default function PurchaseOrders() {
                             title="Approve"
                             style={{ color: 'var(--success)' }}
                           >
-                            <FiCheck />
+                            <Check size={16} />
                           </button>
                         )}
                         {po.status === 'APPROVED' && (
@@ -555,7 +546,7 @@ export default function PurchaseOrders() {
                             onClick={() => actionMutation.mutate({ id: po.id, action: 'send' })}
                             title="Send to Supplier"
                           >
-                            <FiTruck />
+                            <Truck size={16} />
                           </button>
                         )}
                       </div>
@@ -568,12 +559,15 @@ export default function PurchaseOrders() {
         )}
       </div>
 
-      <Modal isOpen={showModal} onClose={handleCloseModal} size="xl">
-        <form onSubmit={handleSubmit}>
-          <ModalHeader onClose={handleCloseModal}>
-            {editingPO ? 'Edit Purchase Order' : 'Create Purchase Order'}
-          </ModalHeader>
-          <ModalBody>
+      {showModal && (
+        <div className="modal-overlay" onClick={handleCloseModal}>
+          <div className="modal" style={{ maxWidth: '60rem' }} onClick={(e) => e.stopPropagation()}>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-header">
+                <h3 style={{ fontWeight: 600, margin: 0 }}>{editingPO ? 'Edit Purchase Order' : 'Create Purchase Order'}</h3>
+                <button type="button" onClick={handleCloseModal} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
+              </div>
+              <div className="modal-body">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
               <div className="form-group">
                 <label>PO Number</label>
@@ -707,7 +701,7 @@ export default function PurchaseOrders() {
                           onClick={() => removeItem(idx)}
                           disabled={items.length === 1}
                         >
-                          <FiX />
+                          <X size={16} />
                         </button>
                       </td>
                     </tr>
@@ -732,9 +726,9 @@ export default function PurchaseOrders() {
                 </tfoot>
               </table>
             </div>
-            <Button type="button" variant="secondary" size="sm" onClick={addItem}>
-              <FiPlus /> Add Item
-            </Button>
+            <button type="button" className="btn btn-secondary" onClick={addItem}>
+              <Plus size={16} /> Add Item
+            </button>
 
             <div className="form-group" style={{ marginTop: '1rem' }}>
               <label>Notes</label>
@@ -744,28 +738,32 @@ export default function PurchaseOrders() {
                 rows={3}
               />
             </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button type="button" variant="secondary" onClick={handleCloseModal}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-            >
-              {(createMutation.isPending || updateMutation.isPending) ? 'Saving...' : (editingPO ? 'Update' : 'Create')}
-            </Button>
-          </ModalFooter>
-        </form>
-      </Modal>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                >
+                  {(createMutation.isPending || updateMutation.isPending) ? 'Saving...' : (editingPO ? 'Update' : 'Create')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-      <Modal isOpen={showDetailModal} onClose={() => setShowDetailModal(false)} size="xl">
-        <ModalHeader onClose={() => setShowDetailModal(false)}>
-          Purchase Order Details
-        </ModalHeader>
-        <ModalBody>
-          {poDetail && (
-            <div>
+      {showDetailModal && poDetail && (
+        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
+          <div className="modal" style={{ maxWidth: '60rem' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 600, margin: 0 }}>Purchase Order Details</h3>
+              <button type="button" onClick={() => setShowDetailModal(false)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
+            </div>
+            <div className="modal-body">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
                 <div>
                   <h4 style={{ marginBottom: '0.5rem' }}>PO Information</h4>
@@ -832,22 +830,22 @@ export default function PurchaseOrders() {
                 </div>
               )}
             </div>
-          )}
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="secondary" onClick={() => setShowDetailModal(false)}>
-            Close
-          </Button>
-          {poDetail && ['DRAFT', 'PENDING_APPROVAL'].includes(poDetail.status) && (
-            <Button onClick={() => {
-              setShowDetailModal(false);
-              handleEdit(poDetail);
-            }}>
-              <FiEdit2 /> Edit
-            </Button>
-          )}
-        </ModalFooter>
-      </Modal>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => setShowDetailModal(false)}>
+                Close
+              </button>
+              {['DRAFT', 'PENDING_APPROVAL'].includes(poDetail.status) && (
+                <button type="button" className="btn btn-primary" onClick={() => {
+                  setShowDetailModal(false);
+                  handleEdit(poDetail);
+                }}>
+                  <Edit2 size={16} /> Edit
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showESignModal && selectedPO && (
         <ESignatureModal
