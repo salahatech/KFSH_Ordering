@@ -492,6 +492,8 @@ enum MaterialCategory {
   BUFFER
   FILTER
   CONTAINER
+  EXCIPIENT
+  REFERENCE_STANDARD
 }
 
 enum MaterialStatus {

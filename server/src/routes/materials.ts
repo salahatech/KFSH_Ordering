@@ -63,6 +63,8 @@ router.get('/categories', async (req: Request, res: Response) => {
       { value: 'BUFFER', label: 'Buffer' },
       { value: 'FILTER', label: 'Filter' },
       { value: 'CONTAINER', label: 'Container' },
+      { value: 'EXCIPIENT', label: 'Excipient' },
+      { value: 'REFERENCE_STANDARD', label: 'Reference Standard' },
     ];
     res.json(categories);
   } catch (error) {

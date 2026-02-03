@@ -29,6 +29,8 @@ const CATEGORIES = [
   { value: 'BUFFER', label: 'Buffer' },
   { value: 'FILTER', label: 'Filter' },
   { value: 'CONTAINER', label: 'Container' },
+  { value: 'EXCIPIENT', label: 'Excipient' },
+  { value: 'REFERENCE_STANDARD', label: 'Reference Standard' },
 ];
 
 const STATUSES = [
