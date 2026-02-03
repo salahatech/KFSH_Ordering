@@ -41,6 +41,7 @@ import DashboardQP from './pages/DashboardQP';
 import DashboardDispensing from './pages/DashboardDispensing';
 import DashboardLogistics from './pages/DashboardLogistics';
 import PaymentApprovals from './pages/admin/PaymentApprovals';
+import AttachmentSettings from './pages/admin/AttachmentSettings';
 import AdminDemo from './pages/AdminDemo';
 import Drivers from './pages/Drivers';
 import ShipmentDetail from './pages/ShipmentDetail';
@@ -228,6 +229,7 @@ export default function App() {
                   <Route path="/invoices" element={<Invoices />} />
                   <Route path="/payments" element={<PaymentApprovals />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="/settings/attachments" element={<AttachmentSettings />} />
                   <Route path="/admin/demo" element={<AdminDemo />} />
                 </Routes>
               </Layout>

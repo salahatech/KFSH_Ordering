@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
+import { useNavigate } from 'react-router-dom';
 import {
   Settings as SettingsIcon,
   Globe,
@@ -13,10 +14,12 @@ import {
   Package,
   Factory,
   DollarSign,
+  Paperclip,
   Plus,
   Pencil,
   Trash2,
   X,
+  ExternalLink,
 } from 'lucide-react';
 
 const tabs = [
@@ -30,6 +33,7 @@ const tabs = [
   { id: 'product-types', label: 'Product Types', icon: Package },
   { id: 'production-methods', label: 'Production Methods', icon: Factory },
   { id: 'currencies', label: 'Currencies', icon: DollarSign },
+  { id: 'attachments', label: 'Attachment Types', icon: Paperclip },
 ];
 
 export default function Settings() {
@@ -38,6 +42,7 @@ export default function Settings() {
   const [editItem, setEditItem] = useState<any>(null);
   const [formData, setFormData] = useState<any>({});
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: countries } = useQuery({
     queryKey: ['settings', 'countries'],
@@ -495,6 +500,30 @@ export default function Settings() {
               )}
             </tbody>
           </table>
+        );
+
+      case 'attachments':
+        return (
+          <div style={{
+            padding: '3rem',
+            textAlign: 'center',
+            background: 'var(--bg-secondary)',
+            borderRadius: '8px'
+          }}>
+            <Paperclip size={48} style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
+            <h3 style={{ margin: '0 0 0.5rem' }}>Attachment Type Settings</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+              Configure allowed file types, extensions, and size limits for attachments.
+            </p>
+            <button
+              className="btn btn-primary"
+              onClick={() => navigate('/settings/attachments')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              Manage Attachment Types
+              <ExternalLink size={16} />
+            </button>
+          </div>
         );
 
       default:

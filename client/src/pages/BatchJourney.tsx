@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { format } from 'date-fns';
+import AttachmentPanel from '../components/AttachmentPanel';
 import {
   ArrowLeft,
   CheckCircle,
@@ -613,6 +614,10 @@ export default function BatchJourney() {
               </div>
             )}
           </div>
+        )}
+
+        {id && (
+          <AttachmentPanel entityType="batch" entityId={id} title="Batch Attachments" />
         )}
       </div>
     </div>

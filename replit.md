@@ -41,6 +41,7 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
 - **Customer Management**: Bilingual support, Saudi business identifiers, GPS coordinates, logo upload, document management, and enhanced search.
 - **Batch Management**: Extended batch statuses with full state machine, audit trail, role-based transition enforcement, and visual journey tracking.
 - **Order Journey Tracking**: Visual stepper, timeline, and "What happens next" panel with role-based actions.
+- **Attachment System**: File attachments for all transactions (Orders, Batches, Shipments) with admin-configurable file types, 5MB limit, server-side validation, dangerous file blocking, authenticated downloads, and GMP-compliant audit logging for all attachment operations.
 
 ## External Dependencies
 - **PostgreSQL**: Primary database for all application data.

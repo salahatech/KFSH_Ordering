@@ -27,6 +27,7 @@ import {
 import { useToast } from '../components/ui/Toast';
 import { parseApiError } from '../components/ui/FormErrors';
 import { useAuthStore } from '../store/authStore';
+import AttachmentPanel from '../components/AttachmentPanel';
 
 const statusSteps = [
   { key: 'SUBMITTED', label: 'Submitted', icon: FileText },
@@ -429,6 +430,12 @@ export default function OrderJourney() {
               </Link>
             </div>
           </div>
+        </div>
+      )}
+
+      {id && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <AttachmentPanel entityType="order" entityId={id} title="Order Attachments" />
         </div>
       )}
 

@@ -11,6 +11,7 @@ import {
 import { useToast } from '../components/ui/Toast';
 import { parseApiError } from '../components/ui/FormErrors';
 import { StatusBadge } from '../components/shared';
+import AttachmentPanel from '../components/AttachmentPanel';
 
 const SHIPMENT_STEPS = [
   { status: 'PACKED', label: 'Packed', icon: Package },
@@ -397,6 +398,14 @@ export default function ShipmentDetail() {
             </div>
           ))}
         </div>
+
+        {id && (
+          <AttachmentPanel 
+            entityType="shipment" 
+            entityId={id} 
+            title="Shipment Attachments"
+          />
+        )}
       </div>
 
       {shipment.proofOfDelivery && (

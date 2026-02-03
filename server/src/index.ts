@@ -34,6 +34,7 @@ import invoicePdfRoutes from './routes/invoicePdf.js';
 import driverRoutes from './routes/drivers.js';
 import driverPortalRoutes from './routes/driverPortal.js';
 import adminDemoRoutes from './routes/adminDemo.js';
+import attachmentRoutes from './routes/attachments.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -42,7 +43,6 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -76,6 +76,7 @@ app.use('/api/invoice-pdf', invoicePdfRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/driver', driverPortalRoutes);
 app.use('/api/admin/demo', adminDemoRoutes);
+app.use('/api/attachments', attachmentRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

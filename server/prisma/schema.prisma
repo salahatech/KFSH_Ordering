@@ -46,6 +46,7 @@ model User {
   oosOpened                OOSCase[]        @relation("OOSOpener")
   oosClosed                OOSCase[]        @relation("OOSCloser")
   preference               UserPreference?
+  attachments              Attachment[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -1523,4 +1524,42 @@ model SettingCurrency {
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// ==================== ATTACHMENT SYSTEM ====================
+
+model AttachmentType {
+  id          String   @id @default(uuid())
+  name        String
+  extensions  String[]
+  mimeTypes   String[]
+  maxSizeMB   Float    @default(5.0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  attachments Attachment[]
+}
+
+model Attachment {
+  id              String         @id @default(uuid())
+  fileName        String
+  originalName    String
+  mimeType        String
+  fileSize        Int
+  filePath        String
+  description     String?
+  
+  entityType      String
+  entityId        String
+  
+  attachmentTypeId String?
+  attachmentType   AttachmentType? @relation(fields: [attachmentTypeId], references: [id])
+  
+  uploadedById    String
+  uploadedBy      User           @relation(fields: [uploadedById], references: [id])
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  @@index([entityType, entityId])
 }
