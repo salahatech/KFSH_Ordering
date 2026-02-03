@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
 import { useLanguageStore } from '../store/languageStore';
 import api from '../lib/api';
-import { format } from 'date-fns';
+import { useLocalization } from '../hooks/useLocalization';
 import {
   LayoutDashboard,
   Users,
@@ -134,6 +134,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuthStore();
   const { t } = useTranslation();
   const { language, setLanguage } = useLanguageStore();
+  const { formatTimeOnly, formatDateOnly, formatDateTime } = useLocalization();
 
   const { data: systemSettings } = useQuery<SystemSettings>({
     queryKey: ['system-settings'],
@@ -153,32 +154,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   }, []);
 
   const getFormattedTime = () => {
-    if (!systemSettings?.timezone) return format(currentTime, 'HH:mm');
-    try {
-      return currentTime.toLocaleTimeString('en-US', {
-        timeZone: systemSettings.timezone,
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      });
-    } catch {
-      return format(currentTime, 'HH:mm');
-    }
+    return formatTimeOnly(currentTime);
   };
 
   const getFormattedDate = () => {
-    if (!systemSettings?.timezone) return format(currentTime, 'EEE, MMM d, yyyy');
-    try {
-      return currentTime.toLocaleDateString('en-US', {
-        timeZone: systemSettings.timezone,
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-    } catch {
-      return format(currentTime, 'EEE, MMM d, yyyy');
-    }
+    return formatDateOnly(currentTime);
   };
 
   const timezoneAbbr = systemSettings?.timezone ? (TIMEZONE_ABBR[systemSettings.timezone] || systemSettings.timezone.split('/').pop()) : 'AST';
@@ -620,7 +600,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                                 color: 'var(--text-muted)',
                                 marginTop: '0.375rem',
                               }}>
-                                {format(new Date(notification.createdAt), 'MMM dd, HH:mm')}
+                                {formatDateTime(notification.createdAt)}
                               </div>
                             </div>
                           </div>

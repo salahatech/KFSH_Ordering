@@ -553,12 +553,18 @@ router.put('/settings', authenticateToken, requireRole('Admin'), async (req: Req
 router.get('/user-preferences', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const user = (req as any).user;
+    const userId = user.userId || user.id;
     
-    let prefs = await prisma.userPreference.findUnique({ where: { userId: user.id } });
+    if (!userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+    
+    let prefs = await prisma.userPreference.findUnique({ where: { userId } });
     
     if (!prefs) {
       prefs = await prisma.userPreference.create({
-        data: { userId: user.id },
+        data: { userId },
       });
     }
     
@@ -572,12 +578,18 @@ router.get('/user-preferences', authenticateToken, async (req: Request, res: Res
 router.put('/user-preferences', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const user = (req as any).user;
+    const userId = user.userId || user.id;
     const { preferredCurrencyCode, preferredLanguageCode, preferredTimezone } = req.body;
     
+    if (!userId) {
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
+    }
+    
     const prefs = await prisma.userPreference.upsert({
-      where: { userId: user.id },
+      where: { userId },
       create: {
-        userId: user.id,
+        userId,
         ...(preferredCurrencyCode && { preferredCurrencyCode }),
         ...(preferredLanguageCode && { preferredLanguageCode }),
         ...(preferredTimezone && { preferredTimezone }),
