@@ -210,28 +210,55 @@ export default function Materials() {
 
       <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: '1', minWidth: '200px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Filter size={18} style={{ color: 'var(--text-muted)' }} />
+            <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}>Filters:</span>
+          </div>
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '300px' }}>
             <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
-              placeholder="Search materials..."
+              className="form-input"
+              placeholder="Search by name, code, or supplier..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ paddingLeft: '2.5rem', width: '100%' }}
+              style={{ paddingLeft: '2.25rem' }}
             />
           </div>
-          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={{ minWidth: '150px' }}>
+          <select 
+            className="form-select"
+            style={{ width: 'auto', minWidth: '150px' }}
+            value={categoryFilter} 
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
             <option value="">All Categories</option>
             {CATEGORIES.map(cat => (
               <option key={cat.value} value={cat.value}>{cat.label}</option>
             ))}
           </select>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ minWidth: '120px' }}>
+          <select 
+            className="form-select"
+            style={{ width: 'auto', minWidth: '130px' }}
+            value={statusFilter} 
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
             <option value="">All Statuses</option>
             {STATUSES.map(s => (
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
+          {(categoryFilter || statusFilter || searchQuery) && (
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => {
+                setCategoryFilter('');
+                setStatusFilter('');
+                setSearchQuery('');
+              }}
+            >
+              <X size={14} /> Clear
+            </button>
+          )}
         </div>
       </div>
 
