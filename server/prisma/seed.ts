@@ -1516,6 +1516,69 @@ async function main() {
 
   console.log(`Created ${timeStandards.length} time standards (production recipe) for FDG.`);
 
+  // Create Suppliers for Procurement
+  const existingSuppliers = await prisma.supplier.count();
+  if (existingSuppliers === 0) {
+    const suppliersData = [
+      {
+        code: 'SUP-001',
+        name: 'PharmaChem International',
+        nameAr: 'فارماكيم الدولية',
+        email: 'sales@pharmachem.com',
+        phone: '+966112223333',
+        mobile: '+966501112222',
+        website: 'https://www.pharmachem.com',
+        taxNumber: '300011112200001',
+        vatNumber: 'SA300011112200001',
+        crNumber: '1010111222',
+        address: '123 Industrial City',
+        city: 'Riyadh',
+        region: 'Riyadh',
+        country: 'Saudi Arabia',
+        postalCode: '11111',
+        paymentTermsDays: 30,
+        status: 'ACTIVE',
+      },
+      {
+        code: 'SUP-002',
+        name: 'Isotope Solutions Ltd',
+        email: 'orders@isotopesolutions.com',
+        phone: '+442071234567',
+        website: 'https://www.isotopesolutions.com',
+        address: '45 Science Park',
+        city: 'Cambridge',
+        country: 'United Kingdom',
+        postalCode: 'CB1 2AB',
+        paymentTermsDays: 45,
+        status: 'ACTIVE',
+      },
+      {
+        code: 'SUP-003',
+        name: 'Medical Supplies Gulf',
+        nameAr: 'مستلزمات طبية الخليج',
+        email: 'info@medgulf.sa',
+        phone: '+966138889999',
+        mobile: '+966503334444',
+        address: '789 Medical District',
+        city: 'Dammam',
+        region: 'Eastern Province',
+        country: 'Saudi Arabia',
+        postalCode: '31111',
+        paymentTermsDays: 30,
+        status: 'ACTIVE',
+      },
+    ];
+
+    await Promise.all(
+      suppliersData.map(sup =>
+        prisma.supplier.create({ data: sup as any })
+      )
+    );
+    console.log(`Created ${suppliersData.length} demo suppliers.`);
+  } else {
+    console.log(`Suppliers already exist (${existingSuppliers}), skipping...`);
+  }
+
   // Create Materials for BOM
   const materialsData = [
     { code: 'MAT-O18-WATER', name: 'O-18 Enriched Water', category: 'TARGET_MATERIAL', unit: 'mL', isRadioactive: false, storageConditions: 'Room temperature, sealed container' },
