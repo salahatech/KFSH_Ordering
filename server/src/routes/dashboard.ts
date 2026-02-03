@@ -234,7 +234,7 @@ async function getQCQueue() {
     status: batch.status,
     nextAction: batch.status === 'QC_PENDING' ? 'Start QC' : 'Enter Results',
     isLate: batch.plannedEndTime ? batch.plannedEndTime < new Date() : false,
-    linkTo: `/qc/batches/${batch.id}`,
+    linkTo: `/qc`,
   }));
 }
 
