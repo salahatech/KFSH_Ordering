@@ -1,0 +1,58 @@
+KpiCard.tsx:60 Uncaught TypeError: Cannot read properties of undefined (reading 'bg')
+    at KpiCard (KpiCard.tsx:60:33)
+    at Object.react_stack_bottom_frame (react-dom_client.js?v=9599e5fd:18509:20)
+    at renderWithHooks (react-dom_client.js?v=9599e5fd:5654:24)
+    at updateFunctionComponent (react-dom_client.js?v=9599e5fd:7475:21)
+    at beginWork (react-dom_client.js?v=9599e5fd:8525:20)
+    at runWithFiberInDEV (react-dom_client.js?v=9599e5fd:997:72)
+    at performUnitOfWork (react-dom_client.js?v=9599e5fd:12561:98)
+    at workLoopSync (react-dom_client.js?v=9599e5fd:12424:43)
+    at renderRootSync (react-dom_client.js?v=9599e5fd:12408:13)
+    at performWorkOnRoot (react-dom_client.js?v=9599e5fd:11827:37)
+KpiCard @ KpiCard.tsx:60
+react_stack_bottom_frame @ react-dom_client.js?v=9599e5fd:18509
+renderWithHooks @ react-dom_client.js?v=9599e5fd:5654
+updateFunctionComponent @ react-dom_client.js?v=9599e5fd:7475
+beginWork @ react-dom_client.js?v=9599e5fd:8525
+runWithFiberInDEV @ react-dom_client.js?v=9599e5fd:997
+performUnitOfWork @ react-dom_client.js?v=9599e5fd:12561
+workLoopSync @ react-dom_client.js?v=9599e5fd:12424
+renderRootSync @ react-dom_client.js?v=9599e5fd:12408
+performWorkOnRoot @ react-dom_client.js?v=9599e5fd:11827
+performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=9599e5fd:13505
+performWorkUntilDeadline @ react-dom_client.js?v=9599e5fd:36
+<KpiCard>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=9599e5fd:247
+Recipes @ Recipes.tsx:219
+react_stack_bottom_frame @ react-dom_client.js?v=9599e5fd:18509
+renderWithHooksAgain @ react-dom_client.js?v=9599e5fd:5729
+renderWithHooks @ react-dom_client.js?v=9599e5fd:5665
+updateFunctionComponent @ react-dom_client.js?v=9599e5fd:7475
+beginWork @ react-dom_client.js?v=9599e5fd:8525
+runWithFiberInDEV @ react-dom_client.js?v=9599e5fd:997
+performUnitOfWork @ react-dom_client.js?v=9599e5fd:12561
+workLoopSync @ react-dom_client.js?v=9599e5fd:12424
+renderRootSync @ react-dom_client.js?v=9599e5fd:12408
+performWorkOnRoot @ react-dom_client.js?v=9599e5fd:11827
+performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=9599e5fd:13505
+performWorkUntilDeadline @ react-dom_client.js?v=9599e5fd:36
+<Recipes>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=9599e5fd:247
+App @ App.tsx:219
+react_stack_bottom_frame @ react-dom_client.js?v=9599e5fd:18509
+renderWithHooksAgain @ react-dom_client.js?v=9599e5fd:5729
+renderWithHooks @ react-dom_client.js?v=9599e5fd:5665
+updateFunctionComponent @ react-dom_client.js?v=9599e5fd:7475
+beginWork @ react-dom_client.js?v=9599e5fd:8525
+runWithFiberInDEV @ react-dom_client.js?v=9599e5fd:997
+performUnitOfWork @ react-dom_client.js?v=9599e5fd:12561
+workLoopSync @ react-dom_client.js?v=9599e5fd:12424
+renderRootSync @ react-dom_client.js?v=9599e5fd:12408
+performWorkOnRoot @ react-dom_client.js?v=9599e5fd:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=9599e5fd:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=9599e5fd:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=9599e5fd:13437
+(anonymous) @ react-dom_client.js?v=9599e5fd:13531
+<App>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=9599e5fd:247
+(anonymous) @ main.tsx:21

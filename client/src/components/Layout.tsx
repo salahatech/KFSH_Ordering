@@ -34,6 +34,7 @@ import {
   Warehouse,
   PackageCheck,
   Boxes,
+  Factory,
 } from 'lucide-react';
 
 interface Notification {
@@ -59,6 +60,7 @@ const menuItems = [
   { path: '/warehouses', label: 'Warehouses', icon: Warehouse },
   { path: '/grn', label: 'Goods Receiving', icon: PackageCheck },
   { path: '/inventory', label: 'Inventory', icon: Boxes },
+  { path: '/manufacturing', label: 'Manufacturing', icon: Factory },
   { path: '/orders', label: 'Orders', icon: ShoppingCart },
   { path: '/availability', label: 'Availability', icon: CalendarClock },
   { path: '/reservations', label: 'Reservations', icon: CalendarCheck },
