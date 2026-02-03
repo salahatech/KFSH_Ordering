@@ -79,6 +79,7 @@ import Inventory from './pages/Inventory';
 import ManufacturingExecution from './pages/ManufacturingExecution';
 import OOSInvestigations from './pages/OOSInvestigations';
 import NotificationSettings from './pages/NotificationSettings';
+import QcTestDefinitions from './pages/admin/QcTestDefinitions';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -291,6 +292,7 @@ export default function App() {
                   <Route path="/admin/announcements" element={<Announcements />} />
                   <Route path="/admin/announcements/new" element={<AnnouncementForm />} />
                   <Route path="/admin/announcements/:id/edit" element={<AnnouncementForm />} />
+                  <Route path="/admin/qc/test-definitions" element={<QcTestDefinitions />} />
                   <Route path="/notifications" element={<NotificationCenter />} />
                   <Route path="/me/notification-preferences" element={<MyNotificationPreferences />} />
                   <Route path="/roles" element={<Roles />} />
