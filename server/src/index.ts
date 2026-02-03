@@ -36,6 +36,7 @@ import driverPortalRoutes from './routes/driverPortal.js';
 import adminDemoRoutes from './routes/adminDemo.js';
 import attachmentRoutes from './routes/attachments.js';
 import supplierRoutes from './routes/suppliers.js';
+import esignatureRoutes from './routes/esignatures.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -79,6 +80,7 @@ app.use('/api/driver', driverPortalRoutes);
 app.use('/api/admin/demo', adminDemoRoutes);
 app.use('/api/attachments', attachmentRoutes);
 app.use('/api/suppliers', supplierRoutes);
+app.use('/api/esignatures', esignatureRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
