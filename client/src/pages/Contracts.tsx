@@ -18,7 +18,9 @@ import {
   Edit3,
   Trash2,
   Package,
+  Paperclip,
 } from 'lucide-react';
+import AttachmentPanel from '../components/AttachmentPanel';
 import { KpiCard } from '../components/shared';
 
 export default function Contracts() {
@@ -26,7 +28,7 @@ export default function Contracts() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPriceModal, setShowPriceModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('');
-  const [detailTab, setDetailTab] = useState<'info' | 'pricing'>('info');
+  const [detailTab, setDetailTab] = useState<'info' | 'pricing' | 'attachments'>('info');
   const queryClient = useQueryClient();
 
   const { data: contracts, isLoading } = useQuery({
@@ -492,6 +494,24 @@ export default function Contracts() {
                 >
                   Product Pricing ({selectedContract.priceItems?.length || 0})
                 </button>
+                <button 
+                  style={{ 
+                    padding: '0.75rem 1rem',
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: detailTab === 'attachments' ? '2px solid var(--primary)' : '2px solid transparent',
+                    color: detailTab === 'attachments' ? 'var(--primary)' : 'var(--text-muted)',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                  }}
+                  onClick={() => setDetailTab('attachments')}
+                >
+                  <Paperclip size={14} /> Documents
+                </button>
               </div>
             </div>
 
@@ -749,6 +769,14 @@ export default function Contracts() {
                     </div>
                   )}
                 </>
+              )}
+
+              {detailTab === 'attachments' && (
+                <AttachmentPanel
+                  entityType="CONTRACT"
+                  entityId={selectedContract.id}
+                  title="Contract Documents"
+                />
               )}
             </div>
           </div>

@@ -15,7 +15,9 @@ import {
   FlaskConical,
   Search,
   Filter,
+  Paperclip,
 } from 'lucide-react';
+import AttachmentPanel from '../components/AttachmentPanel';
 import { useToast } from '../components/ui/Toast';
 import { parseApiError } from '../components/ui/FormErrors';
 import { KpiCard, EmptyState } from '../components/shared';
@@ -456,9 +458,17 @@ export default function Products() {
                 </div>
               )}
 
+              <div style={{ marginTop: '1.25rem', marginBottom: '1rem' }}>
+                <AttachmentPanel
+                  entityType="PRODUCT"
+                  entityId={detailProduct.id}
+                  title="Product Documents"
+                />
+              </div>
+
               <button
                 className="btn btn-primary"
-                style={{ width: '100%', marginTop: '1.25rem' }}
+                style={{ width: '100%' }}
                 onClick={() => {
                   setSelectedProduct(detailProduct);
                   setShowModal(true);

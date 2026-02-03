@@ -21,7 +21,9 @@ import {
   CheckCircle,
   Clock,
   Printer,
+  Paperclip,
 } from 'lucide-react';
+import AttachmentPanel from '../components/AttachmentPanel';
 import { KpiCard } from '../components/shared';
 
 function generateZatcaQRData(invoice: any, sellerName: string, vatNumber: string): string {
@@ -54,7 +56,7 @@ export default function Invoices() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState<string>('');
-  const [detailTab, setDetailTab] = useState<'details' | 'payments'>('details');
+  const [detailTab, setDetailTab] = useState<'details' | 'payments' | 'attachments'>('details');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const queryClient = useQueryClient();
 
@@ -677,6 +679,24 @@ export default function Invoices() {
                 >
                   Payments ({selectedInvoice.payments?.length || 0})
                 </button>
+                <button 
+                  style={{ 
+                    padding: '0.75rem 1rem',
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: detailTab === 'attachments' ? '2px solid var(--primary)' : '2px solid transparent',
+                    color: detailTab === 'attachments' ? 'var(--primary)' : 'var(--text-muted)',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                  }}
+                  onClick={() => setDetailTab('attachments')}
+                >
+                  <Paperclip size={14} /> Documents
+                </button>
               </div>
             </div>
 
@@ -880,6 +900,14 @@ export default function Invoices() {
                     </button>
                   )}
                 </>
+              )}
+
+              {detailTab === 'attachments' && (
+                <AttachmentPanel
+                  entityType="INVOICE"
+                  entityId={selectedInvoice.id}
+                  title="Invoice Documents"
+                />
               )}
             </div>
           </div>
