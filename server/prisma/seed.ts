@@ -1310,6 +1310,212 @@ async function main() {
 
   console.log('Settings data seeded.');
 
+  // Demo Reservations
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(7, 0, 0, 0);
+
+  const dayAfter = new Date();
+  dayAfter.setDate(dayAfter.getDate() + 2);
+  dayAfter.setHours(8, 0, 0, 0);
+
+  const threeDays = new Date();
+  threeDays.setDate(threeDays.getDate() + 3);
+  threeDays.setHours(6, 30, 0, 0);
+
+  const fourDays = new Date();
+  fourDays.setDate(fourDays.getDate() + 4);
+  fourDays.setHours(9, 0, 0, 0);
+
+  const fiveDays = new Date();
+  fiveDays.setDate(fiveDays.getDate() + 5);
+  fiveDays.setHours(7, 30, 0, 0);
+
+  const reservations = await Promise.all([
+    prisma.reservation.upsert({
+      where: { reservationNumber: 'RES-2024-0001' },
+      update: {},
+      create: {
+        reservationNumber: 'RES-2024-0001',
+        customerId: customers[0].id,
+        productId: products[0].id,
+        requestedDate: tomorrow,
+        requestedActivity: 15.0,
+        activityUnit: 'mCi',
+        estimatedMinutes: 45,
+        numberOfDoses: 2,
+        status: 'CONFIRMED',
+        notes: 'Morning PET scan scheduled',
+        createdById: adminUser.id,
+      },
+    }),
+    prisma.reservation.upsert({
+      where: { reservationNumber: 'RES-2024-0002' },
+      update: {},
+      create: {
+        reservationNumber: 'RES-2024-0002',
+        customerId: customers[1].id,
+        productId: products[0].id,
+        requestedDate: tomorrow,
+        requestedActivity: 10.0,
+        activityUnit: 'mCi',
+        estimatedMinutes: 30,
+        numberOfDoses: 1,
+        status: 'TENTATIVE',
+        notes: 'Awaiting patient confirmation',
+        createdById: adminUser.id,
+      },
+    }),
+    prisma.reservation.upsert({
+      where: { reservationNumber: 'RES-2024-0003' },
+      update: {},
+      create: {
+        reservationNumber: 'RES-2024-0003',
+        customerId: customers[2].id,
+        productId: products[2].id,
+        requestedDate: dayAfter,
+        requestedActivity: 25.0,
+        activityUnit: 'mCi',
+        estimatedMinutes: 40,
+        numberOfDoses: 3,
+        status: 'CONFIRMED',
+        notes: 'Bone scan for multiple patients',
+        createdById: adminUser.id,
+      },
+    }),
+    prisma.reservation.upsert({
+      where: { reservationNumber: 'RES-2024-0004' },
+      update: {},
+      create: {
+        reservationNumber: 'RES-2024-0004',
+        customerId: customers[3].id,
+        productId: products[5].id,
+        requestedDate: threeDays,
+        requestedActivity: 200.0,
+        activityUnit: 'mCi',
+        estimatedMinutes: 120,
+        numberOfDoses: 1,
+        status: 'TENTATIVE',
+        notes: 'Lu-177 therapy session',
+        createdById: adminUser.id,
+      },
+    }),
+    prisma.reservation.upsert({
+      where: { reservationNumber: 'RES-2024-0005' },
+      update: {},
+      create: {
+        reservationNumber: 'RES-2024-0005',
+        customerId: customers[0].id,
+        productId: products[1].id,
+        requestedDate: fourDays,
+        requestedActivity: 5.0,
+        activityUnit: 'mCi',
+        estimatedMinutes: 30,
+        numberOfDoses: 1,
+        status: 'CONFIRMED',
+        notes: 'NaF bone scan',
+        createdById: adminUser.id,
+      },
+    }),
+    prisma.reservation.upsert({
+      where: { reservationNumber: 'RES-2024-0006' },
+      update: {},
+      create: {
+        reservationNumber: 'RES-2024-0006',
+        customerId: customers[4].id,
+        productId: products[3].id,
+        requestedDate: fiveDays,
+        requestedActivity: 15.0,
+        activityUnit: 'mCi',
+        estimatedMinutes: 35,
+        numberOfDoses: 2,
+        status: 'CONFIRMED',
+        notes: 'Renal function study',
+        createdById: adminUser.id,
+      },
+    }),
+  ]);
+
+  console.log(`Created ${reservations.length} demo reservations.`);
+
+  // Production Time Standards (Recipes) for FDG product
+  const timeStandards = await Promise.all([
+    prisma.timeStandard.upsert({
+      where: { productId_processType: { productId: products[0].id, processType: 'BOMBARDMENT' } },
+      update: {},
+      create: {
+        productId: products[0].id,
+        processType: 'BOMBARDMENT',
+        doseForm: 'Liquid',
+        standardMinutes: 60,
+        description: 'Cyclotron target bombardment for F-18 production',
+        isActive: true,
+      },
+    }),
+    prisma.timeStandard.upsert({
+      where: { productId_processType: { productId: products[0].id, processType: 'SYNTHESIS' } },
+      update: {},
+      create: {
+        productId: products[0].id,
+        processType: 'SYNTHESIS',
+        doseForm: 'Liquid',
+        standardMinutes: 45,
+        description: 'FDG synthesis in automated module',
+        isActive: true,
+      },
+    }),
+    prisma.timeStandard.upsert({
+      where: { productId_processType: { productId: products[0].id, processType: 'PURIFICATION' } },
+      update: {},
+      create: {
+        productId: products[0].id,
+        processType: 'PURIFICATION',
+        doseForm: 'Liquid',
+        standardMinutes: 15,
+        description: 'HPLC purification and sterile filtration',
+        isActive: true,
+      },
+    }),
+    prisma.timeStandard.upsert({
+      where: { productId_processType: { productId: products[0].id, processType: 'QC_TESTING' } },
+      update: {},
+      create: {
+        productId: products[0].id,
+        processType: 'QC_TESTING',
+        doseForm: 'Liquid',
+        standardMinutes: 30,
+        description: 'Quality control testing (pH, RCP, endotoxin, sterility)',
+        isActive: true,
+      },
+    }),
+    prisma.timeStandard.upsert({
+      where: { productId_processType: { productId: products[0].id, processType: 'DISPENSING' } },
+      update: {},
+      create: {
+        productId: products[0].id,
+        processType: 'DISPENSING',
+        doseForm: 'Liquid',
+        standardMinutes: 10,
+        description: 'Dose dispensing into patient vials',
+        isActive: true,
+      },
+    }),
+    prisma.timeStandard.upsert({
+      where: { productId_processType: { productId: products[0].id, processType: 'PACKAGING' } },
+      update: {},
+      create: {
+        productId: products[0].id,
+        processType: 'PACKAGING',
+        doseForm: 'Liquid',
+        standardMinutes: 15,
+        description: 'Packaging and labeling for transport',
+        isActive: true,
+      },
+    }),
+  ]);
+
+  console.log(`Created ${timeStandards.length} time standards (production recipe) for FDG.`);
+
   console.log('Seed completed successfully!');
   console.log('Admin user: admin@radiopharma.com / admin123');
   console.log(`Created: ${orders.length} orders, ${batches.length} batches, ${releasedBatches.length} releases, ${shippedOrders.length} shipments`);
