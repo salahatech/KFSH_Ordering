@@ -43,6 +43,7 @@ import {
   DollarSign,
   Languages,
 } from 'lucide-react';
+import ThemeToggle from './ThemeToggle';
 
 interface Notification {
   id: string;
@@ -340,7 +341,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       >
         <header
           style={{
-            background: 'white',
+            background: 'var(--bg-primary)',
             borderBottom: '1px solid var(--border)',
             padding: '0.75rem 1.5rem',
             display: 'flex',
@@ -415,7 +416,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   top: '100%',
                   right: 0,
                   marginTop: '0.5rem',
-                  background: 'white',
+                  background: 'var(--bg-primary)',
                   border: '1px solid var(--border)',
                   borderRadius: '8px',
                   boxShadow: 'var(--shadow-lg)',
@@ -432,7 +433,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       alignItems: 'center',
                       gap: '0.5rem',
                       border: 'none',
-                      background: language === 'en' ? 'var(--bg-secondary)' : 'white',
+                      background: language === 'en' ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
                       cursor: 'pointer',
                       fontSize: '0.875rem',
                       textAlign: 'left',
@@ -450,7 +452,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       alignItems: 'center',
                       gap: '0.5rem',
                       border: 'none',
-                      background: language === 'ar' ? 'var(--bg-secondary)' : 'white',
+                      background: language === 'ar' ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
                       cursor: 'pointer',
                       fontSize: '0.875rem',
                       textAlign: 'left',
@@ -474,7 +477,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <ThemeToggle />
             <div ref={notificationRef} style={{ position: 'relative' }}>
               <button
                 onClick={() => setNotificationOpen(!notificationOpen)}

@@ -21,6 +21,8 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
 - **Data Fetching**: TanStack React Query
 - **Routing**: React Router v7
 - **UI/UX**: Responsive design with a sidebar navigation, consistent modal design, and role-based routing for internal vs. client portal interfaces. The client portal features a distinct teal color scheme.
+- **Theming**: Light/Dark/System mode support using CSS variables and Zustand store (`themeStore.ts`). Theme toggle in header. CSS variables defined in `index.css` with `[data-theme="light"]` and `[data-theme="dark"]` selectors.
+- **Internationalization**: react-i18next with English/Arabic support, RTL layout for Arabic, language switcher in header.
 
 ### Core Architectural Decisions & Features
 - **Radioactive Decay Calculations**: Implements `A(t) = A0 * exp(-λt)` for backward scheduling and activity overage compensation.

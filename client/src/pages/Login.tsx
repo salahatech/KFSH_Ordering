@@ -39,7 +39,7 @@ export default function Login() {
     >
       <div
         style={{
-          background: 'white',
+          background: 'var(--bg-primary)',
           borderRadius: '16px',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           width: '100%',
@@ -52,7 +52,7 @@ export default function Login() {
             style={{
               width: '4rem',
               height: '4rem',
-              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+              background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
               borderRadius: '12px',
               display: 'flex',
               alignItems: 'center',
@@ -62,8 +62,8 @@ export default function Login() {
           >
             <Atom size={32} color="white" />
           </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a' }}>RadioPharma OMS</h1>
-          <p style={{ color: '#64748b', marginTop: '0.25rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>RadioPharma OMS</h1>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
             Order Management System
           </p>
         </div>
@@ -75,8 +75,8 @@ export default function Login() {
               alignItems: 'center',
               gap: '0.5rem',
               padding: '0.75rem',
-              background: '#fee2e2',
-              color: '#991b1b',
+              background: 'var(--danger-bg)',
+              color: 'var(--danger-text)',
               borderRadius: '8px',
               marginBottom: '1rem',
               fontSize: '0.875rem',
