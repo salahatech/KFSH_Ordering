@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { format, addDays } from 'date-fns';
-import { Calendar, Clock, Package, Users, Play } from 'lucide-react';
+import { Calendar, Clock, Package, Users, Play, Eye, MoreVertical } from 'lucide-react';
 
 export default function Planner() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: ordersForPlanning, isLoading: ordersLoading } = useQuery({
     queryKey: ['planner-orders', selectedDate],
@@ -127,7 +129,16 @@ export default function Planner() {
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <span style={{ fontWeight: 600 }}>{order.orderNumber}</span>
-                        <span className="badge badge-info">{order.product?.productType}</span>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <span className="badge badge-info">{order.product?.productType}</span>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => navigate(`/orders/${order.id}/journey`)}
+                            title="View Order Details"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </div>
                       </div>
                       <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                         <div>{order.customer?.name}</div>
@@ -215,6 +226,7 @@ export default function Planner() {
                   <th>Target Activity</th>
                   <th>Orders</th>
                   <th>Status</th>
+                  <th style={{ width: '100px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -231,6 +243,16 @@ export default function Planner() {
                       <span className={`badge badge-${getStatusColor(batch.status)}`}>
                         {batch.status.replace('_', ' ')}
                       </span>
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => navigate(`/batches/${batch.id}/journey`)}
+                        title="View Batch Journey"
+                      >
+                        <Eye size={14} />
+                        View
+                      </button>
                     </td>
                   </tr>
                 ))}

@@ -178,6 +178,11 @@ Orders ready for scheduling today (VALIDATED status):
 - O-20004: Tc-99m MDP, 2:00 PM, 20 mCi (Al Noor Hospital)
 - O-20005: Tc-99m MDP, 3:00 PM, 35 mCi (King Fahd Medical City)
 
+Scheduled Batches for today:
+- B-30001: FDG, 6:00-8:30 AM, 60 mCi (SCHEDULED)
+- B-30002: Tc-99m MDP, 9:00-11:00 AM, 40 mCi (IN_PRODUCTION)
+- B-30003: FDG, 12:00-2:30 PM, 55 mCi (QC_PENDING)
+
 ### Admin Demo Actions Panel
 Navigate to `/admin/demo` as Admin to:
 1. Mark shipment ARRIVED

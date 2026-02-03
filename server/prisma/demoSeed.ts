@@ -1098,9 +1098,75 @@ async function seedPlannerData(users: Record<string, any>, customers: any, produ
     });
   }
 
+  const equipment = await prisma.equipment.findFirst({ where: { type: 'SYNTHESIS_MODULE' } });
+  const hotCell = await prisma.equipment.findFirst({ where: { type: 'HOT_CELL' } });
+
+  const scheduledBatches = [
+    {
+      batchNumber: 'B-30001',
+      productId: products['FDG'].id,
+      startHour: 6,
+      startMinute: 0,
+      endHour: 8,
+      endMinute: 30,
+      targetActivity: 60,
+      status: BatchStatus.SCHEDULED,
+      notes: 'Planner demo - FDG morning batch',
+    },
+    {
+      batchNumber: 'B-30002',
+      productId: products['TC99M-MDP'].id,
+      startHour: 9,
+      startMinute: 0,
+      endHour: 11,
+      endMinute: 0,
+      targetActivity: 40,
+      status: BatchStatus.IN_PRODUCTION,
+      notes: 'Planner demo - Tc-99m in production',
+    },
+    {
+      batchNumber: 'B-30003',
+      productId: products['FDG'].id,
+      startHour: 12,
+      startMinute: 0,
+      endHour: 14,
+      endMinute: 30,
+      targetActivity: 55,
+      status: BatchStatus.QC_PENDING,
+      notes: 'Planner demo - FDG awaiting QC',
+    },
+  ];
+
+  for (const batchData of scheduledBatches) {
+    const startTime = new Date(today);
+    startTime.setHours(batchData.startHour, batchData.startMinute, 0, 0);
+    
+    const endTime = new Date(today);
+    endTime.setHours(batchData.endHour, batchData.endMinute, 0, 0);
+
+    await prisma.batch.upsert({
+      where: { batchNumber: batchData.batchNumber },
+      update: {},
+      create: {
+        batchNumber: batchData.batchNumber,
+        productId: batchData.productId,
+        plannedStartTime: startTime,
+        plannedEndTime: endTime,
+        targetActivity: batchData.targetActivity,
+        activityUnit: 'mCi',
+        calibrationTime: endTime,
+        synthesisModuleId: equipment?.id,
+        hotCellId: hotCell?.id,
+        status: batchData.status,
+        notes: batchData.notes,
+      },
+    });
+  }
+
   console.log('   Created planner demo data:');
   console.log(`     - ${plannerOrders.length} orders in VALIDATED status for today`);
   console.log('     - Products: FDG (3 orders), Tc-99m MDP (2 orders)');
+  console.log(`     - ${scheduledBatches.length} scheduled batches for today`);
 }
 
 async function seedAdditionalCases(users: Record<string, any>, customers: any, products: Record<string, any>, drivers: any) {
