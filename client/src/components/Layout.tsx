@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
+import { useLanguageStore } from '../store/languageStore';
 import api from '../lib/api';
 import { format } from 'date-fns';
 import {
@@ -39,6 +41,7 @@ import {
   Clock,
   Globe,
   DollarSign,
+  Languages,
 } from 'lucide-react';
 
 interface Notification {
@@ -53,36 +56,36 @@ interface Notification {
 }
 
 const menuItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/approvals', label: 'Approvals', icon: FileCheck },
-  { path: '/customers', label: 'Customers', icon: Building2 },
-  { path: '/products', label: 'Products', icon: Package },
-  { path: '/materials', label: 'Materials', icon: FlaskConical },
-  { path: '/recipes', label: 'Recipes/BOM', icon: FileText },
-  { path: '/suppliers', label: 'Suppliers', icon: Building2 },
-  { path: '/purchase-orders', label: 'Purchase Orders', icon: ShoppingCart },
-  { path: '/warehouses', label: 'Warehouses', icon: Warehouse },
-  { path: '/grn', label: 'Goods Receiving', icon: PackageCheck },
-  { path: '/inventory', label: 'Inventory', icon: Boxes },
-  { path: '/manufacturing', label: 'Manufacturing', icon: Factory },
-  { path: '/orders', label: 'Orders', icon: ShoppingCart },
-  { path: '/availability', label: 'Availability', icon: CalendarClock },
-  { path: '/reservations', label: 'Reservations', icon: CalendarCheck },
-  { path: '/planner', label: 'Planner', icon: Calendar },
-  { path: '/batches', label: 'Batches', icon: FlaskConical },
-  { path: '/qc', label: 'QC Testing', icon: ClipboardCheck },
-  { path: '/oos-investigations', label: 'OOS/OOT Investigations', icon: AlertTriangle },
-  { path: '/release', label: 'QP Release', icon: CheckCircle },
-  { path: '/dispensing', label: 'Dispensing', icon: Syringe },
-  { path: '/shipments', label: 'Logistics', icon: Truck },
-  { path: '/contracts', label: 'Contracts', icon: FileSignature },
-  { path: '/invoices', label: 'Invoicing', icon: Receipt },
-  { path: '/payments', label: 'Payment Approvals', icon: CreditCard },
-  { path: '/reports', label: 'Reports', icon: BarChart3 },
-  { path: '/users', label: 'Users', icon: Users },
-  { path: '/roles', label: 'Roles', icon: Shield },
-  { path: '/settings', label: 'Settings', icon: Settings },
-  { path: '/audit', label: 'Audit Log', icon: FileText },
+  { path: '/', labelKey: 'nav.dashboard', icon: LayoutDashboard },
+  { path: '/approvals', labelKey: 'nav.approvals', icon: FileCheck },
+  { path: '/customers', labelKey: 'nav.customers', icon: Building2 },
+  { path: '/products', labelKey: 'nav.products', icon: Package },
+  { path: '/materials', labelKey: 'nav.materials', icon: FlaskConical },
+  { path: '/recipes', labelKey: 'nav.recipes', icon: FileText },
+  { path: '/suppliers', labelKey: 'nav.suppliers', icon: Building2 },
+  { path: '/purchase-orders', labelKey: 'nav.purchaseOrders', icon: ShoppingCart },
+  { path: '/warehouses', labelKey: 'nav.warehouses', icon: Warehouse },
+  { path: '/grn', labelKey: 'nav.goodsReceiving', icon: PackageCheck },
+  { path: '/inventory', labelKey: 'nav.inventory', icon: Boxes },
+  { path: '/manufacturing', labelKey: 'nav.manufacturing', icon: Factory },
+  { path: '/orders', labelKey: 'nav.orders', icon: ShoppingCart },
+  { path: '/availability', labelKey: 'nav.availability', icon: CalendarClock },
+  { path: '/reservations', labelKey: 'nav.reservations', icon: CalendarCheck },
+  { path: '/planner', labelKey: 'nav.planner', icon: Calendar },
+  { path: '/batches', labelKey: 'nav.batches', icon: FlaskConical },
+  { path: '/qc', labelKey: 'nav.qc', icon: ClipboardCheck },
+  { path: '/oos-investigations', labelKey: 'nav.oosInvestigations', icon: AlertTriangle },
+  { path: '/release', labelKey: 'nav.release', icon: CheckCircle },
+  { path: '/dispensing', labelKey: 'nav.dispensing', icon: Syringe },
+  { path: '/shipments', labelKey: 'nav.shipments', icon: Truck },
+  { path: '/contracts', labelKey: 'nav.contracts', icon: FileSignature },
+  { path: '/invoices', labelKey: 'nav.invoices', icon: Receipt },
+  { path: '/payments', labelKey: 'nav.payments', icon: CreditCard },
+  { path: '/reports', labelKey: 'nav.reports', icon: BarChart3 },
+  { path: '/users', labelKey: 'nav.users', icon: Users },
+  { path: '/roles', labelKey: 'nav.roles', icon: Shield },
+  { path: '/settings', labelKey: 'nav.settings', icon: Settings },
+  { path: '/audit', labelKey: 'nav.auditLog', icon: FileText },
 ];
 
 interface SystemSettings {
@@ -121,12 +124,16 @@ const LANGUAGE_NAMES: Record<string, string> = {
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const notificationRef = useRef<HTMLDivElement>(null);
+  const languageRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, logout } = useAuthStore();
+  const { t } = useTranslation();
+  const { language, setLanguage } = useLanguageStore();
 
   const { data: systemSettings } = useQuery<SystemSettings>({
     queryKey: ['system-settings'],
@@ -210,6 +217,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
         setNotificationOpen(false);
       }
+      if (languageRef.current && !languageRef.current.contains(event.target as Node)) {
+        setLanguageMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -288,7 +298,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 }}
               >
                 <Icon size={20} />
-                {sidebarOpen && <span style={{ fontSize: '0.875rem' }}>{item.label}</span>}
+                {sidebarOpen && <span style={{ fontSize: '0.875rem' }}>{t(item.labelKey)}</span>}
               </Link>
             );
           })}
@@ -381,15 +391,77 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </span>
               <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>{timezoneAbbr}</span>
             </div>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.375rem',
-              padding: '0.25rem 0.625rem',
-              borderRight: '1px solid var(--border)',
-            }}>
-              <Globe size={14} style={{ color: 'var(--text-muted)' }} />
-              <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{languageCode}</span>
+            <div ref={languageRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.375rem',
+                  padding: '0.25rem 0.625rem',
+                  borderRight: '1px solid var(--border)',
+                  background: languageMenuOpen ? 'var(--bg-secondary)' : 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  borderRadius: '4px',
+                }}
+              >
+                <Languages size={14} style={{ color: 'var(--text-muted)' }} />
+                <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{language === 'ar' ? 'AR' : 'EN'}</span>
+              </button>
+              {languageMenuOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '0.5rem',
+                  background: 'white',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  boxShadow: 'var(--shadow-lg)',
+                  minWidth: '140px',
+                  zIndex: 1000,
+                  overflow: 'hidden',
+                }}>
+                  <button
+                    onClick={() => { setLanguage('en'); setLanguageMenuOpen(false); }}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      border: 'none',
+                      background: language === 'en' ? 'var(--bg-secondary)' : 'white',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ fontWeight: language === 'en' ? 600 : 400 }}>English</span>
+                    {language === 'en' && <Check size={14} style={{ marginLeft: 'auto', color: 'var(--primary)' }} />}
+                  </button>
+                  <button
+                    onClick={() => { setLanguage('ar'); setLanguageMenuOpen(false); }}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      border: 'none',
+                      background: language === 'ar' ? 'var(--bg-secondary)' : 'white',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      textAlign: 'left',
+                      fontFamily: "'Cairo', sans-serif",
+                    }}
+                  >
+                    <span style={{ fontWeight: language === 'ar' ? 600 : 400 }}>العربية</span>
+                    {language === 'ar' && <Check size={14} style={{ marginLeft: 'auto', color: 'var(--primary)' }} />}
+                  </button>
+                </div>
+              )}
             </div>
             <div style={{ 
               display: 'flex', 
