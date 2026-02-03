@@ -5,10 +5,11 @@ import {
   FileText, Boxes, Factory, ShoppingCart, ClipboardCheck, 
   Truck, Receipt, Building2, Package, Calendar, CreditCard, 
   Users, Filter, ChevronDown, ChevronRight, Search,
-  FileSpreadsheet, File, X, Loader2, BarChart3, AlertCircle
+  FileSpreadsheet, File, X, Loader2, BarChart3, AlertCircle,
+  ArrowLeft, Download
 } from 'lucide-react';
 import { useToast } from '../components/ui/Toast';
-import { PageHeader, KpiCard, FilterBar, type FilterWidget } from '../components/shared';
+import { PageHeader } from '../components/shared';
 
 interface ReportCategory {
   id: string;
@@ -215,8 +216,29 @@ export default function EnterpriseReports() {
     return defaultColors[status] || 'default';
   };
 
-  const reportCount = reports.length;
-  const categoryCount = categories.length;
+  const handleSelectReport = (reportKey: string) => {
+    if (selectedReport === reportKey) {
+      setSelectedReport(null);
+    } else {
+      setSelectedReport(reportKey);
+      setFilters({});
+      setPage(1);
+    }
+  };
+
+  const handleSelectCategory = (categoryId: string) => {
+    if (selectedCategory === categoryId) {
+      setSelectedCategory(null);
+      setSelectedReport(null);
+    } else {
+      setSelectedCategory(categoryId);
+      setSelectedReport(null);
+      setFilters({});
+    }
+  };
+
+  const currentCategoryReports = selectedCategory ? (groupedReports[selectedCategory] || []) : [];
+  const currentCategoryName = categories.find(c => c.id === selectedCategory)?.name || '';
 
   return (
     <div>
@@ -224,471 +246,424 @@ export default function EnterpriseReports() {
         title="Enterprise Reporting Center"
         subtitle="Generate and export comprehensive reports across all business areas"
         actions={
-          selectedReport && (
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                <Filter size={16} />
-                Filters
-              </button>
-              <button
-                className="btn btn-secondary"
-                onClick={() => handleExport('excel')}
-                disabled={exporting !== null}
-              >
-                {exporting === 'excel' ? <Loader2 size={16} className="animate-spin" /> : <FileSpreadsheet size={16} />}
-                Excel
-              </button>
-              <button
-                className="btn btn-secondary"
-                onClick={() => handleExport('pdf')}
-                disabled={exporting !== null}
-              >
-                {exporting === 'pdf' ? <Loader2 size={16} className="animate-spin" /> : <File size={16} />}
-                PDF
-              </button>
-            </div>
+          selectedCategory && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setSelectedCategory(null);
+                setSelectedReport(null);
+              }}
+            >
+              <ArrowLeft size={16} />
+              All Categories
+            </button>
           )
         }
       />
 
-      {!selectedReport && (
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-          <KpiCard
-            title="Report Categories"
-            value={categoryCount}
-            icon={<BarChart3 size={20} />}
-            color="primary"
-          />
-          <KpiCard
-            title="Available Reports"
-            value={reportCount}
-            icon={<FileText size={20} />}
-            color="info"
-          />
-          <KpiCard
-            title="Selected Category"
-            value={selectedCategory ? categories.find(c => c.id === selectedCategory)?.name || '-' : 'All'}
-            icon={<Boxes size={20} />}
-            color="default"
-          />
-          <KpiCard
-            title="Quick Actions"
-            value="Export"
-            subtext="Select a report to export"
-            icon={<FileSpreadsheet size={20} />}
-            color="success"
-          />
-        </div>
-      )}
-
-      <div style={{ display: 'flex', gap: '1.5rem' }}>
-        <div className="card" style={{ width: '280px', flexShrink: 0, padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <BarChart3 size={16} />
-              Report Categories
-            </h3>
+      {!selectedCategory ? (
+        <div>
+          <div className="card" style={{ padding: '2rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+            <BarChart3 size={40} style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+              Select a Report Category
+            </h2>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>
+              Choose a category below to view available reports
+            </p>
           </div>
-          <div style={{ maxHeight: 'calc(100vh - 320px)', overflowY: 'auto', padding: '0.5rem' }}>
+
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+            gap: '1rem' 
+          }}>
             {categories.map(category => {
               const Icon = CATEGORY_ICONS[category.id] || FileText;
-              const isExpanded = selectedCategory === category.id;
-              const categoryReports = groupedReports[category.id] || [];
-
+              const color = CATEGORY_COLORS[category.id] || 'default';
+              const reportCount = groupedReports[category.id]?.length || 0;
+              
               return (
-                <div key={category.id} style={{ marginBottom: '0.25rem' }}>
-                  <button
-                    onClick={() => setSelectedCategory(isExpanded ? null : category.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      width: '100%',
-                      padding: '0.625rem 0.75rem',
-                      border: 'none',
-                      background: isExpanded ? 'var(--primary-light, #eff6ff)' : 'transparent',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      borderRadius: '6px',
-                      color: isExpanded ? 'var(--primary)' : 'var(--text-primary)',
-                      fontSize: '0.875rem',
-                      fontWeight: 500,
-                      transition: 'background 0.2s',
-                    }}
-                  >
-                    <Icon size={16} />
-                    <span style={{ flex: 1 }}>{category.name}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginRight: '0.25rem' }}>
-                      {categoryReports.length}
-                    </span>
-                    {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                  </button>
-
-                  {isExpanded && categoryReports.length > 0 && (
-                    <div style={{ paddingLeft: '1.25rem', marginTop: '0.25rem' }}>
-                      {categoryReports.map(report => (
-                        <button
-                          key={report.key}
-                          onClick={() => {
-                            setSelectedReport(report.key);
-                            setFilters({});
-                            setPage(1);
-                          }}
-                          style={{
-                            display: 'block',
-                            width: '100%',
-                            padding: '0.5rem 0.75rem',
-                            border: 'none',
-                            background: selectedReport === report.key ? 'var(--primary)' : 'transparent',
-                            textAlign: 'left',
-                            cursor: 'pointer',
-                            borderRadius: '4px',
-                            color: selectedReport === report.key ? 'white' : 'var(--text-secondary)',
-                            fontSize: '0.8125rem',
-                            transition: 'all 0.2s',
-                          }}
-                        >
-                          {report.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <button
+                  key={category.id}
+                  onClick={() => handleSelectCategory(category.id)}
+                  className="card"
+                  style={{
+                    padding: '1.5rem',
+                    border: '1px solid var(--border)',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--primary)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  <div style={{ 
+                    width: '48px', 
+                    height: '48px', 
+                    borderRadius: '12px', 
+                    background: `var(--${color === 'default' ? 'bg-secondary' : color + '-light'}, var(--bg-secondary))`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 0.75rem'
+                  }}>
+                    <Icon size={24} style={{ color: `var(--${color === 'default' ? 'text-muted' : color})` }} />
+                  </div>
+                  <div style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: '0.25rem' }}>{category.name}</div>
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{reportCount} reports</div>
+                </button>
               );
             })}
           </div>
         </div>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {!selectedReport && !selectedCategory ? (
-            <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
-              <BarChart3 size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-                Select a Report
-              </h2>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
-                Choose a category to view available reports
-              </p>
-              
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
-                gap: '1rem',
-                maxWidth: '800px',
-                margin: '0 auto'
-              }}>
-                {categories.slice(0, 8).map(category => {
-                  const Icon = CATEGORY_ICONS[category.id] || FileText;
-                  const color = CATEGORY_COLORS[category.id] || 'default';
-                  const reportCountInCat = groupedReports[category.id]?.length || 0;
-                  
-                  return (
-                    <button
-                      key={category.id}
-                      onClick={() => setSelectedCategory(category.id)}
-                      className="card"
-                      style={{
-                        padding: '1.25rem',
-                        border: selectedCategory === category.id ? '2px solid var(--primary)' : '1px solid var(--border)',
-                        cursor: 'pointer',
-                        textAlign: 'center',
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      <Icon size={24} style={{ color: `var(--${color === 'default' ? 'text-muted' : color})`, marginBottom: '0.5rem' }} />
-                      <div style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{category.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{reportCountInCat} reports</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : !selectedReport && selectedCategory ? (
+      ) : (
+        <div>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.75rem',
+            marginBottom: '1.5rem',
+            paddingBottom: '1rem',
+            borderBottom: '1px solid var(--border)'
+          }}>
+            {(() => {
+              const Icon = CATEGORY_ICONS[selectedCategory] || FileText;
+              return <Icon size={24} style={{ color: 'var(--primary)' }} />;
+            })()}
             <div>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                marginBottom: '1.5rem' 
-              }}>
-                <div>
-                  <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>
-                    {categories.find(c => c.id === selectedCategory)?.name || 'Reports'}
-                  </h2>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0.25rem 0 0 0' }}>
-                    Select a report to view data and export options
-                  </p>
-                </div>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setSelectedCategory(null)}
-                  style={{ fontSize: '0.8125rem' }}
-                >
-                  <X size={14} />
-                  Back to Categories
-                </button>
-              </div>
+              <h2 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>{currentCategoryName}</h2>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0 }}>
+                {currentCategoryReports.length} reports available - click a report to view data
+              </p>
+            </div>
+          </div>
 
-              {(groupedReports[selectedCategory] || []).length === 0 ? (
-                <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
-                  <AlertCircle size={32} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
-                  <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem' }}>No Reports Available</h3>
-                  <p style={{ color: 'var(--text-muted)' }}>
-                    There are no reports in this category or you don't have access to them.
-                  </p>
-                </div>
-              ) : (
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
-                  gap: '1rem' 
-                }}>
-                  {(groupedReports[selectedCategory] || []).map(report => {
-                    const CategoryIcon = CATEGORY_ICONS[selectedCategory] || FileText;
-                    return (
-                      <button
-                        key={report.key}
-                        onClick={() => {
-                          setSelectedReport(report.key);
-                          setFilters({});
-                          setPage(1);
-                        }}
-                        className="card"
-                        style={{
-                          padding: '1.5rem',
-                          border: '1px solid var(--border)',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          transition: 'all 0.2s',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.75rem',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = 'var(--primary)';
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = 'var(--border)';
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = 'none';
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <div style={{ 
-                            padding: '0.625rem', 
-                            borderRadius: '8px', 
-                            background: 'var(--primary-light, #eff6ff)',
-                            color: 'var(--primary)'
-                          }}>
-                            <CategoryIcon size={20} />
-                          </div>
-                          <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            {report.name}
-                          </div>
-                        </div>
-                        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                          {report.description}
-                        </p>
-                        <div style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '0.5rem', 
-                          marginTop: 'auto',
-                          paddingTop: '0.75rem',
-                          borderTop: '1px solid var(--border)',
-                          fontSize: '0.75rem',
-                          color: 'var(--primary)'
-                        }}>
-                          <FileSpreadsheet size={14} />
-                          <span>View Report</span>
-                          <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+          {currentCategoryReports.length === 0 ? (
+            <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
+              <AlertCircle size={32} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem' }}>No Reports Available</h3>
+              <p style={{ color: 'var(--text-muted)' }}>
+                There are no reports in this category or you don't have access to them.
+              </p>
             </div>
           ) : (
-            <>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'flex-start', 
-                marginBottom: '1rem' 
-              }}>
-                <div>
-                  <h2 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>
-                    {reportDefinition?.name || 'Loading...'}
-                  </h2>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0.25rem 0 0 0' }}>
-                    {reportDefinition?.description}
-                  </p>
-                </div>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    setSelectedReport(null);
-                    setFilters({});
-                  }}
-                  style={{ fontSize: '0.8125rem' }}
-                >
-                  <X size={14} />
-                  Close
-                </button>
-              </div>
-
-              {showFilters && reportDefinition?.filters && reportDefinition.filters.length > 0 && (
-                <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
-                    gap: '1rem',
-                    marginBottom: '1rem'
-                  }}>
-                    {reportDefinition.filters.map(filter => (
-                      <div key={filter.key} className="form-group" style={{ margin: 0 }}>
-                        <label className="form-label" style={{ fontSize: '0.75rem' }}>{filter.label}</label>
-                        {filter.type === 'text' && (
-                          <input
-                            type="text"
-                            className="form-input"
-                            value={filters[filter.key] || ''}
-                            onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                            placeholder={`Enter ${filter.label.toLowerCase()}`}
-                          />
-                        )}
-                        {filter.type === 'date' && (
-                          <input
-                            type="date"
-                            className="form-input"
-                            value={filters[filter.key] || ''}
-                            onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                          />
-                        )}
-                        {filter.type === 'number' && (
-                          <input
-                            type="number"
-                            className="form-input"
-                            value={filters[filter.key] || filter.defaultValue || ''}
-                            onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                          />
-                        )}
-                        {filter.type === 'select' && filter.options && (
-                          <select
-                            className="form-select"
-                            value={filters[filter.key] || ''}
-                            onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                          >
-                            <option value="">All</option>
-                            {filter.options.map(opt => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </select>
-                        )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {currentCategoryReports.map(report => {
+                const isSelected = selectedReport === report.key;
+                const CategoryIcon = CATEGORY_ICONS[selectedCategory] || FileText;
+                
+                return (
+                  <div key={report.key} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <button
+                      onClick={() => handleSelectReport(report.key)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1rem',
+                        width: '100%',
+                        padding: '1rem 1.25rem',
+                        border: 'none',
+                        background: isSelected ? 'var(--primary-light, #eff6ff)' : 'transparent',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        transition: 'background 0.2s',
+                      }}
+                    >
+                      <div style={{ 
+                        padding: '0.625rem', 
+                        borderRadius: '8px', 
+                        background: isSelected ? 'var(--primary)' : 'var(--bg-secondary)',
+                        color: isSelected ? 'white' : 'var(--text-muted)'
+                      }}>
+                        <CategoryIcon size={20} />
                       </div>
-                    ))}
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
-                    <button className="btn btn-primary" onClick={() => refetch()}>
-                      <Search size={16} />
-                      Apply Filters
+                      <div style={{ flex: 1 }}>
+                        <div style={{ 
+                          fontSize: '0.9375rem', 
+                          fontWeight: 600, 
+                          color: isSelected ? 'var(--primary)' : 'var(--text-primary)',
+                          marginBottom: '0.125rem'
+                        }}>
+                          {report.name}
+                        </div>
+                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                          {report.description}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {isSelected && (
+                          <span style={{ 
+                            fontSize: '0.75rem', 
+                            color: 'var(--primary)',
+                            fontWeight: 500
+                          }}>
+                            Viewing
+                          </span>
+                        )}
+                        {isSelected ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                      </div>
                     </button>
-                    <button className="btn btn-secondary" onClick={clearFilters}>
-                      <X size={16} />
-                      Clear
-                    </button>
-                  </div>
-                </div>
-              )}
 
-              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                {loadingData ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem' }}>
-                    <Loader2 size={32} className="animate-spin" style={{ color: 'var(--primary)' }} />
-                    <p style={{ marginTop: '0.5rem', color: 'var(--text-muted)' }}>Loading report data...</p>
-                  </div>
-                ) : !reportData?.data.length ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem' }}>
-                    <AlertCircle size={32} style={{ color: 'var(--text-muted)' }} />
-                    <h3 style={{ margin: '1rem 0 0.5rem 0', color: 'var(--text-primary)' }}>No Data Found</h3>
-                    <p style={{ color: 'var(--text-muted)' }}>Try adjusting your filters or select a different report</p>
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ overflowX: 'auto' }}>
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            {reportDefinition?.columns.map(col => (
-                              <th key={col.key}>{col.label}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {reportData.data.map((row, idx) => (
-                            <tr key={row.id || idx}>
-                              {reportDefinition?.columns.map(col => (
-                                <td key={col.key}>
-                                  {col.type === 'badge' ? (
-                                    <span className={`badge badge-${getStatusColor(row[col.key], col.badgeMap)}`}>
-                                      {row[col.key]}
-                                    </span>
-                                  ) : (
-                                    formatCellValue(row[col.key], col.type)
+                    {isSelected && (
+                      <div style={{ borderTop: '1px solid var(--border)' }}>
+                        <div style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          padding: '1rem 1.25rem',
+                          background: 'var(--bg-secondary)',
+                          borderBottom: '1px solid var(--border)'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <button
+                              className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'}`}
+                              onClick={() => setShowFilters(!showFilters)}
+                              style={{ padding: '0.5rem 0.75rem' }}
+                            >
+                              <Filter size={14} />
+                              Filters
+                              {Object.keys(filters).filter(k => filters[k]).length > 0 && (
+                                <span style={{ 
+                                  marginLeft: '0.375rem',
+                                  padding: '0.125rem 0.375rem',
+                                  borderRadius: '10px',
+                                  fontSize: '0.6875rem',
+                                  background: showFilters ? 'white' : 'var(--primary)',
+                                  color: showFilters ? 'var(--primary)' : 'white'
+                                }}>
+                                  {Object.keys(filters).filter(k => filters[k]).length}
+                                </span>
+                              )}
+                            </button>
+                            {reportData && (
+                              <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                                {reportData.total} records found
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button
+                              className="btn btn-secondary"
+                              onClick={() => handleExport('excel')}
+                              disabled={exporting !== null || !reportData?.data.length}
+                              style={{ padding: '0.5rem 0.75rem' }}
+                            >
+                              {exporting === 'excel' ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <FileSpreadsheet size={14} />
+                              )}
+                              Excel
+                            </button>
+                            <button
+                              className="btn btn-secondary"
+                              onClick={() => handleExport('pdf')}
+                              disabled={exporting !== null || !reportData?.data.length}
+                              style={{ padding: '0.5rem 0.75rem' }}
+                            >
+                              {exporting === 'pdf' ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <File size={14} />
+                              )}
+                              PDF
+                            </button>
+                          </div>
+                        </div>
+
+                        {showFilters && reportDefinition?.filters && reportDefinition.filters.length > 0 && (
+                          <div style={{ 
+                            padding: '1rem 1.25rem',
+                            background: 'var(--bg-secondary)',
+                            borderBottom: '1px solid var(--border)'
+                          }}>
+                            <div style={{ 
+                              display: 'grid', 
+                              gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', 
+                              gap: '0.75rem',
+                              marginBottom: '0.75rem'
+                            }}>
+                              {reportDefinition.filters.map(filter => (
+                                <div key={filter.key} className="form-group" style={{ margin: 0 }}>
+                                  <label className="form-label" style={{ fontSize: '0.6875rem', marginBottom: '0.25rem' }}>
+                                    {filter.label}
+                                  </label>
+                                  {filter.type === 'text' && (
+                                    <input
+                                      type="text"
+                                      className="form-input"
+                                      style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem' }}
+                                      value={filters[filter.key] || ''}
+                                      onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+                                      placeholder={`Enter ${filter.label.toLowerCase()}`}
+                                    />
                                   )}
-                                </td>
+                                  {filter.type === 'date' && (
+                                    <input
+                                      type="date"
+                                      className="form-input"
+                                      style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem' }}
+                                      value={filters[filter.key] || ''}
+                                      onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+                                    />
+                                  )}
+                                  {filter.type === 'number' && (
+                                    <input
+                                      type="number"
+                                      className="form-input"
+                                      style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem' }}
+                                      value={filters[filter.key] || filter.defaultValue || ''}
+                                      onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+                                    />
+                                  )}
+                                  {filter.type === 'select' && filter.options && (
+                                    <select
+                                      className="form-select"
+                                      style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem' }}
+                                      value={filters[filter.key] || ''}
+                                      onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+                                    >
+                                      <option value="">All</option>
+                                      {filter.options.map(opt => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                      ))}
+                                    </select>
+                                  )}
+                                </div>
                               ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center', 
-                      padding: '1rem',
-                      borderTop: '1px solid var(--border)',
-                      fontSize: '0.875rem',
-                      color: 'var(--text-muted)'
-                    }}>
-                      <span>
-                        Showing {((page - 1) * 25) + 1} - {Math.min(page * 25, reportData.total)} of {reportData.total} records
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <button
-                          className="btn btn-secondary"
-                          disabled={page <= 1}
-                          onClick={() => setPage(p => p - 1)}
-                          style={{ padding: '0.375rem 0.75rem' }}
-                        >
-                          Previous
-                        </button>
-                        <span>Page {page} of {reportData.totalPages}</span>
-                        <button
-                          className="btn btn-secondary"
-                          disabled={page >= reportData.totalPages}
-                          onClick={() => setPage(p => p + 1)}
-                          style={{ padding: '0.375rem 0.75rem' }}
-                        >
-                          Next
-                        </button>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              <button 
+                                className="btn btn-primary" 
+                                onClick={() => refetch()}
+                                style={{ padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}
+                              >
+                                <Search size={14} />
+                                Apply
+                              </button>
+                              <button 
+                                className="btn btn-secondary" 
+                                onClick={clearFilters}
+                                style={{ padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}
+                              >
+                                <X size={14} />
+                                Clear
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {loadingData ? (
+                          <div style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            padding: '3rem' 
+                          }}>
+                            <Loader2 size={32} className="animate-spin" style={{ color: 'var(--primary)' }} />
+                            <p style={{ marginTop: '0.75rem', color: 'var(--text-muted)' }}>Loading report data...</p>
+                          </div>
+                        ) : !reportData?.data.length ? (
+                          <div style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            padding: '3rem' 
+                          }}>
+                            <AlertCircle size={32} style={{ color: 'var(--text-muted)' }} />
+                            <h3 style={{ margin: '1rem 0 0.5rem 0', fontSize: '1rem', color: 'var(--text-primary)' }}>
+                              No Data Found
+                            </h3>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                              Try adjusting your filters to see results
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{ overflowX: 'auto' }}>
+                              <table className="table">
+                                <thead>
+                                  <tr>
+                                    {reportDefinition?.columns.map(col => (
+                                      <th key={col.key} style={{ fontSize: '0.75rem' }}>{col.label}</th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {reportData.data.map((row, idx) => (
+                                    <tr key={row.id || idx}>
+                                      {reportDefinition?.columns.map(col => (
+                                        <td key={col.key} style={{ fontSize: '0.8125rem' }}>
+                                          {col.type === 'badge' ? (
+                                            <span className={`badge badge-${getStatusColor(row[col.key], col.badgeMap)}`}>
+                                              {row[col.key]}
+                                            </span>
+                                          ) : (
+                                            formatCellValue(row[col.key], col.type)
+                                          )}
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            
+                            <div style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between', 
+                              alignItems: 'center', 
+                              padding: '0.75rem 1.25rem',
+                              borderTop: '1px solid var(--border)',
+                              fontSize: '0.8125rem',
+                              color: 'var(--text-muted)',
+                              background: 'var(--bg-secondary)'
+                            }}>
+                              <span>
+                                Showing {((page - 1) * 25) + 1} - {Math.min(page * 25, reportData.total)} of {reportData.total}
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <button
+                                  className="btn btn-secondary"
+                                  disabled={page <= 1}
+                                  onClick={() => setPage(p => p - 1)}
+                                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                                >
+                                  Previous
+                                </button>
+                                <span style={{ padding: '0 0.5rem' }}>
+                                  Page {page} of {reportData.totalPages}
+                                </span>
+                                <button
+                                  className="btn btn-secondary"
+                                  disabled={page >= reportData.totalPages}
+                                  onClick={() => setPage(p => p + 1)}
+                                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                                >
+                                  Next
+                                </button>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
-      </div>
+      )}
 
       <style>{`
         .animate-spin {
