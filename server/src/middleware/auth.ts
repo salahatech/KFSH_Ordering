@@ -86,11 +86,29 @@ export const requireRole = (...roleNames: string[]) => {
       return;
     }
 
-    if (!roleNames.includes(req.user.roleName)) {
-      res.status(403).json({ error: `Role ${roleNames.join(' or ')} required` });
-      return;
-    }
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.userId },
+        include: { role: true },
+      });
 
-    next();
+      if (!user || !user.role) {
+        res.status(403).json({ error: 'User or role not found' });
+        return;
+      }
+
+      const currentRoleName = user.role.name;
+      
+      if (!roleNames.includes(currentRoleName)) {
+        res.status(403).json({ error: `Role ${roleNames.join(' or ')} required` });
+        return;
+      }
+
+      req.user.roleName = currentRoleName;
+      next();
+    } catch (error) {
+      console.error('Role check error:', error);
+      res.status(500).json({ error: 'Role verification failed' });
+    }
   };
 };
