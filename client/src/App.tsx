@@ -40,6 +40,7 @@ import DashboardQP from './pages/DashboardQP';
 import DashboardDispensing from './pages/DashboardDispensing';
 import DashboardLogistics from './pages/DashboardLogistics';
 import PaymentApprovals from './pages/admin/PaymentApprovals';
+import AdminDemo from './pages/AdminDemo';
 import Drivers from './pages/Drivers';
 import ShipmentDetail from './pages/ShipmentDetail';
 import DriverDashboard from './pages/driver/DriverDashboard';
@@ -225,6 +226,7 @@ export default function App() {
                   <Route path="/invoices" element={<Invoices />} />
                   <Route path="/payments" element={<PaymentApprovals />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="/admin/demo" element={<AdminDemo />} />
                 </Routes>
               </Layout>
             </InternalRoute>

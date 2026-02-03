@@ -140,6 +140,52 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
   - Proof of delivery display with photos, signature, receiver info
   - Action modals for driver assignment and scheduling
 
+## Demo Data & Live Demo Mode
+
+### Running the Demo Seed
+```bash
+cd server
+npm run seed:demo:live    # LIVE_DEMO mode - journey stops at IN_TRANSIT
+npm run seed:demo:complete # FULLY_COMPLETED mode - entire journey finished
+```
+
+### Demo Credentials (Password: demo123)
+**Internal Users:**
+- admin@demo.com (Admin)
+- orderdesk@demo.com (Order Desk / Validator)
+- planner@demo.com (Production Planner)
+- qc@demo.com (QC Analyst)
+- qp@demo.com (Qualified Person)
+- logistics@demo.com (Logistics)
+- finance@demo.com (Finance Admin)
+- driver1@demo.com (Driver Portal)
+
+**Customer Portal:**
+- portal1@hospitaldemo.com (Al Noor Hospital)
+- portal2@hospitaldemo.com (Al Noor Hospital - Billing)
+
+### Demo Journey
+- Order: O-10001
+- Batch: B-20001
+- Shipment: S-30001
+- Invoice: INV-40001
+
+### Admin Demo Actions Panel
+Navigate to `/admin/demo` as Admin to:
+1. Mark shipment ARRIVED
+2. Mark shipment DELIVERED (creates POD)
+3. Create partial payment request
+4. Confirm payment (generates receipt)
+5. Close invoice (archive)
+
+### Live Demo Walkthrough
+1. Login as customer portal → view order O-10001 journey (in transit)
+2. Login as admin → go to /admin/demo → complete delivery
+3. Customer portal → see Delivered + download invoice PDF
+4. Admin demo panel → create payment request
+5. Admin demo panel → confirm payment → receipt generated
+6. Admin demo panel → close invoice → archived
+
 ## External Dependencies
 - **PostgreSQL**: Primary database for all application data.
 - **Prisma ORM**: Used for database interaction.
