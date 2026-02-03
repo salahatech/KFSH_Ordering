@@ -617,7 +617,7 @@ export default function BatchJourney() {
         )}
 
         {id && (
-          <AttachmentPanel entityType="batch" entityId={id} title="Batch Attachments" />
+          <AttachmentPanel entityType="BATCH" entityId={id} title="Batch Attachments" />
         )}
       </div>
     </div>

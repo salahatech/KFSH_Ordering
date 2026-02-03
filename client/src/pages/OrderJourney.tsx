@@ -435,7 +435,7 @@ export default function OrderJourney() {
 
       {id && (
         <div style={{ marginBottom: '1.5rem' }}>
-          <AttachmentPanel entityType="order" entityId={id} title="Order Attachments" />
+          <AttachmentPanel entityType="ORDER" entityId={id} title="Order Attachments" />
         </div>
       )}
 

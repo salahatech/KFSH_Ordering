@@ -401,7 +401,7 @@ export default function ShipmentDetail() {
 
         {id && (
           <AttachmentPanel 
-            entityType="shipment" 
+            entityType="SHIPMENT" 
             entityId={id} 
             title="Shipment Attachments"
           />
