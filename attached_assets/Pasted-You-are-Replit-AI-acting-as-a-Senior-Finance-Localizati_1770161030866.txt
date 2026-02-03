@@ -1,0 +1,133 @@
+You are Replit AI acting as a Senior Finance/Localization Engineer.
+
+Requirement:
+Ensure ALL monetary amounts displayed anywhere in the app (UI pages, dashboards, reports, exports, and all PDF printouts مثل Invoice/Receipt/PO/GRN/Statements) follow the SYSTEM DEFAULT CURRENCY, which is currently SAR.
+
+Key rule:
+- SAR is the system base/default currency.
+- All stored accounting and totals must be in SAR as the source of truth.
+- Any optional “display currency” feature must NOT break this rule: SAR must always be the primary reference and default.
+
+========================================================
+1) GLOBAL CURRENCY SETTINGS (MANDATORY)
+========================================================
+1.1 Admin Settings
+- baseCurrencyCode = "SAR" (locked)
+- currencySymbol = "SAR" (or "﷼" if needed, but keep consistent)
+- currencyDisplayStyle:
+  - "CODE" (SAR 1,234.56) default
+  - "SYMBOL" (﷼ 1,234.56) optional
+
+1.2 Enforce Default
+- If user has no preference → display SAR
+- If user selects another currency (optional feature):
+  - show SAR as primary
+  - show converted amount as secondary (small text), never the opposite
+
+========================================================
+2) DATA STORAGE RULES (MANDATORY)
+========================================================
+- Store all financial amounts in SAR:
+  - invoices, receipts, AR balances
+  - PO values, GRN values
+  - inventory valuation, batch costing (when enabled)
+- If a transaction occurs in another currency:
+  - store originalCurrencyCode + originalAmount
+  - store fxRateToSAR snapshot
+  - store sarAmount (the primary posting)
+- NEVER compute totals in UI from foreign currency without converting to SAR first.
+
+========================================================
+3) FRONTEND DISPLAY ENFORCEMENT (MANDATORY)
+========================================================
+3.1 Implement One Money Component (and use it everywhere)
+Create:
+- <Money valueSar={number} /> // mandatory
+Optional props:
+- showCode (default true)
+- showSecondaryConversion (default false)
+- secondaryCurrencyCode (optional)
+- fxRate (optional)
+It must format consistently and always show SAR.
+
+3.2 Find & Replace
+- Replace ALL direct formatting (toFixed, Intl without SAR) with <Money />
+- Search for:
+  - "SAR" hardcoded inconsistently
+  - Intl.NumberFormat without currency
+  - any “$” “USD” etc
+Refactor pages:
+- Orders (price summary)
+- Products (selling price)
+- Invoices/Receipts
+- Payments
+- Reports
+- Dashboards
+- Procurement (PO/GRN)
+- Inventory valuation screens
+
+3.3 UI Consistency
+- Tables: Amount columns always formatted as “SAR 1,234.56”
+- Totals cards: same style
+- Filters: amount range assumes SAR
+
+========================================================
+4) PDF PRINTOUTS ENFORCEMENT (MANDATORY)
+========================================================
+Documents that MUST show SAR as the main currency:
+- Invoice A4 PDF (with ZATCA QR)
+- Payment Receipt Voucher PDF
+- Customer Statement / Aging
+- Purchase Order PDF
+- Goods Receiving Note PDF
+- Shipment Manifest (if it shows values)
+- Any report PDF export
+
+Rules:
+- Always print totals in SAR.
+- If original currency exists:
+  - show original currency in a small secondary section:
+    “Original Currency: USD 200.00 | FX rate: 1 USD = 3.75 SAR”
+  - but all totals and accounting figures are SAR.
+
+========================================================
+5) REPORTS & EXPORTS (MANDATORY)
+========================================================
+Excel export:
+- Default amount columns in SAR only.
+- Optional extra columns:
+  - originalCurrencyCode, originalAmount, fxRateToSAR (if multi-currency exists)
+
+PDF export:
+- show SAR totals in headers/footers
+- “All amounts in SAR” note in header (recommended)
+
+========================================================
+6) VALIDATION & TESTS (MANDATORY)
+========================================================
+Add automated tests:
+- Unit tests for Money formatter:
+  - input 1234.5 → “SAR 1,234.50”
+- E2E tests:
+  - Invoice list shows SAR for Total/Paid/Remaining
+  - Invoice PDF includes SAR totals
+  - Receipt voucher PDF includes SAR amount
+  - Reports exports contain SAR columns
+- Add a static check:
+  - lint rule or grep check in CI to block new Intl.NumberFormat usage without Money component
+
+========================================================
+7) USER MESSAGES (MANDATORY)
+========================================================
+- Add a consistent note in finance screens:
+  “System base currency: SAR”
+- If currency switcher exists:
+  “SAR is the accounting currency. Conversions are shown for reference only.”
+
+========================================================
+ACCEPTANCE CRITERIA
+========================================================
+- Every amount displayed anywhere uses SAR as default/primary.
+- Every PDF printout displays SAR amounts prominently.
+- No UI screen shows amounts without SAR formatting.
+- If other currencies exist, they are secondary only and do not affect stored totals.

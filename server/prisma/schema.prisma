@@ -76,6 +76,11 @@ model User {
   announcementAudiences      AnnouncementAudience[]      @relation("AnnouncementAudienceUser")
   announcementDeliveries     AnnouncementDelivery[]      @relation("AnnouncementDeliveryUser")
   
+  qcSessionsAsAnalyst        BatchQcSession[]            @relation("QcSessionAnalyst")
+  qcSessionsAsReviewer       BatchQcSession[]            @relation("QcSessionReviewer")
+  qcResultsEntered           BatchQcResult[]             @relation("QcResultEnteredBy")
+  qcAttachmentsUploaded      BatchQcAttachment[]         @relation("QcAttachmentUploader")
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -273,6 +278,7 @@ model Product {
   overagePercent        Float            @default(10)
   isActive              Boolean          @default(true)
   qcTemplates           QCTemplate[]
+  productQcTemplates    ProductQcTemplate[]  @relation("ProductQcTemplates")
   customerProducts      CustomerProduct[]
   orders                Order[]
   batches               Batch[]
@@ -440,6 +446,7 @@ model Batch {
   operators           BatchOperator[]
   materialLots        BatchMaterialLot[]
   qcResults           QCResult[]
+  batchQcSession      BatchQcSession?  @relation("BatchQcSession")
   batchReleases       BatchRelease[]
   doseUnits           DoseUnit[]
   events              BatchEvent[]
@@ -942,6 +949,181 @@ model QCResult {
   notes         String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+}
+
+// ==================== QC BATCH TESTING SYSTEM ====================
+
+enum QcTestResultType {
+  PASS_FAIL
+  NUMERIC
+  TEXT
+  OPTION_LIST
+}
+
+enum QcSpecRuleType {
+  MIN
+  MAX
+  RANGE
+  EQUAL
+  PASS_FAIL_ONLY
+  CUSTOM_TEXT
+}
+
+enum QcTemplateStatus {
+  DRAFT
+  ACTIVE
+  RETIRED
+}
+
+enum QcSessionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  QC_PASSED
+  QC_FAILED
+  WAITING_REVIEW
+}
+
+enum QcResultEntryStatus {
+  PENDING
+  PASS
+  FAIL
+  NOT_APPLICABLE
+}
+
+model QcTestDefinition {
+  id              String            @id @default(uuid())
+  code            String            @unique
+  nameEn          String
+  nameAr          String?
+  methodEn        String?
+  methodAr        String?
+  resultType      QcTestResultType
+  unit            String?
+  decimalPlaces   Int?
+  optionsList     String?           // JSON array for OPTION_LIST type
+  isActive        Boolean           @default(true)
+  templateLines   ProductQcTemplateLine[]
+  batchQcResults  BatchQcResult[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model QcSpecRule {
+  id              String          @id @default(uuid())
+  ruleType        QcSpecRuleType
+  minValue        Decimal?        @db.Decimal(18, 6)
+  maxValue        Decimal?        @db.Decimal(18, 6)
+  targetValue     Decimal?        @db.Decimal(18, 6)
+  tolerance       Decimal?        @db.Decimal(18, 6)
+  textCriteriaEn  String?
+  textCriteriaAr  String?
+  failIfOutside   Boolean         @default(true)
+  templateLines   ProductQcTemplateLine[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model ProductQcTemplate {
+  id              String            @id @default(uuid())
+  productId       String
+  product         Product           @relation("ProductQcTemplates", fields: [productId], references: [id], onDelete: Cascade)
+  version         Int               @default(1)
+  status          QcTemplateStatus  @default(DRAFT)
+  effectiveFrom   DateTime?
+  effectiveTo     DateTime?
+  notes           String?
+  templateLines   ProductQcTemplateLine[]
+  batchQcSessions BatchQcSession[]
+  createdById     String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([productId, version])
+}
+
+model ProductQcTemplateLine {
+  id                      String            @id @default(uuid())
+  templateId              String
+  template                ProductQcTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  testDefinitionId        String
+  testDefinition          QcTestDefinition  @relation(fields: [testDefinitionId], references: [id])
+  displayOrder            Int               @default(0)
+  isRequired              Boolean           @default(true)
+  specRuleId              String?
+  specRule                QcSpecRule?       @relation(fields: [specRuleId], references: [id])
+  criteriaTextOverrideEn  String?
+  criteriaTextOverrideAr  String?
+  defaultResultValue      String?
+  allowManualPassFail     Boolean           @default(false)
+  attachmentRequired      Boolean           @default(false)
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+}
+
+model BatchQcSession {
+  id              String            @id @default(uuid())
+  batchId         String            @unique
+  batch           Batch             @relation("BatchQcSession", fields: [batchId], references: [id], onDelete: Cascade)
+  productId       String
+  templateId      String
+  template        ProductQcTemplate @relation(fields: [templateId], references: [id])
+  status          QcSessionStatus   @default(NOT_STARTED)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  analystUserId   String?
+  analystUser     User?             @relation("QcSessionAnalyst", fields: [analystUserId], references: [id])
+  reviewedByUserId String?
+  reviewedByUser  User?             @relation("QcSessionReviewer", fields: [reviewedByUserId], references: [id])
+  reviewedAt      DateTime?
+  notes           String?
+  results         BatchQcResult[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model BatchQcResult {
+  id                  String              @id @default(uuid())
+  qcSessionId         String
+  qcSession           BatchQcSession      @relation(fields: [qcSessionId], references: [id], onDelete: Cascade)
+  testDefinitionId    String
+  testDefinition      QcTestDefinition    @relation(fields: [testDefinitionId], references: [id])
+  displayOrder        Int                 @default(0)
+  criteriaDisplayEn   String?
+  criteriaDisplayAr   String?
+  resultType          QcTestResultType
+  numericValue        Decimal?            @db.Decimal(18, 6)
+  textValue           String?
+  passFailValue       String?             // "PASS" or "FAIL"
+  selectedOption      String?             // for OPTION_LIST type
+  unit                String?
+  status              QcResultEntryStatus @default(PENDING)
+  isRequired          Boolean             @default(true)
+  specRuleType        QcSpecRuleType?
+  specMinValue        Decimal?            @db.Decimal(18, 6)
+  specMaxValue        Decimal?            @db.Decimal(18, 6)
+  specTargetValue     Decimal?            @db.Decimal(18, 6)
+  failReason          String?
+  enteredByUserId     String?
+  enteredByUser       User?               @relation("QcResultEnteredBy", fields: [enteredByUserId], references: [id])
+  enteredAt           DateTime?
+  attachments         BatchQcAttachment[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+}
+
+model BatchQcAttachment {
+  id              String        @id @default(uuid())
+  batchQcResultId String
+  batchQcResult   BatchQcResult @relation(fields: [batchQcResultId], references: [id], onDelete: Cascade)
+  fileUrl         String
+  fileName        String
+  fileSizeBytes   Int
+  mimeType        String
+  uploadedByUserId String?
+  uploadedByUser  User?         @relation("QcAttachmentUploader", fields: [uploadedByUserId], references: [id])
+  uploadedAt      DateTime      @default(now())
+  createdAt       DateTime      @default(now())
 }
 
 model BatchRelease {
