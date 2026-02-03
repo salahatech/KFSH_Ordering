@@ -43,6 +43,10 @@ import purchaseOrderRoutes from './routes/purchaseOrders.js';
 import warehouseRoutes from './routes/warehouses.js';
 import grnRoutes from './routes/grn.js';
 import stockRoutes from './routes/stock.js';
+import batchRecordRoutes from './routes/batch-records.js';
+import ebrMaterialRoutes from './routes/ebr-materials.js';
+import ebrEquipmentRoutes from './routes/ebr-equipment.js';
+import ebrDeviationRoutes from './routes/ebr-deviations.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -93,6 +97,10 @@ app.use('/api/purchase-orders', purchaseOrderRoutes);
 app.use('/api/warehouses', warehouseRoutes);
 app.use('/api/grn', grnRoutes);
 app.use('/api/stock', stockRoutes);
+app.use('/api/batch-records', batchRecordRoutes);
+app.use('/api/batch-records', ebrMaterialRoutes);
+app.use('/api/batch-records', ebrEquipmentRoutes);
+app.use('/api/deviations', ebrDeviationRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
