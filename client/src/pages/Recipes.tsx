@@ -2,28 +2,12 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { 
-  Plus, 
-  Edit2, 
-  X, 
-  Search,
-  Filter,
-  FileText,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  Copy,
-  Send,
-  Trash2,
-  ChevronRight,
-  ChevronDown,
-  ListOrdered,
-  Package,
-  Layers,
-  PenTool,
+  Plus, Edit2, X, Search, Filter, FileText, CheckCircle, Clock, AlertCircle, Copy, Send, Trash2,
+  ChevronRight, ChevronDown, ListOrdered, Package, Layers, PenTool, HelpCircle, ChevronUp, ArrowRight
 } from 'lucide-react';
 import { useToast } from '../components/ui/Toast';
 import { parseApiError } from '../components/ui/FormErrors';
-import { KpiCard, EmptyState } from '../components/shared';
+import { KpiCard, StatusBadge, EmptyState } from '../components/shared';
 import ESignatureModal from '../components/ESignatureModal';
 import ESignatureHistory from '../components/ESignatureHistory';
 
@@ -35,6 +19,34 @@ const STATUSES = [
   { value: 'OBSOLETE', label: 'Obsolete', color: 'var(--error)', icon: AlertCircle },
 ];
 
+const statusDescriptions: Record<string, { label: string; description: string; nextAction: string }> = {
+  DRAFT: { 
+    label: 'Draft', 
+    description: 'Recipe is being developed. Can be edited and components added.', 
+    nextAction: 'Submit for approval when ready' 
+  },
+  PENDING_APPROVAL: { 
+    label: 'Pending Approval', 
+    description: 'Recipe submitted and awaiting QA approval with e-signature.', 
+    nextAction: 'QA approves and activates with signature' 
+  },
+  ACTIVE: { 
+    label: 'Active', 
+    description: 'Recipe is approved and can be used in production.', 
+    nextAction: 'Create new version for changes' 
+  },
+  SUPERSEDED: { 
+    label: 'Superseded', 
+    description: 'Recipe replaced by a newer version.', 
+    nextAction: 'Reference only - use active version' 
+  },
+  OBSOLETE: { 
+    label: 'Obsolete', 
+    description: 'Recipe no longer valid for production.', 
+    nextAction: 'Historical reference only' 
+  },
+};
+
 export default function Recipes() {
   const [showModal, setShowModal] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<any>(null);
@@ -45,10 +57,11 @@ export default function Recipes() {
   const [showESignModal, setShowESignModal] = useState(false);
   const [recipeToActivate, setRecipeToActivate] = useState<any>(null);
   const [expandedComponents, setExpandedComponents] = useState<Record<string, boolean>>({});
+  const [showWorkflowGuide, setShowWorkflowGuide] = useState(false);
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  const { data: recipes, isLoading } = useQuery({
+  const { data: recipesData, isLoading } = useQuery({
     queryKey: ['recipes', statusFilter, productFilter, searchQuery],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -107,9 +120,7 @@ export default function Recipes() {
   });
 
   const submitForApprovalMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return api.post(`/recipes/${id}/submit-for-approval`);
-    },
+    mutationFn: async (id: string) => api.post(`/recipes/${id}/submit-for-approval`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
       toast.success('Submitted', 'Recipe has been submitted for approval');
@@ -136,9 +147,7 @@ export default function Recipes() {
   });
 
   const createNewVersionMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return api.post(`/recipes/${id}/create-new-version`);
-    },
+    mutationFn: async (id: string) => api.post(`/recipes/${id}/create-new-version`),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
       toast.success('New Version Created', `Version ${response.data.version} has been created as a draft`);
@@ -150,9 +159,7 @@ export default function Recipes() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return api.delete(`/recipes/${id}`);
-    },
+    mutationFn: async (id: string) => api.delete(`/recipes/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
       toast.success('Recipe Deleted', 'Recipe has been removed');
@@ -166,7 +173,6 @@ export default function Recipes() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
     const componentsJson = formData.get('componentsJson') as string;
     const stepsJson = formData.get('stepsJson') as string;
     
@@ -189,385 +195,507 @@ export default function Recipes() {
     });
   };
 
-  const getStatusStyle = (status: string) => {
-    const s = STATUSES.find(s => s.value === status);
-    return { color: s?.color || 'var(--text-muted)', Icon: s?.icon || FileText };
+  const getStatusColor = (status: string): string => {
+    const colors: Record<string, string> = {
+      DRAFT: 'default',
+      PENDING_APPROVAL: 'warning',
+      ACTIVE: 'success',
+      SUPERSEDED: 'default',
+      OBSOLETE: 'danger',
+    };
+    return colors[status] || 'default';
   };
-
-  const activeRecipes = recipes?.filter((r: any) => r.status === 'ACTIVE').length || 0;
-  const draftRecipes = recipes?.filter((r: any) => r.status === 'DRAFT').length || 0;
-  const pendingRecipes = recipes?.filter((r: any) => r.status === 'PENDING_APPROVAL').length || 0;
 
   const toggleComponents = (id: string) => {
     setExpandedComponents(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const recipes = recipesData?.recipes || recipesData || [];
+  const stats = {
+    total: recipes.length,
+    active: recipes.filter((r: any) => r.status === 'ACTIVE').length,
+    draft: recipes.filter((r: any) => r.status === 'DRAFT').length,
+    pending: recipes.filter((r: any) => r.status === 'PENDING_APPROVAL').length,
+    superseded: recipes.filter((r: any) => r.status === 'SUPERSEDED').length,
+  };
+
+  if (isLoading) {
+    return (
+      <div className="loading-overlay">
+        <div className="spinner" />
+      </div>
+    );
+  }
+
   return (
-    <div className="page-container">
-      <div className="page-header">
+    <div style={{ padding: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
-          <h1>Recipes & BOM</h1>
-          <p className="text-muted">Manage product recipes and bills of materials</p>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.25rem' }}>Recipes & BOM</h1>
+          <p style={{ color: 'var(--text-muted)', margin: 0 }}>
+            Manage product recipes and bills of materials
+          </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <Plus size={20} />
-          Create Recipe
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button 
+            className="btn btn-secondary"
+            onClick={() => setShowWorkflowGuide(!showWorkflowGuide)}
+          >
+            <HelpCircle size={16} />
+            Workflow Guide
+            {showWorkflowGuide ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+            <Plus size={16} /> Create Recipe
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
         <KpiCard 
           title="Total Recipes" 
-          value={recipes?.length || 0} 
-          icon={<FileText size={24} />}
+          value={stats.total} 
+          icon={<FileText size={20} />}
           color="primary"
+          onClick={() => setStatusFilter('')}
+          selected={!statusFilter}
         />
         <KpiCard 
           title="Active" 
-          value={activeRecipes} 
-          icon={<CheckCircle size={24} />}
+          value={stats.active} 
+          icon={<CheckCircle size={20} />}
           color="success"
+          onClick={() => setStatusFilter('ACTIVE')}
+          selected={statusFilter === 'ACTIVE'}
         />
         <KpiCard 
           title="Drafts" 
-          value={draftRecipes} 
-          icon={<Edit2 size={24} />}
+          value={stats.draft} 
+          icon={<Edit2 size={20} />}
           color="default"
+          onClick={() => setStatusFilter('DRAFT')}
+          selected={statusFilter === 'DRAFT'}
         />
         <KpiCard 
           title="Pending Approval" 
-          value={pendingRecipes} 
-          icon={<Clock size={24} />}
+          value={stats.pending} 
+          icon={<Clock size={20} />}
           color="warning"
+          onClick={() => setStatusFilter('PENDING_APPROVAL')}
+          selected={statusFilter === 'PENDING_APPROVAL'}
+        />
+        <KpiCard 
+          title="Superseded" 
+          value={stats.superseded} 
+          icon={<Layers size={20} />}
+          color="default"
+          onClick={() => setStatusFilter('SUPERSEDED')}
+          selected={statusFilter === 'SUPERSEDED'}
         />
       </div>
 
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
+      <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: '1', minWidth: '200px' }}>
-            <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Filter size={18} style={{ color: 'var(--text-muted)' }} />
+            <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}>Filters:</span>
+          </div>
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '300px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
+              className="form-input"
               placeholder="Search recipes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="form-input"
-              style={{ paddingLeft: '40px' }}
+              style={{ paddingLeft: '2.25rem' }}
             />
           </div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Filter size={18} style={{ color: 'var(--text-muted)' }} />
-            <select
-              value={productFilter}
-              onChange={(e) => setProductFilter(e.target.value)}
-              className="form-select"
-              style={{ minWidth: '150px' }}
+          <select
+            className="form-select"
+            style={{ width: 'auto', minWidth: '150px' }}
+            value={productFilter}
+            onChange={(e) => setProductFilter(e.target.value)}
+          >
+            <option value="">All Products</option>
+            {products?.map((prod: any) => (
+              <option key={prod.id} value={prod.id}>{prod.name}</option>
+            ))}
+          </select>
+          <select
+            className="form-select"
+            style={{ width: 'auto', minWidth: '150px' }}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="">All Statuses</option>
+            {STATUSES.map(s => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+          {(searchQuery || productFilter || statusFilter) && (
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => { setSearchQuery(''); setProductFilter(''); setStatusFilter(''); }}
             >
-              <option value="">All Products</option>
-              {products?.map((prod: any) => (
-                <option key={prod.id} value={prod.id}>{prod.name}</option>
-              ))}
-            </select>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="form-select"
-              style={{ minWidth: '150px' }}
-            >
-              <option value="">All Statuses</option>
-              {STATUSES.map(s => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-          </div>
+              <X size={14} /> Clear
+            </button>
+          )}
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: detailRecipe ? '1fr 400px' : '1fr', gap: '1.5rem' }}>
+      {showWorkflowGuide && (
+        <div className="card" style={{ marginBottom: '1.5rem', padding: '1.25rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <HelpCircle size={18} style={{ color: 'var(--primary)' }} />
+            Recipe Versioning Workflow
+          </h3>
+          <div style={{ marginBottom: '1rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+            Recipes follow a controlled versioning workflow with e-signature approval:
+          </div>
+          <div style={{ 
+            display: 'flex', 
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+            marginBottom: '1rem',
+            padding: '0.75rem',
+            backgroundColor: 'var(--bg-secondary)',
+            borderRadius: 'var(--radius)',
+          }}>
+            {['DRAFT', 'PENDING_APPROVAL', 'ACTIVE', 'SUPERSEDED'].map((status, idx, arr) => (
+              <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <StatusBadge status={status} size="sm" />
+                {idx < arr.length - 1 && <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+            {Object.entries(statusDescriptions).map(([status, info]) => (
+              <div key={status} style={{ 
+                padding: '0.75rem', 
+                backgroundColor: 'var(--bg-tertiary)', 
+                borderRadius: 'var(--radius-sm)',
+                borderLeft: `3px solid var(--${getStatusColor(status) === 'default' ? 'secondary' : getStatusColor(status)})`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <StatusBadge status={status} size="sm" />
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                  {info.description}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  <strong>Next:</strong> {info.nextAction}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: detailRecipe ? '1fr 420px' : '1fr', gap: '1.5rem' }}>
         <div className="card">
-          {isLoading ? (
-            <div className="loading-spinner" style={{ padding: '3rem', textAlign: 'center' }}>Loading...</div>
-          ) : recipes?.length === 0 ? (
-            <EmptyState 
-              icon="package"
-              title="No Recipes Found"
-              message={searchQuery || statusFilter || productFilter 
-                ? "No recipes match your search criteria" 
-                : "Get started by creating your first recipe"}
-              ctaLabel={!searchQuery && !statusFilter && !productFilter ? "Create Recipe" : undefined}
-              onCta={!searchQuery && !statusFilter && !productFilter ? () => setShowModal(true) : undefined}
-            />
-          ) : (
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Recipe</th>
-                    <th>Product</th>
-                    <th>Version</th>
-                    <th>Status</th>
-                    <th>Components</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recipes?.map((recipe: any) => {
-                    const { color, Icon } = getStatusStyle(recipe.status);
-                    return (
-                      <tr 
-                        key={recipe.id} 
-                        onClick={() => setDetailRecipe(recipe)}
-                        style={{ cursor: 'pointer', background: detailRecipe?.id === recipe.id ? 'var(--bg-hover)' : undefined }}
-                      >
-                        <td>
-                          <div>
-                            <code style={{ fontWeight: 600 }}>{recipe.code}</code>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{recipe.name}</div>
-                          </div>
-                        </td>
-                        <td>
-                          <span style={{ 
-                            background: 'rgba(59, 130, 246, 0.1)', 
-                            color: 'var(--primary)',
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '4px',
-                            fontSize: '0.85rem',
-                          }}>
-                            {recipe.product?.name}
-                          </span>
-                        </td>
-                        <td>
-                          <span style={{ fontWeight: 600 }}>v{recipe.version}</span>
-                        </td>
-                        <td>
-                          <span className="badge" style={{ 
-                            background: `${color}20`,
-                            color,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.25rem',
-                          }}>
-                            <Icon size={14} />
-                            {STATUSES.find(s => s.value === recipe.status)?.label}
-                          </span>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Package size={14} style={{ color: 'var(--text-muted)' }} />
-                            {recipe._count?.components || 0}
-                            <span style={{ color: 'var(--text-muted)', margin: '0 0.25rem' }}>|</span>
-                            <ListOrdered size={14} style={{ color: 'var(--text-muted)' }} />
-                            {recipe._count?.steps || 0}
-                          </div>
-                        </td>
-                        <td onClick={e => e.stopPropagation()}>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            {recipe.status === 'DRAFT' && (
-                              <>
-                                <button
-                                  className="btn btn-secondary btn-sm"
-                                  onClick={() => {
-                                    setSelectedRecipe(recipe);
-                                    setShowModal(true);
-                                  }}
-                                  title="Edit"
-                                >
-                                  <Edit2 size={14} />
-                                </button>
-                                <button
-                                  className="btn btn-primary btn-sm"
-                                  onClick={() => submitForApprovalMutation.mutate(recipe.id)}
-                                  title="Submit for Approval"
-                                  disabled={submitForApprovalMutation.isPending}
-                                >
-                                  <Send size={14} />
-                                </button>
-                                <button
-                                  className="btn btn-secondary btn-sm"
-                                  onClick={() => {
-                                    if (confirm('Delete this draft recipe?')) {
-                                      deleteMutation.mutate(recipe.id);
-                                    }
-                                  }}
-                                  title="Delete"
-                                  style={{ color: 'var(--error)' }}
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </>
-                            )}
-                            {recipe.status === 'PENDING_APPROVAL' && (
-                              <button
-                                className="btn btn-success btn-sm"
-                                onClick={() => {
-                                  setRecipeToActivate(recipe);
-                                  setShowESignModal(true);
-                                }}
-                                title="Activate with E-Signature"
-                              >
-                                <PenTool size={14} /> Activate
-                              </button>
-                            )}
-                            {(recipe.status === 'ACTIVE' || recipe.status === 'SUPERSEDED') && (
-                              <button
-                                className="btn btn-secondary btn-sm"
-                                onClick={() => createNewVersionMutation.mutate(recipe.id)}
-                                title="Create New Version"
-                                disabled={createNewVersionMutation.isPending}
-                              >
-                                <Copy size={14} /> New Version
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+          <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h3 style={{ fontWeight: 600, fontSize: '1rem', margin: 0 }}>
+              Recipe List ({recipes.length})
+            </h3>
+          </div>
+          {recipes.length === 0 ? (
+            <div style={{ padding: '2rem' }}>
+              <EmptyState 
+                icon="package"
+                title="No Recipes Found"
+                message={searchQuery || statusFilter || productFilter 
+                  ? "No recipes match your search criteria" 
+                  : "Get started by creating your first recipe"}
+                ctaLabel={!searchQuery && !statusFilter && !productFilter ? "Create Recipe" : undefined}
+                onCta={!searchQuery && !statusFilter && !productFilter ? () => setShowModal(true) : undefined}
+              />
             </div>
+          ) : (
+            <table className="table" style={{ marginBottom: 0 }}>
+              <thead>
+                <tr>
+                  <th>Recipe</th>
+                  <th>Product</th>
+                  <th>Version</th>
+                  <th>Status</th>
+                  <th>Components</th>
+                  <th style={{ width: '180px', textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recipes.map((recipe: any) => (
+                  <tr 
+                    key={recipe.id} 
+                    onClick={() => setDetailRecipe(recipe)}
+                    style={{ cursor: 'pointer', background: detailRecipe?.id === recipe.id ? 'var(--bg-hover)' : undefined }}
+                  >
+                    <td>
+                      <div style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '0.8125rem' }}>{recipe.code}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{recipe.name}</div>
+                    </td>
+                    <td>
+                      <span style={{ 
+                        background: 'rgba(59, 130, 246, 0.1)', 
+                        color: 'var(--primary)',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '4px',
+                        fontSize: '0.8125rem',
+                      }}>
+                        {recipe.product?.name}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ fontWeight: 600 }}>v{recipe.version}</span>
+                    </td>
+                    <td>
+                      <StatusBadge status={recipe.status} size="sm" />
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+                        <Package size={14} style={{ color: 'var(--text-muted)' }} />
+                        {recipe._count?.components || 0}
+                        <span style={{ color: 'var(--text-muted)' }}>|</span>
+                        <ListOrdered size={14} style={{ color: 'var(--text-muted)' }} />
+                        {recipe._count?.steps || 0}
+                      </div>
+                    </td>
+                    <td onClick={e => e.stopPropagation()}>
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        {recipe.status === 'DRAFT' && (
+                          <>
+                            <button
+                              className="btn btn-sm btn-outline"
+                              onClick={() => { setSelectedRecipe(recipe); setShowModal(true); }}
+                              title="Edit"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              className="btn btn-sm btn-primary"
+                              onClick={() => submitForApprovalMutation.mutate(recipe.id)}
+                              title="Submit for Approval"
+                              disabled={submitForApprovalMutation.isPending}
+                            >
+                              <Send size={14} />
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline"
+                              onClick={() => {
+                                if (confirm('Delete this draft recipe?')) {
+                                  deleteMutation.mutate(recipe.id);
+                                }
+                              }}
+                              title="Delete"
+                              style={{ color: 'var(--error)' }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </>
+                        )}
+                        {recipe.status === 'PENDING_APPROVAL' && (
+                          <button
+                            className="btn btn-sm btn-primary"
+                            onClick={() => { setRecipeToActivate(recipe); setShowESignModal(true); }}
+                            title="Activate with E-Signature"
+                          >
+                            <PenTool size={14} /> Activate
+                          </button>
+                        )}
+                        {(recipe.status === 'ACTIVE' || recipe.status === 'SUPERSEDED') && (
+                          <button
+                            className="btn btn-sm btn-outline"
+                            onClick={() => createNewVersionMutation.mutate(recipe.id)}
+                            title="Create New Version"
+                            disabled={createNewVersionMutation.isPending}
+                          >
+                            <Copy size={14} /> New Version
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
 
         {detailRecipe && recipeDetail && (
-          <div className="card" style={{ position: 'sticky', top: '1rem', maxHeight: 'calc(100vh - 200px)', overflow: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ margin: 0 }}>{recipeDetail.code} v{recipeDetail.version}</h3>
-              <button className="btn btn-secondary btn-sm" onClick={() => setDetailRecipe(null)}>
-                <X size={16} />
-              </button>
-            </div>
-
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Product</div>
-              <div style={{ fontWeight: 500 }}>{recipeDetail.product?.name}</div>
-            </div>
-
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Status</div>
-              <span className="badge" style={{ 
-                background: `${getStatusStyle(recipeDetail.status).color}20`,
-                color: getStatusStyle(recipeDetail.status).color,
-              }}>
-                {STATUSES.find(s => s.value === recipeDetail.status)?.label}
-              </span>
-            </div>
-
-            {recipeDetail.description && (
-              <div style={{ marginBottom: '1rem' }}>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Description</div>
-                <div>{recipeDetail.description}</div>
+          <div className="card" style={{ padding: 0, position: 'sticky', top: '1rem', maxHeight: 'calc(100vh - 150px)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ 
+              padding: '1.25rem', 
+              borderBottom: '1px solid var(--border)',
+              background: 'var(--bg-secondary)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '1rem' }}>{recipeDetail.code}</div>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{recipeDetail.name}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>v{recipeDetail.version}</span>
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => setDetailRecipe(null)}
+                    style={{ borderRadius: '50%', width: '28px', height: '28px', padding: 0 }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
               </div>
-            )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-              <div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Yield</div>
-                <div style={{ fontWeight: 500 }}>{recipeDetail.yieldQuantity} {recipeDetail.yieldUnit}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Tolerance</div>
-                <div>±{recipeDetail.yieldTolerance}%</div>
+              <div style={{ marginTop: '0.75rem' }}>
+                <StatusBadge status={recipeDetail.status} size="md" />
               </div>
             </div>
 
-            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '1rem' }}>
-              <div 
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', marginBottom: '0.5rem' }}
-                onClick={() => toggleComponents(recipeDetail.id)}
-              >
-                {expandedComponents[recipeDetail.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                <h4 style={{ margin: 0 }}>Bill of Materials ({recipeDetail.components?.length || 0})</h4>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem' }}>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                  Product
+                </div>
+                <span style={{ 
+                  background: 'rgba(59, 130, 246, 0.1)', 
+                  color: 'var(--primary)',
+                  padding: '0.375rem 0.75rem',
+                  borderRadius: '4px',
+                  fontWeight: 500,
+                }}>
+                  {recipeDetail.product?.name}
+                </span>
               </div>
-              {expandedComponents[recipeDetail.id] && (
-                <div style={{ marginLeft: '1.5rem' }}>
-                  {recipeDetail.components?.length === 0 ? (
-                    <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>No components defined</div>
-                  ) : (
-                    recipeDetail.components?.map((comp: any) => (
-                      <div key={comp.id} style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        padding: '0.5rem 0',
-                        borderBottom: '1px solid var(--border-color)',
-                      }}>
-                        <div>
-                          <div style={{ fontWeight: 500 }}>{comp.material?.name}</div>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                            {comp.material?.code}
-                            {comp.isCritical && (
-                              <span style={{ color: 'var(--error)', marginLeft: '0.5rem' }}>Critical</span>
-                            )}
+
+              {recipeDetail.description && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                    Description
+                  </div>
+                  <div style={{ fontSize: '0.875rem' }}>{recipeDetail.description}</div>
+                </div>
+              )}
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                  Yield Information
+                </div>
+                <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <div style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Expected Yield</div>
+                    <div style={{ fontWeight: 600, fontSize: '1rem' }}>{recipeDetail.yieldQuantity} {recipeDetail.yieldUnit}</div>
+                  </div>
+                  <div style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Tolerance</div>
+                    <div style={{ fontWeight: 600, fontSize: '1rem' }}>±{recipeDetail.yieldTolerance}%</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div 
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', marginBottom: '0.5rem' }}
+                  onClick={() => toggleComponents(recipeDetail.id)}
+                >
+                  {expandedComponents[recipeDetail.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Bill of Materials ({recipeDetail.components?.length || 0})
+                  </div>
+                </div>
+                {expandedComponents[recipeDetail.id] && (
+                  <div style={{ marginLeft: '1.5rem' }}>
+                    {recipeDetail.components?.length === 0 ? (
+                      <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.875rem' }}>No components defined</div>
+                    ) : (
+                      recipeDetail.components?.map((comp: any) => (
+                        <div key={comp.id} style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          padding: '0.5rem 0',
+                          borderBottom: '1px solid var(--border)',
+                          fontSize: '0.875rem',
+                        }}>
+                          <div>
+                            <div style={{ fontWeight: 500 }}>{comp.material?.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              {comp.material?.code}
+                              {comp.isCritical && (
+                                <span style={{ color: 'var(--error)', marginLeft: '0.5rem' }}>Critical</span>
+                              )}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontWeight: 500 }}>{comp.quantity} {comp.unit}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>±{comp.tolerancePercent}%</div>
                           </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: 500 }}>{comp.quantity} {comp.unit}</div>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>±{comp.tolerancePercent}%</div>
-                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {recipeDetail.steps?.length > 0 && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                    Process Steps ({recipeDetail.steps.length})
+                  </div>
+                  {recipeDetail.steps.map((step: any) => (
+                    <div key={step.id} style={{ 
+                      padding: '0.5rem 0.75rem',
+                      marginBottom: '0.5rem',
+                      background: 'var(--bg-secondary)',
+                      borderRadius: 'var(--radius)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ 
+                          background: 'var(--primary)',
+                          color: 'white',
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.6875rem',
+                          fontWeight: 600,
+                        }}>
+                          {step.stepNumber}
+                        </span>
+                        <span style={{ fontWeight: 500, fontSize: '0.875rem' }}>{step.title}</span>
+                        {step.qualityCheckpoint && (
+                          <span title="QC Checkpoint"><CheckCircle size={14} style={{ color: 'var(--success)' }} /></span>
+                        )}
                       </div>
-                    ))
+                      {step.description && (
+                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginLeft: '30px', marginTop: '0.25rem' }}>
+                          {step.description}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {recipeDetail.activatedAt && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                    Activation Details
+                  </div>
+                  <div style={{ fontSize: '0.875rem', padding: '0.75rem', background: 'rgba(34, 197, 94, 0.1)', borderRadius: 'var(--radius)' }}>
+                    <div><strong>Activated By:</strong> {recipeDetail.activatedBy?.firstName} {recipeDetail.activatedBy?.lastName}</div>
+                    <div><strong>Date:</strong> {new Date(recipeDetail.activatedAt).toLocaleString()}</div>
+                  </div>
+                  {recipeDetail.activationSignatureId && (
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <ESignatureHistory 
+                        entityType="Recipe" 
+                        entityId={recipeDetail.id}
+                        compact
+                      />
+                    </div>
                   )}
                 </div>
               )}
             </div>
-
-            {recipeDetail.steps?.length > 0 && (
-              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '1rem' }}>
-                <h4 style={{ marginBottom: '0.5rem' }}>Process Steps ({recipeDetail.steps.length})</h4>
-                {recipeDetail.steps.map((step: any) => (
-                  <div key={step.id} style={{ 
-                    padding: '0.5rem',
-                    marginBottom: '0.5rem',
-                    background: 'var(--bg-secondary)',
-                    borderRadius: '4px',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ 
-                        background: 'var(--primary)',
-                        color: 'white',
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                      }}>
-                        {step.stepNumber}
-                      </span>
-                      <span style={{ fontWeight: 500 }}>{step.title}</span>
-                      {step.qualityCheckpoint && (
-                        <span title="QC Checkpoint"><CheckCircle size={14} style={{ color: 'var(--success)' }} /></span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginLeft: '32px' }}>
-                      {step.description}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {recipeDetail.activatedAt && (
-              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '1rem' }}>
-                <h4 style={{ marginBottom: '0.5rem' }}>Activation</h4>
-                <div style={{ fontSize: '0.85rem' }}>
-                  <div><strong>Activated By:</strong> {recipeDetail.activatedBy?.firstName} {recipeDetail.activatedBy?.lastName}</div>
-                  <div><strong>Date:</strong> {new Date(recipeDetail.activatedAt).toLocaleString()}</div>
-                </div>
-                {recipeDetail.activationSignatureId && (
-                  <div style={{ marginTop: '1rem' }}>
-                    <ESignatureHistory 
-                      entityType="Recipe" 
-                      entityId={recipeDetail.id}
-                      compact
-                    />
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -603,12 +731,7 @@ export default function Recipes() {
 }
 
 function RecipeFormModal({ 
-  recipe, 
-  products, 
-  materials, 
-  onClose, 
-  onSubmit, 
-  isPending 
+  recipe, products, materials, onClose, onSubmit, isPending 
 }: { 
   recipe: any; 
   products: any[]; 
@@ -634,12 +757,9 @@ function RecipeFormModal({
   const updateComponent = (index: number, field: string, value: any) => {
     const updated = [...components];
     updated[index] = { ...updated[index], [field]: value };
-    
     if (field === 'materialId') {
       const mat = materials.find(m => m.id === value);
-      if (mat) {
-        updated[index].unit = mat.unit;
-      }
+      if (mat) updated[index].unit = mat.unit;
     }
     setComponents(updated);
   };
@@ -674,9 +794,7 @@ function RecipeFormModal({
       <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px', maxHeight: '90vh', overflow: 'auto' }}>
         <div className="modal-header">
           <h2>{recipe ? 'Edit Recipe' : 'Create Recipe'}</h2>
-          <button className="btn btn-secondary btn-sm" onClick={onClose}>
-            <X size={20} />
-          </button>
+          <button className="btn btn-ghost" onClick={onClose}>&times;</button>
         </div>
         <form onSubmit={(e) => {
           e.preventDefault();
@@ -746,7 +864,7 @@ function RecipeFormModal({
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
               <div className="form-group">
                 <label className="form-label">Yield Quantity *</label>
                 <input
@@ -755,7 +873,6 @@ function RecipeFormModal({
                   className="form-input"
                   defaultValue={recipe?.yieldQuantity || ''}
                   required
-                  min="0"
                   step="0.01"
                 />
               </div>
@@ -770,16 +887,18 @@ function RecipeFormModal({
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Tolerance %</label>
+                <label className="form-label">Tolerance (%)</label>
                 <input
                   type="number"
                   name="yieldTolerance"
                   className="form-input"
                   defaultValue={recipe?.yieldTolerance || 5}
-                  min="0"
                   step="0.1"
                 />
               </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div className="form-group">
                 <label className="form-label">Synthesis Time (min)</label>
                 <input
@@ -787,206 +906,131 @@ function RecipeFormModal({
                   name="synthesisTimeMinutes"
                   className="form-input"
                   defaultValue={recipe?.synthesisTimeMinutes || ''}
-                  min="0"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Total Time (min)</label>
+                <input
+                  type="number"
+                  name="totalTimeMinutes"
+                  className="form-input"
+                  defaultValue={recipe?.totalTimeMinutes || ''}
                 />
               </div>
             </div>
 
-            <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '1.5rem', paddingTop: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ margin: 0 }}>Bill of Materials</h3>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={addComponent}>
-                  <Plus size={16} /> Add Material
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h4 style={{ margin: 0 }}>Bill of Materials ({components.length})</h4>
+                <button type="button" className="btn btn-sm btn-secondary" onClick={addComponent}>
+                  <Plus size={14} /> Add Component
                 </button>
               </div>
-              
-              {components.length === 0 ? (
-                <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
-                  No materials added yet. Click "Add Material" to add components.
+              {components.map((comp, idx) => (
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto auto', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                  <select
+                    className="form-select"
+                    value={comp.materialId}
+                    onChange={(e) => updateComponent(idx, 'materialId', e.target.value)}
+                    required
+                  >
+                    <option value="">Select Material</option>
+                    {materials.map(m => (
+                      <option key={m.id} value={m.id}>{m.code} - {m.name}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    className="form-input"
+                    placeholder="Qty"
+                    value={comp.quantity}
+                    onChange={(e) => updateComponent(idx, 'quantity', parseFloat(e.target.value))}
+                    step="0.01"
+                  />
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={comp.unit}
+                    onChange={(e) => updateComponent(idx, 'unit', e.target.value)}
+                    placeholder="Unit"
+                  />
+                  <input
+                    type="number"
+                    className="form-input"
+                    placeholder="±%"
+                    value={comp.tolerancePercent}
+                    onChange={(e) => updateComponent(idx, 'tolerancePercent', parseFloat(e.target.value))}
+                  />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={comp.isCritical}
+                      onChange={(e) => updateComponent(idx, 'isCritical', e.target.checked)}
+                    />
+                    Critical
+                  </label>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeComponent(idx)} style={{ color: 'var(--error)' }}>
+                    <X size={14} />
+                  </button>
                 </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {components.map((comp, index) => (
-                    <div key={index} style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: '2fr 1fr 1fr 1fr auto', 
-                      gap: '0.5rem',
-                      alignItems: 'end',
-                      padding: '0.75rem',
-                      background: 'var(--bg-secondary)',
-                      borderRadius: '6px',
-                    }}>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Material</label>
-                        <select
-                          className="form-select"
-                          value={comp.materialId}
-                          onChange={(e) => updateComponent(index, 'materialId', e.target.value)}
-                          required
-                        >
-                          <option value="">Select Material</option>
-                          {materials.map(mat => (
-                            <option key={mat.id} value={mat.id}>{mat.code} - {mat.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Quantity</label>
-                        <input
-                          type="number"
-                          className="form-input"
-                          value={comp.quantity}
-                          onChange={(e) => updateComponent(index, 'quantity', parseFloat(e.target.value))}
-                          required
-                          min="0"
-                          step="0.01"
-                        />
-                      </div>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Unit</label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          value={comp.unit}
-                          onChange={(e) => updateComponent(index, 'unit', e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Critical</label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                          <input
-                            type="checkbox"
-                            checked={comp.isCritical}
-                            onChange={(e) => updateComponent(index, 'isCritical', e.target.checked)}
-                          />
-                          Yes
-                        </label>
-                      </div>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => removeComponent(index)}
-                        style={{ color: 'var(--error)' }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
 
-            <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '1.5rem', paddingTop: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ margin: 0 }}>Process Steps</h3>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={addStep}>
-                  <Plus size={16} /> Add Step
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h4 style={{ margin: 0 }}>Process Steps ({steps.length})</h4>
+                <button type="button" className="btn btn-sm btn-secondary" onClick={addStep}>
+                  <Plus size={14} /> Add Step
                 </button>
               </div>
-              
-              {steps.length === 0 ? (
-                <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
-                  No steps defined yet. Click "Add Step" to add process steps.
+              {steps.map((step, idx) => (
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: 'auto 2fr 2fr auto auto', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                  <span style={{ 
+                    background: 'var(--primary)', 
+                    color: 'white', 
+                    width: '24px', 
+                    height: '24px', 
+                    borderRadius: '50%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                  }}>
+                    {step.stepNumber}
+                  </span>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Step Title"
+                    value={step.title}
+                    onChange={(e) => updateStep(idx, 'title', e.target.value)}
+                    required
+                  />
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Description"
+                    value={step.description}
+                    onChange={(e) => updateStep(idx, 'description', e.target.value)}
+                  />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={step.qualityCheckpoint}
+                      onChange={(e) => updateStep(idx, 'qualityCheckpoint', e.target.checked)}
+                    />
+                    QC
+                  </label>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeStep(idx)} style={{ color: 'var(--error)' }}>
+                    <X size={14} />
+                  </button>
                 </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {steps.map((step, index) => (
-                    <div key={index} style={{ 
-                      padding: '0.75rem',
-                      background: 'var(--bg-secondary)',
-                      borderRadius: '6px',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                        <span style={{ 
-                          background: 'var(--primary)',
-                          color: 'white',
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
-                        }}>
-                          {index + 1}
-                        </span>
-                        <input
-                          type="text"
-                          className="form-input"
-                          placeholder="Step title"
-                          value={step.title}
-                          onChange={(e) => updateStep(index, 'title', e.target.value)}
-                          style={{ flex: 1 }}
-                          required
-                        />
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}>
-                          <input
-                            type="checkbox"
-                            checked={step.qualityCheckpoint}
-                            onChange={(e) => updateStep(index, 'qualityCheckpoint', e.target.checked)}
-                          />
-                          QC Checkpoint
-                        </label>
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => removeStep(index)}
-                          style={{ color: 'var(--error)' }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                      <textarea
-                        className="form-input"
-                        placeholder="Step description"
-                        value={step.description}
-                        onChange={(e) => updateStep(index, 'description', e.target.value)}
-                        rows={2}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '1.5rem', paddingTop: '1.5rem' }}>
-              <h3 style={{ marginBottom: '1rem' }}>Additional Information</h3>
-              <div className="form-group">
-                <label className="form-label">Equipment Requirements</label>
-                <textarea
-                  name="equipmentRequirements"
-                  className="form-input"
-                  rows={2}
-                  defaultValue={recipe?.equipmentRequirements || ''}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Safety Precautions</label>
-                <textarea
-                  name="safetyPrecautions"
-                  className="form-input"
-                  rows={2}
-                  defaultValue={recipe?.safetyPrecautions || ''}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Quality Notes</label>
-                <textarea
-                  name="qualityNotes"
-                  className="form-input"
-                  rows={2}
-                  defaultValue={recipe?.qualityNotes || ''}
-                />
-              </div>
+              ))}
             </div>
           </div>
-
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
-              Cancel
-            </button>
+            <button type="button" className="btn" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={isPending}>
               {isPending ? 'Saving...' : (recipe ? 'Update Recipe' : 'Create Recipe')}
             </button>
