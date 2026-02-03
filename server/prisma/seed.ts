@@ -1668,6 +1668,324 @@ async function main() {
     console.log(`Materials already exist (${existingMaterials}), skipping material/recipe seeding...`);
   }
 
+  // ==================== APPROVAL INBOX DEMO DATA ====================
+  console.log('Creating Approval Inbox demo data...');
+
+  // Create Workflow Definitions
+  const orderApprovalWorkflow = await prisma.workflowDefinition.upsert({
+    where: { name: 'Order Approval Workflow' },
+    update: {},
+    create: {
+      name: 'Order Approval Workflow',
+      entityType: 'ORDER',
+      triggerStatus: 'PENDING',
+      description: 'Approval workflow for new orders requiring manager sign-off',
+      isActive: true,
+      requiresAllSteps: true,
+    },
+  });
+
+  const batchReleaseWorkflow = await prisma.workflowDefinition.upsert({
+    where: { name: 'Batch Release Workflow' },
+    update: {},
+    create: {
+      name: 'Batch Release Workflow',
+      entityType: 'BATCH_RELEASE',
+      triggerStatus: 'QC_COMPLETE',
+      description: 'QP release approval for manufactured batches',
+      isActive: true,
+      requiresAllSteps: true,
+    },
+  });
+
+  const customerOnboardingWorkflow = await prisma.workflowDefinition.upsert({
+    where: { name: 'Customer Onboarding Workflow' },
+    update: {},
+    create: {
+      name: 'Customer Onboarding Workflow',
+      entityType: 'CUSTOMER',
+      triggerStatus: 'PENDING_APPROVAL',
+      description: 'Approval workflow for new customer registration',
+      isActive: true,
+      requiresAllSteps: false,
+    },
+  });
+
+  const productChangeWorkflow = await prisma.workflowDefinition.upsert({
+    where: { name: 'Product Change Workflow' },
+    update: {},
+    create: {
+      name: 'Product Change Workflow',
+      entityType: 'PRODUCT',
+      triggerStatus: 'CHANGE_REQUESTED',
+      description: 'Approval for product specification changes',
+      isActive: true,
+      requiresAllSteps: true,
+    },
+  });
+
+  // Create Approval Steps for each workflow
+  const orderStep1 = await prisma.approvalStep.upsert({
+    where: { workflowId_stepOrder: { workflowId: orderApprovalWorkflow.id, stepOrder: 1 } },
+    update: {},
+    create: {
+      workflowId: orderApprovalWorkflow.id,
+      stepOrder: 1,
+      stepName: 'Sales Manager Review',
+      description: 'Initial review by sales manager for pricing and availability',
+      approverRoleId: salesRole.id,
+      timeoutHours: 24,
+      isRequired: true,
+    },
+  });
+
+  const orderStep2 = await prisma.approvalStep.upsert({
+    where: { workflowId_stepOrder: { workflowId: orderApprovalWorkflow.id, stepOrder: 2 } },
+    update: {},
+    create: {
+      workflowId: orderApprovalWorkflow.id,
+      stepOrder: 2,
+      stepName: 'Production Planning Check',
+      description: 'Verify production capacity and scheduling',
+      approverRoleId: plannerRole.id,
+      timeoutHours: 48,
+      isRequired: true,
+    },
+  });
+
+  const batchStep1 = await prisma.approvalStep.upsert({
+    where: { workflowId_stepOrder: { workflowId: batchReleaseWorkflow.id, stepOrder: 1 } },
+    update: {},
+    create: {
+      workflowId: batchReleaseWorkflow.id,
+      stepOrder: 1,
+      stepName: 'QC Manager Review',
+      description: 'Review all QC test results for compliance',
+      approverRoleId: qcRole.id,
+      timeoutHours: 4,
+      isRequired: true,
+    },
+  });
+
+  const batchStep2 = await prisma.approvalStep.upsert({
+    where: { workflowId_stepOrder: { workflowId: batchReleaseWorkflow.id, stepOrder: 2 } },
+    update: {},
+    create: {
+      workflowId: batchReleaseWorkflow.id,
+      stepOrder: 2,
+      stepName: 'Qualified Person Release',
+      description: 'Final batch release by Qualified Person',
+      approverRoleId: qpRole.id,
+      timeoutHours: 2,
+      isRequired: true,
+    },
+  });
+
+  const customerStep1 = await prisma.approvalStep.upsert({
+    where: { workflowId_stepOrder: { workflowId: customerOnboardingWorkflow.id, stepOrder: 1 } },
+    update: {},
+    create: {
+      workflowId: customerOnboardingWorkflow.id,
+      stepOrder: 1,
+      stepName: 'Admin Verification',
+      description: 'Verify customer credentials and documentation',
+      approverRoleId: adminRole.id,
+      timeoutHours: 72,
+      isRequired: true,
+    },
+  });
+
+  const productStep1 = await prisma.approvalStep.upsert({
+    where: { workflowId_stepOrder: { workflowId: productChangeWorkflow.id, stepOrder: 1 } },
+    update: {},
+    create: {
+      workflowId: productChangeWorkflow.id,
+      stepOrder: 1,
+      stepName: 'QA Review',
+      description: 'Quality Assurance review for product changes',
+      approverRoleId: qcRole.id,
+      timeoutHours: 48,
+      isRequired: true,
+    },
+  });
+
+  // Create Demo Approval Requests
+  const approvalRequests = [];
+
+  // Order approval request (pending at step 1)
+  if (orders.length > 0) {
+    const orderRequest1 = await prisma.approvalRequest.create({
+      data: {
+        workflowId: orderApprovalWorkflow.id,
+        entityType: 'ORDER',
+        entityId: orders[0].id,
+        requestedById: adminUser.id,
+        currentStepOrder: 1,
+        status: 'PENDING',
+        priority: 'HIGH',
+        dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        notes: 'Urgent order from major hospital - expedited review requested',
+      },
+    });
+    approvalRequests.push(orderRequest1);
+
+    if (orders.length > 1) {
+      const orderRequest2 = await prisma.approvalRequest.create({
+        data: {
+          workflowId: orderApprovalWorkflow.id,
+          entityType: 'ORDER',
+          entityId: orders[1].id,
+          requestedById: adminUser.id,
+          currentStepOrder: 1,
+          status: 'PENDING',
+          priority: 'NORMAL',
+          dueDate: new Date(Date.now() + 48 * 60 * 60 * 1000),
+          notes: 'Standard order requiring capacity verification',
+        },
+      });
+      approvalRequests.push(orderRequest2);
+    }
+
+    if (orders.length > 2) {
+      // Order at step 2 (approved by sales, pending production)
+      const orderRequest3 = await prisma.approvalRequest.create({
+        data: {
+          workflowId: orderApprovalWorkflow.id,
+          entityType: 'ORDER',
+          entityId: orders[2].id,
+          requestedById: adminUser.id,
+          currentStepOrder: 2,
+          status: 'PENDING',
+          priority: 'NORMAL',
+          notes: 'Passed sales review, awaiting production scheduling',
+        },
+      });
+      approvalRequests.push(orderRequest3);
+
+      // Add approval action for step 1
+      await prisma.approvalAction.create({
+        data: {
+          approvalRequestId: orderRequest3.id,
+          stepId: orderStep1.id,
+          actionById: adminUser.id,
+          action: 'APPROVED',
+          comments: 'Pricing confirmed, customer in good standing',
+          actionAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        },
+      });
+    }
+  }
+
+  // Batch release approval requests
+  if (batches.length > 0) {
+    const batchRequest1 = await prisma.approvalRequest.create({
+      data: {
+        workflowId: batchReleaseWorkflow.id,
+        entityType: 'BATCH_RELEASE',
+        entityId: batches[0].id,
+        requestedById: adminUser.id,
+        currentStepOrder: 1,
+        status: 'PENDING',
+        priority: 'URGENT',
+        dueDate: new Date(Date.now() + 4 * 60 * 60 * 1000),
+        notes: 'FDG batch ready for QC review - delivery deadline approaching',
+      },
+    });
+    approvalRequests.push(batchRequest1);
+
+    if (batches.length > 1) {
+      // Batch at step 2 (awaiting QP release)
+      const batchRequest2 = await prisma.approvalRequest.create({
+        data: {
+          workflowId: batchReleaseWorkflow.id,
+          entityType: 'BATCH_RELEASE',
+          entityId: batches[1].id,
+          requestedById: adminUser.id,
+          currentStepOrder: 2,
+          status: 'PENDING',
+          priority: 'HIGH',
+          notes: 'QC approved, awaiting Qualified Person release',
+        },
+      });
+      approvalRequests.push(batchRequest2);
+
+      await prisma.approvalAction.create({
+        data: {
+          approvalRequestId: batchRequest2.id,
+          stepId: batchStep1.id,
+          actionById: adminUser.id,
+          action: 'APPROVED',
+          comments: 'All QC tests passed. Radiochemical purity 98.5%, pH 7.2',
+          actionAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+        },
+      });
+    }
+  }
+
+  // Customer onboarding approval request
+  if (customers.length > 0) {
+    const customerRequest = await prisma.approvalRequest.create({
+      data: {
+        workflowId: customerOnboardingWorkflow.id,
+        entityType: 'CUSTOMER',
+        entityId: customers[0].id,
+        requestedById: adminUser.id,
+        currentStepOrder: 1,
+        status: 'PENDING',
+        priority: 'NORMAL',
+        notes: 'New hospital registration - verify licensing documentation',
+      },
+    });
+    approvalRequests.push(customerRequest);
+  }
+
+  // Product change approval request
+  if (products.length > 0) {
+    const productRequest = await prisma.approvalRequest.create({
+      data: {
+        workflowId: productChangeWorkflow.id,
+        entityType: 'PRODUCT',
+        entityId: products[0].id,
+        requestedById: adminUser.id,
+        currentStepOrder: 1,
+        status: 'PENDING',
+        priority: 'LOW',
+        notes: 'Proposed shelf life extension based on stability data',
+      },
+    });
+    approvalRequests.push(productRequest);
+  }
+
+  // Create one rejected request for history
+  if (orders.length > 3) {
+    const rejectedRequest = await prisma.approvalRequest.create({
+      data: {
+        workflowId: orderApprovalWorkflow.id,
+        entityType: 'ORDER',
+        entityId: orders[3].id,
+        requestedById: adminUser.id,
+        currentStepOrder: 1,
+        status: 'REJECTED',
+        priority: 'NORMAL',
+        completedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+        notes: 'Order rejected - insufficient credit limit',
+      },
+    });
+
+    await prisma.approvalAction.create({
+      data: {
+        approvalRequestId: rejectedRequest.id,
+        stepId: orderStep1.id,
+        actionById: adminUser.id,
+        action: 'REJECTED',
+        comments: 'Customer has exceeded credit limit. Please resolve outstanding invoices before resubmitting.',
+        actionAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      },
+    });
+  }
+
+  console.log(`Created ${approvalRequests.length} approval requests for Approval Inbox demo.`);
+
   console.log('Seed completed successfully!');
   console.log('Admin user: admin@radiopharma.com / admin123');
   console.log(`Created: ${orders.length} orders, ${batches.length} batches, ${releasedBatches.length} releases, ${shippedOrders.length} shipments`);
