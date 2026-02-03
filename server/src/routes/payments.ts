@@ -1,11 +1,11 @@
 import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticateToken, requirePermission } from '../middleware/auth.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-router.get('/', authenticateToken, requirePermission('invoices', 'read'), async (req: Request, res: Response): Promise<void> => {
+router.get('/', authenticateToken, requireRole('Admin', 'Finance', 'Sales'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { status, customerId, page = '1', limit = '20' } = req.query;
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
@@ -23,8 +23,8 @@ router.get('/', authenticateToken, requirePermission('invoices', 'read'), async 
               customer: true,
             }
           },
-          submittedBy: { select: { id: true, username: true, fullName: true } },
-          reviewedBy: { select: { id: true, username: true, fullName: true } },
+          submittedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+          reviewedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
         },
         orderBy: { submittedAt: 'desc' },
         skip,
@@ -40,14 +40,14 @@ router.get('/', authenticateToken, requirePermission('invoices', 'read'), async 
   }
 });
 
-router.get('/stats', authenticateToken, requirePermission('invoices', 'read'), async (req: Request, res: Response): Promise<void> => {
+router.get('/stats', authenticateToken, requireRole('Admin', 'Finance', 'Sales'), async (req: Request, res: Response): Promise<void> => {
   try {
     const [pending, confirmed, rejected, totalPending] = await Promise.all([
-      prisma.paymentRequest.count({ where: { status: 'PENDING' } }),
+      prisma.paymentRequest.count({ where: { status: 'PENDING_CONFIRMATION' } }),
       prisma.paymentRequest.count({ where: { status: 'CONFIRMED' } }),
       prisma.paymentRequest.count({ where: { status: 'REJECTED' } }),
       prisma.paymentRequest.aggregate({
-        where: { status: 'PENDING' },
+        where: { status: 'PENDING_CONFIRMATION' },
         _sum: { amount: true },
       }),
     ]);
@@ -64,7 +64,7 @@ router.get('/stats', authenticateToken, requirePermission('invoices', 'read'), a
   }
 });
 
-router.get('/:id', authenticateToken, requirePermission('invoices', 'read'), async (req: Request, res: Response): Promise<void> => {
+router.get('/:id', authenticateToken, requireRole('Admin', 'Finance', 'Sales'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const request = await prisma.paymentRequest.findUnique({
@@ -77,8 +77,8 @@ router.get('/:id', authenticateToken, requirePermission('invoices', 'read'), asy
             payments: { orderBy: { paymentDate: 'desc' } },
           }
         },
-        submittedBy: { select: { id: true, username: true, fullName: true } },
-        reviewedBy: { select: { id: true, username: true, fullName: true } },
+        submittedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+        reviewedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
       },
     });
 
@@ -94,7 +94,7 @@ router.get('/:id', authenticateToken, requirePermission('invoices', 'read'), asy
   }
 });
 
-router.post('/:id/confirm', authenticateToken, requirePermission('invoices', 'update'), async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/confirm', authenticateToken, requireRole('Admin', 'Finance'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { notes } = req.body;
@@ -110,8 +110,8 @@ router.post('/:id/confirm', authenticateToken, requirePermission('invoices', 'up
       return;
     }
 
-    if (request.status !== 'PENDING') {
-      res.status(400).json({ error: 'Payment request is not pending' });
+    if (request.status !== 'PENDING_CONFIRMATION') {
+      res.status(400).json({ error: 'Payment request is not pending confirmation' });
       return;
     }
 
@@ -120,22 +120,25 @@ router.post('/:id/confirm', authenticateToken, requirePermission('invoices', 'up
         where: { id },
         data: {
           status: 'CONFIRMED',
-          reviewedById: user.id,
+          reviewedByUserId: user.id,
           reviewedAt: new Date(),
         },
       });
 
-      const voucherNumber = `RV-${Date.now()}`;
+      const receiptNumber = `RV-${Date.now()}`;
       const receiptVoucher = await tx.receiptVoucher.create({
         data: {
-          voucherNumber,
+          receiptNumber,
           invoiceId: request.invoiceId,
+          customerId: request.customerId,
           paymentRequestId: id,
           amount: request.amount,
+          amountSAR: request.amountSAR,
           currency: request.currency,
+          paymentMethod: request.paymentMethod,
+          referenceNumber: request.referenceNumber,
+          confirmedByUserId: user.id,
           confirmedAt: new Date(),
-          confirmedById: user.id,
-          notes: notes || undefined,
         },
       });
 
@@ -143,10 +146,12 @@ router.post('/:id/confirm', authenticateToken, requirePermission('invoices', 'up
         data: {
           invoiceId: request.invoiceId,
           amount: request.amount,
+          amountSAR: request.amountSAR,
           paymentMethod: request.paymentMethod,
           paymentDate: new Date(),
-          reference: request.reference || voucherNumber,
-          notes: `Confirmed payment from customer submission (${voucherNumber})`,
+          referenceNumber: request.referenceNumber || receiptNumber,
+          receiptVoucherId: receiptVoucher.id,
+          notes: notes || `Confirmed payment from customer submission (${receiptNumber})`,
         },
       });
 
@@ -167,7 +172,7 @@ router.post('/:id/confirm', authenticateToken, requirePermission('invoices', 'up
           entityId: id,
           action: 'CONFIRM',
           userId: user.id,
-          newValues: { status: 'CONFIRMED', voucherNumber },
+          newValues: { status: 'CONFIRMED', receiptNumber },
         },
       });
 
@@ -185,7 +190,7 @@ router.post('/:id/confirm', authenticateToken, requirePermission('invoices', 'up
   }
 });
 
-router.post('/:id/reject', authenticateToken, requirePermission('invoices', 'update'), async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/reject', authenticateToken, requireRole('Admin', 'Finance'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
@@ -203,8 +208,8 @@ router.post('/:id/reject', authenticateToken, requirePermission('invoices', 'upd
       return;
     }
 
-    if (request.status !== 'PENDING') {
-      res.status(400).json({ error: 'Payment request is not pending' });
+    if (request.status !== 'PENDING_CONFIRMATION') {
+      res.status(400).json({ error: 'Payment request is not pending confirmation' });
       return;
     }
 
@@ -212,8 +217,8 @@ router.post('/:id/reject', authenticateToken, requirePermission('invoices', 'upd
       where: { id },
       data: {
         status: 'REJECTED',
-        rejectReason: reason,
-        reviewedById: user.id,
+        rejectionReason: reason,
+        reviewedByUserId: user.id,
         reviewedAt: new Date(),
       },
     });
@@ -238,20 +243,20 @@ router.post('/:id/reject', authenticateToken, requirePermission('invoices', 'upd
   }
 });
 
-router.get('/receipts/list', authenticateToken, requirePermission('invoices', 'read'), async (req: Request, res: Response): Promise<void> => {
+router.get('/receipts/list', authenticateToken, requireRole('Admin', 'Finance', 'Sales'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { customerId, page = '1', limit = '20' } = req.query;
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     const where: any = {};
-    if (customerId) where.invoice = { customerId };
+    if (customerId) where.customerId = customerId;
 
     const [vouchers, total] = await Promise.all([
       prisma.receiptVoucher.findMany({
         where,
         include: {
           invoice: { include: { customer: true } },
-          confirmedBy: { select: { id: true, username: true, fullName: true } },
+          confirmedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
         },
         orderBy: { confirmedAt: 'desc' },
         skip,

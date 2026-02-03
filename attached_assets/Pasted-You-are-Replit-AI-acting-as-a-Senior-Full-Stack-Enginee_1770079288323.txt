@@ -1,0 +1,206 @@
+You are Replit AI acting as a Senior Full-Stack Engineer + ERP/Finance Product Designer.
+
+Context:
+We have a RadioPharma OMS app with Customer Portal, Orders, Shipments, Finance AR invoices, partial payments, receipt vouchers, base currency SAR, optional multi-currency display, and notifications.
+The current invoice flow is unclear. Enhance the app to make invoice generation, approval, payment submission, and closure VERY clear through statuses, screens, logs, and guided UI.
+
+========================================================
+1) INVOICE PROCESS (MANDATORY) — MAKE IT EXPLICIT
+1.1 Configure “Invoice Generation Trigger”
+Create a configuration page (Admin/Finance):
+- InvoiceGenerationTrigger:
+  - ON_DELIVERED (default)
+  - ON_DISPATCHED
+  - ON_QP_RELEASED
+  - MANUAL_ONLY
+Store config in DB, not hardcoded.
+
+Behavior (default ON_DELIVERED):
+- When Shipment status becomes DELIVERED:
+  - Create Invoice in DRAFT (internal only)
+  - Link invoice to:
+    - customerId
+    - orderId(s) or shipmentId
+    - doseUnits/items delivered
+  - Create InvoiceEvent: INVOICE_CREATED_FROM_DELIVERY
+
+1.2 Invoice Approval Workflow
+Invoice statuses:
+- DRAFT → PENDING_APPROVAL → ISSUED_POSTED → PARTIALLY_PAID → PAID → CLOSED_ARCHIVED
+Exception:
+- CANCELLED_VOIDED
+
+Rules:
+- Customer can only view/pay invoices when status >= ISSUED_POSTED.
+- Finance/Admin approves invoice:
+  - “Approve & Post” action moves invoice to ISSUED_POSTED
+  - Posting creates GL journal entry (if GL enabled)
+- After posting:
+  - invoice becomes immutable (no silent edits); changes must be Credit Note/Reversal later.
+
+1.3 Payment Submission Timing
+- Customer can submit payment ONLY when invoice is ISSUED_POSTED or PARTIALLY_PAID.
+- Partial payments allowed only if:
+  - paymentAgreement on invoice/customer allows partial
+  - amount > 0 and <= remaining
+- Submitting payment creates PaymentRequest = PENDING_CONFIRMATION.
+- Invoice balance does NOT change until finance confirms.
+
+1.4 Payment Confirmation & Receipt Voucher
+When finance confirms PaymentRequest:
+- Create ReceiptVoucher record
+- Allocate amount to invoice
+- Update:
+  - paidAmount
+  - remainingAmount
+  - status:
+    - if remaining > 0 => PARTIALLY_PAID
+    - if remaining == 0 => PAID then optionally CLOSED_ARCHIVED (configurable: auto close)
+- Generate Receipt Voucher PDF for customer download (A4)
+- Notify customer (in-app + email + SMS based on active channels and preferences)
+
+When finance rejects PaymentRequest:
+- set PaymentRequest = REJECTED with reason
+- do not change invoice amounts
+- notify customer
+
+========================================================
+2) UI/UX ENHANCEMENTS — MAKE IT A GUIDED JOURNEY
+2.1 Internal Finance Screens
+A) Invoice Queue: /finance/ar/invoices
+- Tabs:
+  - Draft (DRAFT)
+  - Pending Approval (PENDING_APPROVAL)
+  - Issued (ISSUED_POSTED)
+  - Partial (PARTIALLY_PAID)
+  - Paid/Closed (PAID, CLOSED_ARCHIVED)
+  - Voided (CANCELLED_VOIDED)
+- KPI widgets:
+  - awaiting approval count
+  - total outstanding
+  - overdue count
+- Filters:
+  - date range, customer, status, invoice no, order no, shipment no, amount range
+
+B) Invoice Detail: /finance/ar/invoices/:id
+Top “Invoice Journey Stepper” (very clear):
+- Generated → Approved → Issued → Payment Submitted → Confirmed → Paid → Closed
+Each step shows timestamp + user.
+Add “What happens next” panel:
+- if DRAFT: “Send for approval”
+- if PENDING_APPROVAL: “Approve & Post”
+- if ISSUED: “Waiting for customer payment”
+- if payment pending: “Confirm/Reject payment”
+
+C) Payment Approval Queue: /finance/payment-approvals
+- List PaymentRequests with proof attachments, amount, invoice link
+- Actions: Confirm / Reject (reason required)
+
+2.2 Customer Portal Screens
+A) Invoices list: /portal/invoices
+- Columns: Invoice No, Date, Due, Total, Paid, Remaining, Status
+- Remaining MUST be visible and emphasized (badge or progress bar)
+- Filter by status + date + search
+
+B) Invoice detail: /portal/invoices/:id
+Must show:
+- Status badge (Unpaid/Partial/Paid)
+- Payment progress bar (Paid vs Remaining)
+- “Invoice journey” stepper (Issued → Payment Submitted → Confirmed → Paid)
+- Download Invoice PDF (A4 with ZATCA QR)
+- Payment section:
+  - Pay full / Pay partial (if allowed)
+  - Upload proof + reference
+  - Show payment requests history with status and timestamps
+- Receipts section:
+  - list of confirmed Receipt Vouchers with download links
+
+C) Receipts list: /portal/receipts
+- Each receipt linked to invoice, amount, date, method
+- Download Receipt PDF
+
+2.3 Unified “Order-to-Invoice” Linking
+On Order Journey page (internal + portal):
+- Add “Billing” block:
+  - Invoice status + remaining
+  - link to invoice
+  - link to receipts (if any)
+This makes the order → delivery → invoice → payment chain obvious.
+
+========================================================
+3) EVENTS + LOGS (MANDATORY)
+Create InvoiceEvent and PaymentEvent (append-only) and show them in timelines.
+- InvoiceEvent: created, sent for approval, approved/posted, issued to customer, pdf generated, closed, voided
+- PaymentEvent: submitted, confirmed, rejected, receipt generated
+
+Add a stitched “Finance Journey” timeline on invoice detail page.
+
+========================================================
+4) PDF OUTPUTS (MANDATORY)
+- Invoice PDF A4 with full details + ZATCA QR (tags 1–5 TLV base64 minimum).
+- Receipt Voucher PDF A4 as proof of payment.
+Both should include:
+- invoice/receipt number, dates, customer name/address, VAT/CR if needed, amounts, currency, and company details.
+
+========================================================
+5) REPORTS CENTER (MANDATORY) — COVER ALL APP SECTIONS
+Create a unified Reports module: /reports with navigation cards + filters.
+Reports must cover:
+A) Products
+- product list, sellable/producible, pricing, recipe cost per unit, active recipe versions
+
+B) Customers
+- customer list with CR/Tax, city, license expiry (if enabled), documents summary
+
+C) Orders
+- order volume by status, on-time performance, average lead time, cancellations
+
+D) Production/Batches
+- batches by stage, yield, QC lead time, holds/rejections, utilization
+
+E) Quality/QP
+- QC pass rate, failure reasons, release lead time
+
+F) Dispensing
+- dose units produced/dispensed per day, blocked batches count
+
+G) Shipments/Logistics
+- shipments dispatched/delivered, delays, OTIF, POD completion rate
+
+H) Finance
+- AR aging, payments received, outstanding by customer, invoice cycle time
+- receipts report (confirmed payments)
+- currency exposure report (if multi-currency display enabled)
+
+Report UX:
+- Each report has filters (date range, customer, product, status)
+- Export to CSV and PDF
+- Each report row clickable to drill-down list page with filters applied (deep links)
+
+========================================================
+6) DB/PRISMA (MANDATORY)
+Ensure/extend models:
+- Invoice: status, totals, paid, remaining, postedAt, issuedAt, closedAt, triggerSource (DELIVERED/DISPATCHED/etc.)
+- InvoiceEvent (append-only)
+- PaymentRequest: status, amount, method, reference, proofUrl, submittedBy, submittedAt
+- PaymentEvent (append-only)
+- ReceiptVoucher: receiptNo, invoiceId, amount, confirmedBy, confirmedAt, pdfUrl
+- ReportSavedView (optional): userId, reportKey, filtersJson
+
+========================================================
+7) NOTIFICATIONS (MANDATORY)
+Trigger customer notifications:
+- Invoice Issued
+- Payment Submitted
+- Payment Confirmed/Rejected
+- Invoice Fully Paid
+Send in-app always; email/SMS only if channel enabled and user opted-in.
+
+========================================================
+8) ACCEPTANCE CRITERIA
+- Customer sees only ISSUED/POSTED (and later) invoices.
+- Invoice detail clearly shows the journey and the next step.
+- Payments do not affect invoice until finance confirms.
+- Receipt voucher is generated only on confirmation and visible in portal.
+- Fully paid invoice becomes PAID and can be closed/archived for reference.
+- Reports section covers Products, Customers, Orders, Batches, QC/QP, Dispensing, Shipments, Invoices, Payments with export and drill-down links.

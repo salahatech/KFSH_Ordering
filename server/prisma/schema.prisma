@@ -38,6 +38,8 @@ model User {
   submittedPaymentRequests PaymentRequest[] @relation("PaymentRequestSubmitter")
   reviewedPaymentRequests  PaymentRequest[] @relation("PaymentRequestReviewer")
   confirmedReceipts        ReceiptVoucher[] @relation("ReceiptConfirmer")
+  approvedInvoices         Invoice[]        @relation("InvoiceApprover")
+  invoiceEvents            InvoiceEvent[]   @relation("InvoiceEventUser")
   preference               UserPreference?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -1015,12 +1017,21 @@ model ContractPriceItem {
 
 enum InvoiceStatus {
   DRAFT
-  SENT
-  PAID
+  PENDING_APPROVAL
+  ISSUED_POSTED
   PARTIALLY_PAID
+  PAID
+  CLOSED_ARCHIVED
+  CANCELLED_VOIDED
   OVERDUE
-  CANCELLED
   DISPUTED
+}
+
+enum InvoiceGenerationTrigger {
+  ON_DELIVERED
+  ON_DISPATCHED
+  ON_QP_RELEASED
+  MANUAL_ONLY
 }
 
 model Invoice {
@@ -1031,6 +1042,7 @@ model Invoice {
   contractId          String?
   contract            Contract?     @relation(fields: [contractId], references: [id])
   orderId             String?
+  shipmentId          String?
   invoiceDate         DateTime      @default(now())
   dueDate             DateTime
   subtotal            Float         @default(0)
@@ -1045,11 +1057,18 @@ model Invoice {
   allowPartialPayment Boolean       @default(true)
   minInstallmentAmount Float?
   status              InvoiceStatus @default(DRAFT)
+  triggerSource       InvoiceGenerationTrigger?
+  postedAt            DateTime?
+  issuedAt            DateTime?
+  closedAt            DateTime?
+  approvedByUserId    String?
+  approvedBy          User?         @relation("InvoiceApprover", fields: [approvedByUserId], references: [id])
   notes               String?
   items               InvoiceItem[]
   payments            Payment[]
   paymentRequests     PaymentRequest[]
   receiptVouchers     ReceiptVoucher[]
+  events              InvoiceEvent[]
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
@@ -1057,6 +1076,36 @@ model Invoice {
   @@index([status])
   @@index([dueDate])
   @@index([orderId])
+  @@index([shipmentId])
+}
+
+model InvoiceEvent {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  eventType   String
+  description String?
+  userId      String?
+  user        User?    @relation("InvoiceEventUser", fields: [userId], references: [id])
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([invoiceId])
+  @@index([eventType])
+}
+
+model PaymentEvent {
+  id               String   @id @default(uuid())
+  paymentRequestId String?
+  receiptVoucherId String?
+  eventType        String
+  description      String?
+  userId           String?
+  metadata         Json?
+  createdAt        DateTime @default(now())
+
+  @@index([paymentRequestId])
+  @@index([receiptVoucherId])
 }
 
 model InvoiceItem {
