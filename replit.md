@@ -44,6 +44,8 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
 - **Attachment System**: File attachments for all major entities (Orders, Batches, Shipments, Invoices, Contracts, Products) with admin-configurable file types, 5MB limit, server-side validation, dangerous file blocking, authenticated downloads, and GMP-compliant audit logging for all attachment operations.
 - **Notification Center**: Centralized notification management page with pagination, filtering by read/unread status and notification type, click-to-navigate to related records (Orders, Batches, Shipments, etc.), and bulk mark-as-read functionality.
 - **Role Management**: Admin page to view, create, and edit user roles with permission assignment, supporting full RBAC configuration.
+- **E-Signature Framework**: GMP-compliant electronic signatures with 8 scopes (BATCH_RELEASE, QC_APPROVAL, DEVIATION_APPROVAL, MASTERDATA_CHANGE, RECIPE_ACTIVATION, PO_APPROVAL, FINANCIAL_APPROVAL, DISPENSING_APPROVAL), server-side meaning validation, and immutability enforcement with audit logging.
+- **Master Data Management - Recipes/BOM**: Material master data (12 categories), Recipe versioning (DRAFT → PENDING_APPROVAL → ACTIVE → SUPERSEDED), BOM components with quantities/tolerances, process steps with quality checkpoints, and e-signature activation workflow.
 
 ## External Dependencies
 - **PostgreSQL**: Primary database for all application data.
