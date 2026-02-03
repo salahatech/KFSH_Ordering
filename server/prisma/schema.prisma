@@ -1563,3 +1563,468 @@ model Attachment {
   
   @@index([entityType, entityId])
 }
+
+// ==================== PROCUREMENT & SUPPLY CHAIN ====================
+
+enum SupplierStatus {
+  ACTIVE
+  ON_HOLD
+  BLOCKED
+}
+
+model Supplier {
+  id              String         @id @default(uuid())
+  code            String         @unique
+  name            String
+  nameAr          String?
+  email           String?
+  phone           String?
+  mobile          String?
+  website         String?
+  
+  // Tax & Financial
+  taxNumber       String?
+  vatNumber       String?
+  crNumber        String?        // Commercial Registration
+  
+  // Bank Information
+  bankName        String?
+  bankBranch      String?
+  bankAccountName String?
+  bankAccountNumber String?
+  bankIban        String?
+  bankSwift       String?
+  
+  // Address
+  address         String?
+  city            String?
+  region          String?
+  country         String?
+  postalCode      String?
+  
+  // Terms
+  paymentTermsDays Int           @default(30)
+  currencyCode    String         @default("SAR")
+  
+  status          SupplierStatus @default(ACTIVE)
+  notes           String?
+  
+  contacts        SupplierContact[]
+  documents       SupplierDocument[]
+  rfqQuotes       RFQQuote[]
+  purchaseOrders  PurchaseOrder[]
+  grns            GoodsReceivedNote[]
+  invoices        SupplierInvoice[]
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model SupplierContact {
+  id          String   @id @default(uuid())
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  name        String
+  title       String?
+  email       String?
+  phone       String?
+  mobile      String?
+  isPrimary   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum SupplierDocType {
+  CONTRACT
+  LICENSE
+  CERTIFICATE
+  TAX_CERT
+  INSURANCE
+  QUALITY_CERT
+  OTHER
+}
+
+model SupplierDocument {
+  id          String          @id @default(uuid())
+  supplierId  String
+  supplier    Supplier        @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  docType     SupplierDocType
+  docName     String
+  fileName    String
+  filePath    String
+  mimeType    String
+  fileSizeBytes Int
+  expiryDate  DateTime?
+  notes       String?
+  uploadedById String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+// Request for Quotation
+enum RFQStatus {
+  DRAFT
+  SENT
+  QUOTES_RECEIVED
+  EVALUATED
+  APPROVED
+  CANCELLED
+  EXPIRED
+}
+
+model RFQ {
+  id              String     @id @default(uuid())
+  rfqNumber       String     @unique
+  title           String
+  description     String?
+  
+  requiredByDate  DateTime?
+  validUntilDate  DateTime?
+  
+  status          RFQStatus  @default(DRAFT)
+  
+  // Source info (optional)
+  sourceType      String?    // MANUAL, PRODUCTION_DEMAND, REORDER
+  sourceId        String?
+  
+  notes           String?
+  
+  items           RFQItem[]
+  quotes          RFQQuote[]
+  selectedQuoteId String?
+  
+  createdById     String
+  approvedById    String?
+  approvedAt      DateTime?
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model RFQItem {
+  id              String   @id @default(uuid())
+  rfqId           String
+  rfq             RFQ      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  
+  itemCode        String
+  itemName        String
+  description     String?
+  quantity        Float
+  unit            String   @default("EA")
+  
+  specifications  String?
+  
+  quoteItems      RFQQuoteItem[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model RFQQuote {
+  id              String   @id @default(uuid())
+  rfqId           String
+  rfq             RFQ      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  supplierId      String
+  supplier        Supplier @relation(fields: [supplierId], references: [id])
+  
+  quoteNumber     String?
+  quoteDate       DateTime @default(now())
+  validUntilDate  DateTime?
+  leadTimeDays    Int?
+  
+  totalAmount     Decimal  @db.Decimal(12, 2)
+  currencyCode    String   @default("SAR")
+  
+  paymentTerms    String?
+  deliveryTerms   String?
+  notes           String?
+  
+  isSelected      Boolean  @default(false)
+  
+  items           RFQQuoteItem[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([rfqId, supplierId])
+}
+
+model RFQQuoteItem {
+  id              String      @id @default(uuid())
+  quoteId         String
+  quote           RFQQuote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  rfqItemId       String
+  rfqItem         RFQItem     @relation(fields: [rfqItemId], references: [id])
+  
+  unitPrice       Decimal     @db.Decimal(12, 4)
+  quantity        Float
+  totalPrice      Decimal     @db.Decimal(12, 2)
+  
+  leadTimeDays    Int?
+  notes           String?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+// Purchase Orders
+enum POStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SENT
+  ACKNOWLEDGED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CLOSED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id              String     @id @default(uuid())
+  poNumber        String     @unique
+  supplierId      String
+  supplier        Supplier   @relation(fields: [supplierId], references: [id])
+  
+  // Source (optional - from RFQ)
+  rfqId           String?
+  quoteId         String?
+  
+  orderDate       DateTime   @default(now())
+  expectedDate    DateTime?
+  
+  status          POStatus   @default(DRAFT)
+  
+  // Amounts
+  subtotal        Decimal    @db.Decimal(12, 2)
+  taxAmount       Decimal    @db.Decimal(12, 2) @default(0)
+  totalAmount     Decimal    @db.Decimal(12, 2)
+  currencyCode    String     @default("SAR")
+  
+  paymentTermsDays Int       @default(30)
+  deliveryTerms   String?
+  shippingAddress String?
+  
+  notes           String?
+  
+  items           PurchaseOrderItem[]
+  grns            GoodsReceivedNote[]
+  invoices        SupplierInvoice[]
+  threeWayMatches ThreeWayMatch[]
+  
+  createdById     String
+  approvedById    String?
+  approvedAt      DateTime?
+  sentAt          DateTime?
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model PurchaseOrderItem {
+  id              String         @id @default(uuid())
+  poId            String
+  purchaseOrder   PurchaseOrder  @relation(fields: [poId], references: [id], onDelete: Cascade)
+  
+  lineNumber      Int
+  itemCode        String
+  itemName        String
+  description     String?
+  
+  orderedQty      Float
+  receivedQty     Float          @default(0)
+  unit            String         @default("EA")
+  
+  unitPrice       Decimal        @db.Decimal(12, 4)
+  totalPrice      Decimal        @db.Decimal(12, 2)
+  
+  grnItems        GRNItem[]
+  invoiceItems    SupplierInvoiceItem[]
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+// Goods Received Note (Receiving)
+enum GRNStatus {
+  DRAFT
+  PENDING_QC
+  APPROVED
+  PARTIALLY_APPROVED
+  REJECTED
+}
+
+model GoodsReceivedNote {
+  id              String     @id @default(uuid())
+  grnNumber       String     @unique
+  
+  poId            String
+  purchaseOrder   PurchaseOrder @relation(fields: [poId], references: [id])
+  supplierId      String
+  supplier        Supplier   @relation(fields: [supplierId], references: [id])
+  
+  receivedDate    DateTime   @default(now())
+  deliveryNoteNumber String?
+  
+  status          GRNStatus  @default(DRAFT)
+  
+  notes           String?
+  
+  items           GRNItem[]
+  threeWayMatches ThreeWayMatch[]
+  
+  receivedById    String
+  approvedById    String?
+  approvedAt      DateTime?
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+enum GRNItemStatus {
+  QUARANTINE
+  RELEASED
+  REJECTED
+}
+
+model GRNItem {
+  id              String     @id @default(uuid())
+  grnId           String
+  grn             GoodsReceivedNote @relation(fields: [grnId], references: [id], onDelete: Cascade)
+  poItemId        String
+  poItem          PurchaseOrderItem @relation(fields: [poItemId], references: [id])
+  
+  receivedQty     Float
+  acceptedQty     Float      @default(0)
+  rejectedQty     Float      @default(0)
+  unit            String     @default("EA")
+  
+  // Lot tracking
+  lotNumber       String?
+  batchNumber     String?
+  expiryDate      DateTime?
+  manufacturingDate DateTime?
+  
+  // Storage location
+  warehouseId     String?
+  binLocation     String?
+  
+  status          GRNItemStatus @default(QUARANTINE)
+  
+  notes           String?
+  rejectionReason String?
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+// Supplier Invoices
+enum SupplierInvoiceStatus {
+  DRAFT
+  PENDING_MATCH
+  MATCHED
+  DISCREPANCY
+  PENDING_APPROVAL
+  APPROVED
+  POSTED
+  PAID
+  CANCELLED
+}
+
+model SupplierInvoice {
+  id              String     @id @default(uuid())
+  invoiceNumber   String     @unique
+  supplierInvoiceNumber String?
+  
+  supplierId      String
+  supplier        Supplier   @relation(fields: [supplierId], references: [id])
+  poId            String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [poId], references: [id])
+  
+  invoiceDate     DateTime
+  dueDate         DateTime?
+  
+  status          SupplierInvoiceStatus @default(DRAFT)
+  
+  // Amounts
+  subtotal        Decimal    @db.Decimal(12, 2)
+  taxAmount       Decimal    @db.Decimal(12, 2) @default(0)
+  totalAmount     Decimal    @db.Decimal(12, 2)
+  paidAmount      Decimal    @db.Decimal(12, 2) @default(0)
+  currencyCode    String     @default("SAR")
+  
+  notes           String?
+  
+  items           SupplierInvoiceItem[]
+  threeWayMatches ThreeWayMatch[]
+  
+  createdById     String
+  approvedById    String?
+  approvedAt      DateTime?
+  postedAt        DateTime?
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model SupplierInvoiceItem {
+  id              String          @id @default(uuid())
+  invoiceId       String
+  invoice         SupplierInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  poItemId        String?
+  poItem          PurchaseOrderItem? @relation(fields: [poItemId], references: [id])
+  
+  lineNumber      Int
+  itemCode        String
+  itemName        String
+  description     String?
+  
+  quantity        Float
+  unit            String          @default("EA")
+  unitPrice       Decimal         @db.Decimal(12, 4)
+  totalPrice      Decimal         @db.Decimal(12, 2)
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+// 3-Way Match
+enum MatchStatus {
+  PENDING
+  MATCHED
+  DISCREPANCY
+  APPROVED_WITH_OVERRIDE
+  REJECTED
+}
+
+model ThreeWayMatch {
+  id              String          @id @default(uuid())
+  matchNumber     String          @unique
+  
+  poId            String
+  purchaseOrder   PurchaseOrder   @relation(fields: [poId], references: [id])
+  grnId           String
+  grn             GoodsReceivedNote @relation(fields: [grnId], references: [id])
+  invoiceId       String
+  invoice         SupplierInvoice @relation(fields: [invoiceId], references: [id])
+  
+  status          MatchStatus     @default(PENDING)
+  
+  // Variance tracking
+  qtyVariance     Float           @default(0)
+  priceVariance   Decimal         @db.Decimal(12, 2) @default(0)
+  
+  // Override approval (when discrepancy approved)
+  overrideReason  String?
+  overrideById    String?
+  overrideAt      DateTime?
+  
+  matchedById     String?
+  matchedAt       DateTime?
+  
+  notes           String?
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
