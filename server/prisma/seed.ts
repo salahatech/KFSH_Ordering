@@ -2029,6 +2029,89 @@ async function main() {
     console.log(`Batch records already exist (${existingBatchRecords}), skipping...`);
   }
 
+  // ==================== PAYMENT REQUESTS DEMO DATA ====================
+  console.log('Creating Payment Request demo data...');
+  const existingPaymentRequests = await prisma.paymentRequest.count();
+  if (existingPaymentRequests === 0) {
+    const invoicesForPayments = await prisma.invoice.findMany({ 
+      include: { customer: true },
+      take: 5 
+    });
+    
+    if (invoicesForPayments.length > 0) {
+      const paymentMethods = ['BANK_TRANSFER', 'CREDIT_CARD', 'CASH', 'CHECK'];
+      const paymentRequestData = [
+        { 
+          invoice: invoicesForPayments[0], 
+          amount: Number(invoicesForPayments[0]?.totalAmount) * 0.5 || 5000,
+          status: 'PENDING_CONFIRMATION',
+          paymentMethod: 'BANK_TRANSFER',
+          referenceNumber: 'TRF-2026-001',
+          notes: 'Partial payment for invoice'
+        },
+        { 
+          invoice: invoicesForPayments[1] || invoicesForPayments[0], 
+          amount: Number(invoicesForPayments[1]?.totalAmount || invoicesForPayments[0]?.totalAmount) || 3500,
+          status: 'PENDING_CONFIRMATION',
+          paymentMethod: 'CREDIT_CARD',
+          referenceNumber: 'CC-2026-002',
+          notes: 'Full payment via credit card'
+        },
+        { 
+          invoice: invoicesForPayments[2] || invoicesForPayments[0], 
+          amount: 2500,
+          status: 'CONFIRMED',
+          paymentMethod: 'BANK_TRANSFER',
+          referenceNumber: 'TRF-2026-003',
+          notes: 'Payment confirmed by finance'
+        },
+        { 
+          invoice: invoicesForPayments[3] || invoicesForPayments[0], 
+          amount: 1500,
+          status: 'REJECTED',
+          paymentMethod: 'CHECK',
+          referenceNumber: 'CHK-2026-004',
+          notes: 'Check payment submitted',
+          rejectionReason: 'Check returned by bank - insufficient funds'
+        },
+        { 
+          invoice: invoicesForPayments[4] || invoicesForPayments[0], 
+          amount: 4200,
+          status: 'PENDING_CONFIRMATION',
+          paymentMethod: 'CASH',
+          referenceNumber: 'CASH-2026-005',
+          notes: 'Cash payment at office'
+        },
+      ];
+
+      for (const pr of paymentRequestData) {
+        if (!pr.invoice) continue;
+        await prisma.paymentRequest.create({
+          data: {
+            invoiceId: pr.invoice.id,
+            customerId: pr.invoice.customerId,
+            amount: pr.amount,
+            amountSAR: pr.amount,
+            currency: 'SAR',
+            paymentMethod: pr.paymentMethod,
+            referenceNumber: pr.referenceNumber,
+            notes: pr.notes,
+            status: pr.status as any,
+            submittedByUserId: adminUser.id,
+            reviewedAt: pr.status !== 'PENDING_CONFIRMATION' ? new Date() : null,
+            reviewedByUserId: pr.status !== 'PENDING_CONFIRMATION' ? adminUser.id : null,
+            rejectionReason: pr.rejectionReason,
+          },
+        });
+      }
+      console.log(`Created ${paymentRequestData.length} demo payment requests.`);
+    } else {
+      console.log('No invoices available for payment requests, skipping...');
+    }
+  } else {
+    console.log(`Payment requests already exist (${existingPaymentRequests}), skipping...`);
+  }
+
   // ==================== APPROVAL INBOX DEMO DATA ====================
   console.log('Creating Approval Inbox demo data...');
 
