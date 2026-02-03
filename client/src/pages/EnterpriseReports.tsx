@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
+import { format, subDays } from 'date-fns';
 import { 
   FileText, Boxes, Factory, ShoppingCart, ClipboardCheck, 
   Truck, Receipt, Building2, Package, Calendar, CreditCard, 
   Users, Filter, ChevronDown, ChevronRight, Search,
   FileSpreadsheet, File, X, Loader2, BarChart3, AlertCircle,
-  ArrowLeft, Download
+  ArrowLeft, TrendingUp, CheckCircle, Clock, PieChart as PieChartIcon
 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useToast } from '../components/ui/Toast';
 import { PageHeader } from '../components/shared';
+
+const CHART_COLORS = ['#2563eb', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 interface ReportCategory {
   id: string;
@@ -87,14 +91,22 @@ const CATEGORY_COLORS: Record<string, 'primary' | 'success' | 'warning' | 'dange
   audit: 'default',
 };
 
+type ViewMode = 'dashboard' | 'reports';
+
 export default function EnterpriseReports() {
   const toast = useToast();
+  const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(true);
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
+  
+  const [dateRange, setDateRange] = useState({
+    fromDate: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
+    toDate: format(new Date(), 'yyyy-MM-dd'),
+  });
 
   const { data: categories = [] } = useQuery<ReportCategory[]>({
     queryKey: ['report-categories'],
@@ -135,6 +147,51 @@ export default function EnterpriseReports() {
       return data;
     },
     enabled: !!selectedReport
+  });
+
+  const { data: dailyProduction } = useQuery({
+    queryKey: ['daily-production', dateRange],
+    queryFn: async () => {
+      const { data } = await api.get('/reports/daily-production', { params: dateRange });
+      return data;
+    },
+    enabled: viewMode === 'dashboard'
+  });
+
+  const { data: onTimeDelivery } = useQuery({
+    queryKey: ['on-time-delivery', dateRange],
+    queryFn: async () => {
+      const { data } = await api.get('/reports/on-time-delivery', { params: dateRange });
+      return data;
+    },
+    enabled: viewMode === 'dashboard'
+  });
+
+  const { data: qcPassRate } = useQuery({
+    queryKey: ['qc-pass-rate', dateRange],
+    queryFn: async () => {
+      const { data } = await api.get('/reports/qc-pass-rate', { params: dateRange });
+      return data;
+    },
+    enabled: viewMode === 'dashboard'
+  });
+
+  const { data: capacityUtilization } = useQuery({
+    queryKey: ['capacity-utilization', dateRange],
+    queryFn: async () => {
+      const { data } = await api.get('/reports/capacity-utilization', { params: dateRange });
+      return data;
+    },
+    enabled: viewMode === 'dashboard'
+  });
+
+  const { data: orderTurnaround } = useQuery({
+    queryKey: ['order-turnaround', dateRange],
+    queryFn: async () => {
+      const { data } = await api.get('/reports/order-turnaround', { params: dateRange });
+      return data;
+    },
+    enabled: viewMode === 'dashboard'
   });
 
   const groupedReports = reports.reduce((acc, report) => {
@@ -244,27 +301,253 @@ export default function EnterpriseReports() {
     <div>
       <PageHeader
         title="Enterprise Reporting Center"
-        subtitle="Generate and export comprehensive reports across all business areas"
-        actions={
-          selectedCategory && (
-            <button
-              className="btn btn-secondary"
-              onClick={() => {
-                setSelectedCategory(null);
-                setSelectedReport(null);
-              }}
-            >
-              <ArrowLeft size={16} />
-              All Categories
-            </button>
-          )
-        }
+        subtitle="Analytics dashboard and comprehensive reports across all business areas"
       />
 
-      {!selectedCategory ? (
+      <div style={{ 
+        display: 'flex', 
+        gap: '0.25rem', 
+        marginBottom: '1.5rem',
+        borderBottom: '1px solid var(--border)',
+        paddingBottom: '0'
+      }}>
+        <button
+          onClick={() => { setViewMode('dashboard'); setSelectedCategory(null); setSelectedReport(null); }}
+          style={{
+            padding: '0.75rem 1.25rem',
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            fontSize: '0.9375rem',
+            fontWeight: 500,
+            color: viewMode === 'dashboard' ? 'var(--primary)' : 'var(--text-muted)',
+            borderBottom: viewMode === 'dashboard' ? '2px solid var(--primary)' : '2px solid transparent',
+            marginBottom: '-1px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            transition: 'all 0.2s'
+          }}
+        >
+          <BarChart3 size={18} />
+          Analytics Dashboard
+        </button>
+        <button
+          onClick={() => { setViewMode('reports'); setSelectedCategory(null); setSelectedReport(null); }}
+          style={{
+            padding: '0.75rem 1.25rem',
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            fontSize: '0.9375rem',
+            fontWeight: 500,
+            color: viewMode === 'reports' ? 'var(--primary)' : 'var(--text-muted)',
+            borderBottom: viewMode === 'reports' ? '2px solid var(--primary)' : '2px solid transparent',
+            marginBottom: '-1px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            transition: 'all 0.2s'
+          }}
+        >
+          <FileText size={18} />
+          Report Categories
+        </button>
+      </div>
+
+      {viewMode === 'dashboard' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <Calendar size={18} style={{ color: 'var(--text-muted)' }} />
+              <input
+                type="date"
+                className="form-input"
+                style={{ width: 'auto', padding: '0.375rem 0.625rem' }}
+                value={dateRange.fromDate}
+                onChange={(e) => setDateRange({ ...dateRange, fromDate: e.target.value })}
+              />
+              <span style={{ color: 'var(--text-muted)' }}>to</span>
+              <input
+                type="date"
+                className="form-input"
+                style={{ width: 'auto', padding: '0.375rem 0.625rem' }}
+                value={dateRange.toDate}
+                onChange={(e) => setDateRange({ ...dateRange, toDate: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-4" style={{ marginBottom: '1.5rem' }}>
+            <div className="card stat-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <Truck size={20} color="var(--primary)" />
+                <span className="stat-label">On-Time Delivery</span>
+              </div>
+              <div className="stat-value">{onTimeDelivery?.onTimeRate || 0}%</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                {onTimeDelivery?.onTime || 0} of {onTimeDelivery?.totalDelivered || 0} deliveries
+              </div>
+            </div>
+
+            <div className="card stat-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <CheckCircle size={20} color="var(--success)" />
+                <span className="stat-label">QC Pass Rate</span>
+              </div>
+              <div className="stat-value">{qcPassRate?.passRate || 0}%</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                {qcPassRate?.passed || 0} passed, {qcPassRate?.failed || 0} failed
+              </div>
+            </div>
+
+            <div className="card stat-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <Clock size={20} color="var(--warning)" />
+                <span className="stat-label">Avg Turnaround</span>
+              </div>
+              <div className="stat-value">{orderTurnaround?.averageTurnaroundHours || 0}h</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Order to delivery
+              </div>
+            </div>
+
+            <div className="card stat-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <TrendingUp size={20} color="var(--info)" />
+                <span className="stat-label">Total Orders</span>
+              </div>
+              <div className="stat-value">{orderTurnaround?.totalOrders || 0}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Delivered in period
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-2" style={{ marginBottom: '1.5rem' }}>
+            <div className="card">
+              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+                <h3 style={{ fontWeight: 600, margin: 0 }}>Daily Production Summary</h3>
+              </div>
+              <div style={{ padding: '1.5rem', height: '300px' }}>
+                {dailyProduction?.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dailyProduction}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" tickFormatter={(val) => format(new Date(val), 'MMM dd')} />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="totalBatches" fill="#2563eb" name="Batches" />
+                      <Bar dataKey="totalOrders" fill="#22c55e" name="Orders" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
+                    No production data for this period
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="card">
+              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+                <h3 style={{ fontWeight: 600, margin: 0 }}>QC Pass Rate by Product</h3>
+              </div>
+              <div style={{ padding: '1.5rem', height: '300px' }}>
+                {qcPassRate?.byProduct && Object.keys(qcPassRate.byProduct).length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={Object.entries(qcPassRate.byProduct).map(([name, stats]: [string, any]) => ({
+                          name,
+                          value: stats.passed,
+                        }))}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }: { name: string; percent?: number }) => 
+                          `${name} (${((percent || 0) * 100).toFixed(0)}%)`
+                        }
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {Object.entries(qcPassRate.byProduct).map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
+                    No QC data for this period
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ fontWeight: 600, margin: 0 }}>Capacity Utilization</h3>
+            </div>
+            <div style={{ padding: 0 }}>
+              {capacityUtilization?.length > 0 ? (
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Equipment</th>
+                      <th>Type</th>
+                      <th>Batches</th>
+                      <th>Minutes Used</th>
+                      <th>Utilization</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {capacityUtilization.map((item: any) => (
+                      <tr key={item.equipment}>
+                        <td style={{ fontWeight: 500 }}>{item.equipment}</td>
+                        <td>{item.type}</td>
+                        <td>{item.batchCount}</td>
+                        <td>{item.minutesUsed.toFixed(0)} min</td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{
+                              width: '100px',
+                              height: '8px',
+                              background: 'var(--bg-tertiary)',
+                              borderRadius: '4px',
+                              overflow: 'hidden',
+                            }}>
+                              <div style={{
+                                width: `${item.utilizationPercent}%`,
+                                height: '100%',
+                                background: parseFloat(item.utilizationPercent) > 80 ? 'var(--success)' : 'var(--primary)',
+                                borderRadius: '4px',
+                              }} />
+                            </div>
+                            <span>{item.utilizationPercent}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No capacity data for this period
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewMode === 'reports' && !selectedCategory && (
         <div>
           <div className="card" style={{ padding: '2rem', marginBottom: '1.5rem', textAlign: 'center' }}>
-            <BarChart3 size={40} style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
+            <FileText size={40} style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
             <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>
               Select a Report Category
             </h2>
@@ -323,7 +606,9 @@ export default function EnterpriseReports() {
             })}
           </div>
         </div>
-      ) : (
+      )}
+
+      {viewMode === 'reports' && selectedCategory && (
         <div>
           <div style={{ 
             display: 'flex', 
@@ -333,6 +618,13 @@ export default function EnterpriseReports() {
             paddingBottom: '1rem',
             borderBottom: '1px solid var(--border)'
           }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => { setSelectedCategory(null); setSelectedReport(null); }}
+              style={{ padding: '0.375rem 0.625rem' }}
+            >
+              <ArrowLeft size={16} />
+            </button>
             {(() => {
               const Icon = CATEGORY_ICONS[selectedCategory] || FileText;
               return <Icon size={24} style={{ color: 'var(--primary)' }} />;

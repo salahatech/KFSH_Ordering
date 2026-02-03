@@ -1,0 +1,225 @@
+You are Replit AI acting as a Senior Internationalization (i18n) Engineer + ERP Settings Architect.
+
+Context:
+We have a RadioPharma OMS web app (internal portal + customer portal + driver portal) with:
+- default currency SAR
+- multi-module pages
+We must implement a full system to manage:
+1) Multi-language UI display (Arabic + additional languages) with admin-managed translations
+2) RTL/LTR handling for Arabic
+3) Default timezone + user timezone overrides
+4) Default currency SAR + user currency display preference
+5) Exchange rate management between currencies and SAR
+6) System-wide formatting for dates/numbers/money
+
+Goal:
+Make language, timezone, and currency consistent across the entire system and manageable via settings.
+
+========================================================
+1) LANGUAGE & TRANSLATION MANAGEMENT (MANDATORY)
+========================================================
+1.1 Supported Languages
+- Start with: EN, AR
+- Design to support future languages: FR, UR, etc.
+- Add Language master table:
+  - code (en, ar, fr)
+  - name
+  - isActive
+  - direction (LTR/RTL)
+
+1.2 Translation Strategy (Hybrid)
+We need TWO translation sources:
+A) Static UI translations (labels, buttons, generic UI text)
+- Use i18n library: i18next + react-i18next (recommended)
+- Store JSON translation bundles per language in /src/locales
+- Keys like:
+  common.save
+  orders.create.title
+  invoices.status.paid
+
+B) Admin-managed dynamic translations (content from DB)
+For any business data fields that must display in multiple languages:
+- Customer name, product name/description, payment terms, contract terms, report titles, notifications templates, dashboard widget titles, etc.
+Implement DB-level translations using a “Translatable Fields” model.
+
+1.3 DB Translation Model (MANDATORY)
+Option A (Generic translation table – recommended):
+Create table TranslationEntry:
+- id
+- entityType (PRODUCT, CUSTOMER, MATERIAL, UI_ELEMENT, TEMPLATE, REPORT_LABEL, etc.)
+- entityId (uuid/int)
+- fieldKey (name, description, address, terms, title, etc.)
+- langCode (en/ar/...)
+- value (text)
+- updatedAt, updatedBy
+
+Rules:
+- If translation missing in selected language, fallback to admin default language (usually EN).
+- Provide helper function getLocalized(entity, fieldKey, lang) with fallback.
+
+1.4 Admin Translation Management UI (MANDATORY)
+Create Admin pages:
+- /admin/languages
+  - enable/disable languages
+  - set system default language
+- /admin/translations
+  - filters: entityType, fieldKey, lang, search by entity name/id
+  - edit translation inline
+  - bulk import/export translations (Excel/CSV)
+  - translation completeness indicator (% complete)
+
+Also add per-entity editing:
+- Product edit page includes multilingual fields:
+  - Name (EN/AR)
+  - Description (EN/AR)
+- Customer edit page includes multilingual fields:
+  - Name EN/AR
+  - Full address EN/AR (optional)
+
+1.5 User Language Selection
+- Top bar language switcher (EN/AR)
+- Save preference in user profile:
+  - preferredLanguageCode
+- If user has no preference:
+  - use system default language (Admin setting)
+
+1.6 RTL Support (MANDATORY)
+- When language direction=RTL:
+  - set HTML dir="rtl"
+  - swap layout (sidebar alignment, text alignment)
+  - ensure tables and forms display properly in RTL
+- Keep numbers and IDs LTR inside RTL UI where appropriate.
+
+========================================================
+2) TIMEZONE MANAGEMENT (MANDATORY)
+========================================================
+2.1 Admin Default Timezone
+Create Admin setting:
+- systemDefaultTimezone (IANA, e.g., "Asia/Riyadh")
+
+UI:
+- /admin/settings/localization
+  - default language
+  - default timezone
+  - default currency (SAR locked as default, but still stored)
+  - toggles for user overrides
+
+2.2 User Timezone Preference
+User profile:
+- preferredTimezone (IANA)
+Top bar:
+- timezone switcher (optional; can be profile-only)
+
+Rules:
+- Store all timestamps in DB as UTC.
+- Display timestamps using:
+  - user timezone if set
+  - else system default timezone
+- Provide formatting helper:
+  formatDateTime(utcDate, userTz || systemTz)
+
+2.3 Scheduler/Planner Rules
+- Planner windows are configured in system default timezone.
+- When viewing planner:
+  - show both local display timezone and base timezone indicator.
+- Avoid mixing timezone logic in components; centralize.
+
+========================================================
+3) CURRENCY & EXCHANGE RATE MANAGEMENT (MANDATORY)
+========================================================
+3.1 Admin Default Currency
+- Default app currency = SAR (system base currency).
+- All accounting postings stored in SAR.
+- Allow multi-currency display and invoice currency.
+
+Admin settings:
+- baseCurrencyCode = "SAR" (non-editable)
+- enableMultiCurrencyDisplay (boolean)
+
+3.2 User Display Currency Preference
+User profile:
+- preferredCurrencyCode (e.g., SAR, USD, EUR)
+Top bar:
+- Currency switcher that updates display only (does not change accounting base)
+Rules:
+- If user selects currency C:
+  - display values converted from SAR using exchange rate
+  - always show SAR as secondary (optional toggle)
+
+3.3 Exchange Rate Table (MANDATORY)
+Create ExchangeRate table:
+- id
+- date (YYYY-MM-DD)
+- fromCurrencyCode (e.g., USD)
+- toCurrencyCode ("SAR")
+- rate (decimal)  // 1 USD = X SAR
+- source (MANUAL/API)
+- createdAt, createdBy
+Rules:
+- Rate lookup uses:
+  - exact date match else nearest previous date
+- Admin UI:
+  - /admin/exchange-rates
+    - add/edit rates
+    - bulk upload (Excel/CSV)
+    - validation (rate > 0)
+    - show gaps/missing days warning
+
+3.4 Invoice Currency Behavior
+Invoice fields:
+- invoiceCurrencyCode
+- fxRateToSAR (stored snapshot at issue date)
+- totals in invoice currency + totals in SAR
+Rules:
+- When invoice is issued:
+  - lock fxRateToSAR (snapshot) to avoid changes from future rates.
+- When displaying invoice in different user display currency:
+  - show:
+    - invoice currency totals
+    - SAR totals
+    - display currency converted totals (optional)
+
+========================================================
+4) GLOBAL FORMATTING HELPERS (MANDATORY)
+========================================================
+Implement shared utilities:
+- useLocalization() hook returns:
+  - language, direction, timezone, currency
+- formatMoney(amountSar, displayCurrency)
+- formatDateTime(utc, tz, lang)
+- formatNumber(value, lang)
+
+Ensure:
+- Arabic numerals option configurable (optional)
+- consistent decimal places for currency
+
+========================================================
+5) APPLY TO WHOLE APP (MANDATORY)
+========================================================
+Make sure these modules use localization helpers:
+- Orders, Products, Customers, Batches, QC, QP Release, Dispensing, Shipments, Invoices, Payments, Reports, Dashboard
+- PDFs:
+  - Invoice and Receipt PDFs must use system default language OR the customer user selected language (configurable)
+  - Show timezone in footer “Times shown in Asia/Riyadh” (or user tz)
+
+========================================================
+6) REPORTING EXPORTS (MANDATORY)
+========================================================
+Exports should respect:
+- selected language for headers (EN/AR)
+- timezone for timestamps
+- currency display (SAR + optional display currency columns)
+Add export options:
+- Export language: system default or current user language
+- Export timezone: system default or current user timezone
+
+========================================================
+7) ACCEPTANCE CRITERIA
+========================================================
+- Admin can set default language, timezone, and base currency (SAR) from settings.
+- User can switch language and currency from top bar; user preference saved.
+- UI labels appear in selected language; Arabic switches layout to RTL.
+- Master data (product/customer/etc.) supports translations; system displays correct value based on language.
+- All timestamps display in user timezone or default timezone; DB stores UTC.
+- Exchange rates are maintained by admin and used consistently for display and invoice snapshots.
+- No page has hardcoded language strings; everything is translated or falls back safely.
