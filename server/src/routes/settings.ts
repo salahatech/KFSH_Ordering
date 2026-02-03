@@ -6,6 +6,50 @@ import { createAuditLog } from '../middleware/audit.js';
 const router = Router();
 const prisma = new PrismaClient();
 
+router.get('/system', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    let settings = await prisma.systemSettings.findUnique({
+      where: { id: 'default' },
+    });
+    
+    if (!settings) {
+      settings = await prisma.systemSettings.create({
+        data: { id: 'default' },
+      });
+    }
+    
+    const defaultCurrency = await prisma.settingCurrency.findFirst({
+      where: { isDefault: true, isActive: true },
+    });
+    
+    res.json({
+      ...settings,
+      currency: defaultCurrency,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch system settings' });
+  }
+});
+
+router.put('/system', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { timezone, language, dateFormat, timeFormat, currencyCode, companyName, companyNameAr } = req.body;
+    
+    const oldSettings = await prisma.systemSettings.findUnique({ where: { id: 'default' } });
+    
+    const settings = await prisma.systemSettings.upsert({
+      where: { id: 'default' },
+      update: { timezone, language, dateFormat, timeFormat, currencyCode, companyName, companyNameAr },
+      create: { id: 'default', timezone, language, dateFormat, timeFormat, currencyCode, companyName, companyNameAr },
+    });
+    
+    await createAuditLog(req.user?.userId, 'UPDATE', 'SystemSettings', 'default', oldSettings, settings, req);
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update system settings' });
+  }
+});
+
 router.get('/countries', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const countries = await prisma.settingCountry.findMany({

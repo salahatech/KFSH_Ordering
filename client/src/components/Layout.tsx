@@ -85,6 +85,39 @@ const menuItems = [
   { path: '/audit', label: 'Audit Log', icon: FileText },
 ];
 
+interface SystemSettings {
+  timezone: string;
+  language: string;
+  dateFormat: string;
+  timeFormat: string;
+  currencyCode: string;
+  currency?: {
+    code: string;
+    symbol: string;
+    name: string;
+  };
+}
+
+const TIMEZONE_ABBR: Record<string, string> = {
+  'Asia/Riyadh': 'AST',
+  'Asia/Dubai': 'GST',
+  'Asia/Kuwait': 'AST',
+  'Asia/Bahrain': 'AST',
+  'Asia/Qatar': 'AST',
+  'Europe/London': 'GMT',
+  'Europe/Paris': 'CET',
+  'America/New_York': 'EST',
+  'America/Los_Angeles': 'PST',
+  'UTC': 'UTC',
+};
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  'en': 'EN',
+  'ar': 'AR',
+  'fr': 'FR',
+  'es': 'ES',
+};
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notificationOpen, setNotificationOpen] = useState(false);
@@ -95,6 +128,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const { user, logout } = useAuthStore();
 
+  const { data: systemSettings } = useQuery<SystemSettings>({
+    queryKey: ['system-settings'],
+    queryFn: async () => {
+      const { data } = await api.get('/settings/system');
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Update time every minute
   useEffect(() => {
     const timer = setInterval(() => {
@@ -102,6 +144,39 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     }, 60000);
     return () => clearInterval(timer);
   }, []);
+
+  const getFormattedTime = () => {
+    if (!systemSettings?.timezone) return format(currentTime, 'HH:mm');
+    try {
+      return currentTime.toLocaleTimeString('en-US', {
+        timeZone: systemSettings.timezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+    } catch {
+      return format(currentTime, 'HH:mm');
+    }
+  };
+
+  const getFormattedDate = () => {
+    if (!systemSettings?.timezone) return format(currentTime, 'EEE, MMM d, yyyy');
+    try {
+      return currentTime.toLocaleDateString('en-US', {
+        timeZone: systemSettings.timezone,
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    } catch {
+      return format(currentTime, 'EEE, MMM d, yyyy');
+    }
+  };
+
+  const timezoneAbbr = systemSettings?.timezone ? (TIMEZONE_ABBR[systemSettings.timezone] || systemSettings.timezone.split('/').pop()) : 'AST';
+  const languageCode = LANGUAGE_NAMES[systemSettings?.language || 'en'] || 'EN';
+  const currencyCode = systemSettings?.currency?.code || systemSettings?.currencyCode || 'SAR';
 
   const { data: notificationData } = useQuery({
     queryKey: ['notifications'],
@@ -290,7 +365,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             }}>
               <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
               <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
-                {format(currentTime, 'EEE, MMM d, yyyy')}
+                {getFormattedDate()}
               </span>
             </div>
             <div style={{ 
@@ -302,9 +377,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             }}>
               <Clock size={14} style={{ color: 'var(--text-muted)' }} />
               <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
-                {format(currentTime, 'HH:mm')}
+                {getFormattedTime()}
               </span>
-              <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>AST</span>
+              <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>{timezoneAbbr}</span>
             </div>
             <div style={{ 
               display: 'flex', 
@@ -314,7 +389,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               borderRight: '1px solid var(--border)',
             }}>
               <Globe size={14} style={{ color: 'var(--text-muted)' }} />
-              <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>EN</span>
+              <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{languageCode}</span>
             </div>
             <div style={{ 
               display: 'flex', 
@@ -323,7 +398,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               padding: '0.25rem 0.625rem',
             }}>
               <DollarSign size={14} style={{ color: 'var(--text-muted)' }} />
-              <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>SAR</span>
+              <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{currencyCode}</span>
             </div>
           </div>
 

@@ -2089,6 +2089,19 @@ model SettingCurrency {
   updatedAt     DateTime @updatedAt
 }
 
+model SystemSettings {
+  id            String   @id @default("default")
+  timezone      String   @default("Asia/Riyadh")
+  language      String   @default("en")
+  dateFormat    String   @default("yyyy-MM-dd")
+  timeFormat    String   @default("HH:mm")
+  currencyCode  String   @default("SAR")
+  companyName   String?
+  companyNameAr String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 // ==================== ATTACHMENT SYSTEM ====================
 
 model AttachmentType {
