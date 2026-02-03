@@ -33,6 +33,9 @@ router.get('/overview', authenticateToken, async (req: AuthRequest, res: Respons
       qcQueue,
       qpQueue,
       logisticsQueue,
+      poApprovalQueue,
+      grnQcQueue,
+      manufacturingQueue,
       exceptions,
       capacityData,
       recentActivity,
@@ -43,6 +46,9 @@ router.get('/overview', authenticateToken, async (req: AuthRequest, res: Respons
       getQCQueue(),
       getQPQueue(),
       getLogisticsQueue(),
+      getPOApprovalQueue(),
+      getGRNQcQueue(),
+      getManufacturingQueue(),
       getExceptions(),
       getCapacityData(today, next7Days),
       getRecentActivity(20),
@@ -56,6 +62,9 @@ router.get('/overview', authenticateToken, async (req: AuthRequest, res: Respons
         qc: qcQueue,
         qp: qpQueue,
         logistics: logisticsQueue,
+        poApproval: poApprovalQueue,
+        grnQc: grnQcQueue,
+        manufacturing: manufacturingQueue,
       },
       exceptions,
       capacity: capacityData,
@@ -112,6 +121,12 @@ async function getKPIs(today: Date, tomorrow: Date) {
     shipmentsReadyToDispatch,
     shipmentsDelayed,
     deliveredToday,
+    poPendingApproval,
+    poSent,
+    grnPendingQC,
+    lowStockItems,
+    batchesInProduction,
+    batchRecordsInProgress,
   ] = await Promise.all([
     prisma.order.count({
       where: { deliveryDate: { gte: today, lt: tomorrow }, status: { notIn: ['DELIVERED', 'CANCELLED'] } },
@@ -140,6 +155,27 @@ async function getKPIs(today: Date, tomorrow: Date) {
         actualArrivalTime: { gte: today, lt: tomorrow },
       },
     }),
+    prisma.purchaseOrder.count({
+      where: { status: 'PENDING_APPROVAL' },
+    }),
+    prisma.purchaseOrder.count({
+      where: { status: 'SENT' },
+    }),
+    prisma.goodsReceivedNote.count({
+      where: { status: 'PENDING_QC' },
+    }),
+    prisma.stockItem.count({
+      where: { 
+        quantity: { lte: 10 },
+        status: 'AVAILABLE',
+      },
+    }),
+    prisma.batch.count({
+      where: { status: 'IN_PRODUCTION' },
+    }),
+    prisma.batchRecord.count({
+      where: { status: 'IN_PROGRESS' },
+    }),
   ]);
 
   return {
@@ -151,6 +187,12 @@ async function getKPIs(today: Date, tomorrow: Date) {
     shipmentsReadyToDispatch,
     shipmentsDelayed,
     deliveredToday,
+    poPendingApproval,
+    poSent,
+    grnPendingQC,
+    lowStockItems,
+    batchesInProduction,
+    batchRecordsInProgress,
   };
 }
 
@@ -235,6 +277,72 @@ async function getLogisticsQueue() {
     nextAction: shipment.status === 'DRAFT' ? 'Pack Shipment' : shipment.status === 'PACKED' ? 'Assign Driver' : 'Dispatch',
     isLate: shipment.expectedArrivalTime ? shipment.expectedArrivalTime < new Date() : false,
     linkTo: `/shipments/${shipment.id}`,
+  }));
+}
+
+async function getPOApprovalQueue() {
+  const pos = await prisma.purchaseOrder.findMany({
+    where: { status: 'PENDING_APPROVAL' },
+    include: { supplier: true },
+    orderBy: { createdAt: 'desc' },
+    take: 10,
+  });
+
+  return pos.map(po => ({
+    id: po.id,
+    identifier: po.poNumber,
+    title: po.supplier?.name || 'Unknown Supplier',
+    subtitle: `${Number(po.totalAmount).toLocaleString()} ${po.currencyCode}`,
+    eta: po.expectedDate,
+    status: po.status,
+    nextAction: 'Approve PO',
+    isLate: false,
+    linkTo: `/purchase-orders/${po.id}`,
+  }));
+}
+
+async function getGRNQcQueue() {
+  const grns = await prisma.goodsReceivedNote.findMany({
+    where: { status: 'PENDING_QC' },
+    include: { supplier: true, purchaseOrder: true },
+    orderBy: { receivedDate: 'desc' },
+    take: 10,
+  });
+
+  return grns.map((grn: any) => ({
+    id: grn.id,
+    identifier: grn.grnNumber,
+    title: grn.supplier?.name || 'Unknown Supplier',
+    subtitle: grn.purchaseOrder?.poNumber || 'No PO',
+    eta: grn.receivedDate,
+    status: grn.status,
+    nextAction: 'QC Inspection',
+    isLate: false,
+    linkTo: `/grn/${grn.id}`,
+  }));
+}
+
+async function getManufacturingQueue() {
+  const batchRecords = await prisma.batchRecord.findMany({
+    where: { status: 'IN_PROGRESS' },
+    include: { 
+      batch: { include: { product: true } },
+      recipe: true,
+    },
+    orderBy: { startedAt: 'asc' },
+    take: 10,
+  });
+
+  return batchRecords.map((br: any) => ({
+    id: br.id,
+    identifier: br.recordNumber || `eBR-${br.id.substring(0, 8)}`,
+    title: br.batch?.product?.name || 'Unknown Product',
+    subtitle: br.batch?.batchNumber || 'No Batch',
+    eta: br.startedAt,
+    status: br.status,
+    nextAction: 'Continue Production',
+    isLate: false,
+    linkTo: `/manufacturing/${br.id}`,
   }));
 }
 
@@ -642,7 +750,7 @@ router.get('/kpi-trends', authenticateToken, async (req: AuthRequest, res: Respo
       }),
       prisma.shipment.findMany({
         where: { createdAt: { gte: startDate } },
-        select: { id: true, status: true, scheduledDeliveryAt: true, actualDeliveryAt: true },
+        select: { id: true, status: true, scheduledDeliveryAt: true, actualArrivalTime: true },
       }),
       prisma.order.findMany({
         where: { createdAt: { gte: startDate } },
@@ -680,8 +788,8 @@ router.get('/kpi-trends', authenticateToken, async (req: AuthRequest, res: Respo
 
     const deliveredShipments = shipments.filter(s => s.status === 'DELIVERED');
     const onTimeDeliveries = deliveredShipments.filter(s => {
-      if (!s.scheduledDeliveryAt || !s.actualDeliveryAt) return true;
-      return new Date(s.actualDeliveryAt) <= new Date(s.scheduledDeliveryAt);
+      if (!s.scheduledDeliveryAt || !s.actualArrivalTime) return true;
+      return new Date(s.actualArrivalTime) <= new Date(s.scheduledDeliveryAt);
     });
     const otifPercent = deliveredShipments.length > 0
       ? Math.round((onTimeDeliveries.length / deliveredShipments.length) * 100)

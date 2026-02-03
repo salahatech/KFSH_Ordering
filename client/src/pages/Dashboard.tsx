@@ -12,6 +12,10 @@ import {
   Clock,
   CheckCircle,
   RefreshCw,
+  FileText,
+  Box,
+  Factory,
+  Warehouse,
 } from 'lucide-react';
 import { KpiCard } from '../components/shared';
 import {
@@ -83,8 +87,9 @@ export default function Dashboard() {
         isRefreshing={isFetching}
       />
 
-      {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+      {/* Orders & Production KPI Cards */}
+      <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase' }}>Orders & Production</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <KpiCard
           title="Due Today"
           value={dashboard?.kpis?.ordersDueToday || 0}
@@ -98,6 +103,13 @@ export default function Dashboard() {
           icon={<AlertTriangle size={20} />}
           color={dashboard?.kpis?.ordersLate > 0 ? 'danger' : undefined}
           linkTo="/orders?risk=high"
+        />
+        <KpiCard
+          title="In Production"
+          value={dashboard?.kpis?.batchesInProduction || 0}
+          icon={<Factory size={20} />}
+          color="info"
+          linkTo="/batches?status=IN_PRODUCTION"
         />
         <KpiCard
           title="Awaiting QC"
@@ -120,6 +132,11 @@ export default function Dashboard() {
           color="success"
           linkTo="/dispensing?ready=true"
         />
+      </div>
+
+      {/* Logistics KPI Cards */}
+      <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase' }}>Logistics</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <KpiCard
           title="Ready to Dispatch"
           value={dashboard?.kpis?.shipmentsReadyToDispatch || 0}
@@ -142,28 +159,78 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Procurement & Inventory KPI Cards */}
+      <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase' }}>Procurement & Inventory</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        <KpiCard
+          title="PO Pending Approval"
+          value={dashboard?.kpis?.poPendingApproval || 0}
+          icon={<FileText size={20} />}
+          color="warning"
+          linkTo="/purchase-orders?status=PENDING_APPROVAL"
+        />
+        <KpiCard
+          title="PO Sent"
+          value={dashboard?.kpis?.poSent || 0}
+          icon={<ShoppingCart size={20} />}
+          color="info"
+          linkTo="/purchase-orders?status=SENT"
+        />
+        <KpiCard
+          title="GRN Pending QC"
+          value={dashboard?.kpis?.grnPendingQC || 0}
+          icon={<Box size={20} />}
+          color="warning"
+          linkTo="/grn?status=PENDING_QC"
+        />
+        <KpiCard
+          title="Low Stock Items"
+          value={dashboard?.kpis?.lowStockItems || 0}
+          icon={<Warehouse size={20} />}
+          color={dashboard?.kpis?.lowStockItems > 0 ? 'danger' : undefined}
+          linkTo="/inventory?lowStock=true"
+        />
+        <KpiCard
+          title="eBR In Progress"
+          value={dashboard?.kpis?.batchRecordsInProgress || 0}
+          icon={<Factory size={20} />}
+          color="info"
+          linkTo="/manufacturing?status=IN_PROGRESS"
+        />
+      </div>
+
       {/* Journey Funnel */}
       <JourneyFunnelStepper
         title="End-to-End Order Journey"
         stages={journeyStages}
       />
 
-      {/* Work Queues */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+      {/* Work Queues - Production */}
+      <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase' }}>Work Queues - Production</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <QueueList
           title="Validation Queue"
           items={dashboard?.queues?.validation || []}
           viewAllLink="/orders?status=SUBMITTED"
-          maxItems={6}
+          maxItems={5}
           icon={<ClipboardCheck size={18} style={{ color: '#2563eb' }} />}
           accentColor="#2563eb"
           emptyMessage="No orders awaiting validation"
         />
         <QueueList
+          title="Manufacturing Queue"
+          items={dashboard?.queues?.manufacturing || []}
+          viewAllLink="/manufacturing?status=IN_PROGRESS"
+          maxItems={5}
+          icon={<Factory size={18} style={{ color: '#059669' }} />}
+          accentColor="#059669"
+          emptyMessage="No batch records in progress"
+        />
+        <QueueList
           title="QC Queue"
           items={dashboard?.queues?.qc || []}
           viewAllLink="/qc?status=QC_PENDING"
-          maxItems={6}
+          maxItems={5}
           icon={<FlaskConical size={18} style={{ color: '#d97706' }} />}
           accentColor="#d97706"
           emptyMessage="No batches awaiting QC"
@@ -172,16 +239,39 @@ export default function Dashboard() {
           title="QP Release Queue"
           items={dashboard?.queues?.qp || []}
           viewAllLink="/release?status=QC_PASSED"
-          maxItems={6}
+          maxItems={5}
           icon={<Shield size={18} style={{ color: '#7c3aed' }} />}
           accentColor="#7c3aed"
           emptyMessage="No batches awaiting QP release"
+        />
+      </div>
+
+      {/* Work Queues - Procurement & Logistics */}
+      <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase' }}>Work Queues - Procurement & Logistics</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        <QueueList
+          title="PO Approval Queue"
+          items={dashboard?.queues?.poApproval || []}
+          viewAllLink="/purchase-orders?status=PENDING_APPROVAL"
+          maxItems={5}
+          icon={<FileText size={18} style={{ color: '#ea580c' }} />}
+          accentColor="#ea580c"
+          emptyMessage="No POs awaiting approval"
+        />
+        <QueueList
+          title="GRN QC Queue"
+          items={dashboard?.queues?.grnQc || []}
+          viewAllLink="/grn?status=PENDING_QC"
+          maxItems={5}
+          icon={<Box size={18} style={{ color: '#0284c7' }} />}
+          accentColor="#0284c7"
+          emptyMessage="No GRNs awaiting QC"
         />
         <QueueList
           title="Logistics Queue"
           items={dashboard?.queues?.logistics || []}
           viewAllLink="/shipments?status=CREATED"
-          maxItems={6}
+          maxItems={5}
           icon={<Truck size={18} style={{ color: '#0891b2' }} />}
           accentColor="#0891b2"
           emptyMessage="No shipments pending"
