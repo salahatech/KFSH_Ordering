@@ -363,14 +363,14 @@ export default function EnterpriseReports() {
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          {!selectedReport ? (
+          {!selectedReport && !selectedCategory ? (
             <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
               <BarChart3 size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
               <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>
                 Select a Report
               </h2>
               <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
-                Choose a category from the sidebar to view available reports
+                Choose a category to view available reports
               </p>
               
               <div style={{ 
@@ -405,6 +405,114 @@ export default function EnterpriseReports() {
                   );
                 })}
               </div>
+            </div>
+          ) : !selectedReport && selectedCategory ? (
+            <div>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                marginBottom: '1.5rem' 
+              }}>
+                <div>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>
+                    {categories.find(c => c.id === selectedCategory)?.name || 'Reports'}
+                  </h2>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0.25rem 0 0 0' }}>
+                    Select a report to view data and export options
+                  </p>
+                </div>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setSelectedCategory(null)}
+                  style={{ fontSize: '0.8125rem' }}
+                >
+                  <X size={14} />
+                  Back to Categories
+                </button>
+              </div>
+
+              {(groupedReports[selectedCategory] || []).length === 0 ? (
+                <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
+                  <AlertCircle size={32} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
+                  <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem' }}>No Reports Available</h3>
+                  <p style={{ color: 'var(--text-muted)' }}>
+                    There are no reports in this category or you don't have access to them.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+                  gap: '1rem' 
+                }}>
+                  {(groupedReports[selectedCategory] || []).map(report => {
+                    const CategoryIcon = CATEGORY_ICONS[selectedCategory] || FileText;
+                    return (
+                      <button
+                        key={report.key}
+                        onClick={() => {
+                          setSelectedReport(report.key);
+                          setFilters({});
+                          setPage(1);
+                        }}
+                        className="card"
+                        style={{
+                          padding: '1.5rem',
+                          border: '1px solid var(--border)',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.2s',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.75rem',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--primary)';
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--border)';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{ 
+                            padding: '0.625rem', 
+                            borderRadius: '8px', 
+                            background: 'var(--primary-light, #eff6ff)',
+                            color: 'var(--primary)'
+                          }}>
+                            <CategoryIcon size={20} />
+                          </div>
+                          <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {report.name}
+                          </div>
+                        </div>
+                        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                          {report.description}
+                        </p>
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '0.5rem', 
+                          marginTop: 'auto',
+                          paddingTop: '0.75rem',
+                          borderTop: '1px solid var(--border)',
+                          fontSize: '0.75rem',
+                          color: 'var(--primary)'
+                        }}>
+                          <FileSpreadsheet size={14} />
+                          <span>View Report</span>
+                          <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ) : (
             <>
