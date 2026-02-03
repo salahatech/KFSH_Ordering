@@ -5,7 +5,7 @@ import api from '../../lib/api';
 import { 
   Bell, Mail, MessageSquare, Phone, ArrowLeft, Save, 
   CheckCircle, XCircle, Send, Settings, Power, AlertCircle,
-  FileText, RefreshCw
+  FileText, RefreshCw, Info
 } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
 
@@ -195,6 +195,14 @@ export default function NotificationChannels() {
                 When disabled, no {channelName.toLowerCase()} notifications will be sent
               </span>
             )}
+          </div>
+
+          <div style={{ padding: '0.75rem', background: 'var(--info-bg)', borderRadius: '6px', display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: 'var(--info)', marginBottom: '1rem', fontSize: '0.875rem' }}>
+            <Info size={16} style={{ marginTop: '0.125rem', flexShrink: 0 }} />
+            <span>
+              Credentials for {channelName} are securely managed through Replit integrations and never stored in the database. 
+              {isEmail ? ' Configure your Resend API key in the Replit secrets panel.' : ' Configure your Twilio credentials in the Replit secrets panel.'}
+            </span>
           </div>
 
           <div className="grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
