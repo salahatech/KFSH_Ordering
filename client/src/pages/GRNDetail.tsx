@@ -60,7 +60,7 @@ export default function GRNDetail() {
     queryKey: ['grn-audit', id],
     queryFn: async () => {
       const { data } = await api.get(`/audit?entityType=GoodsReceivingNote&entityId=${id}`);
-      return data;
+      return data.logs || [];
     },
     enabled: !!id,
   });
