@@ -80,6 +80,8 @@ import ManufacturingExecution from './pages/ManufacturingExecution';
 import OOSInvestigations from './pages/OOSInvestigations';
 import NotificationSettings from './pages/NotificationSettings';
 import QcTestDefinitions from './pages/admin/QcTestDefinitions';
+import ProductQcTemplate from './pages/ProductQcTemplate';
+import BatchQcSession from './pages/BatchQcSession';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -293,6 +295,8 @@ export default function App() {
                   <Route path="/admin/announcements/new" element={<AnnouncementForm />} />
                   <Route path="/admin/announcements/:id/edit" element={<AnnouncementForm />} />
                   <Route path="/admin/qc/test-definitions" element={<QcTestDefinitions />} />
+                  <Route path="/products/:productId/qc-template" element={<ProductQcTemplate />} />
+                  <Route path="/batches/:batchId/qc" element={<BatchQcSession />} />
                   <Route path="/notifications" element={<NotificationCenter />} />
                   <Route path="/me/notification-preferences" element={<MyNotificationPreferences />} />
                   <Route path="/roles" element={<Roles />} />
