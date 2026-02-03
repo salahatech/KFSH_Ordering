@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../components/ui/Toast';
 import ESignatureModal from '../components/ESignatureModal';
+import { KpiCard } from '../components/shared';
 
 const STATUSES = [
   { value: 'DRAFT', label: 'Draft', color: 'var(--text-muted)' },
@@ -324,27 +325,31 @@ export default function PurchaseOrders() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-          <div style={{ color: 'var(--primary)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><FileText size={16} /></div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{stats?.total || 0}</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Total POs</div>
-        </div>
-        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-          <div style={{ color: 'var(--warning)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><Clipboard size={16} /></div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{stats?.pendingApproval || 0}</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Pending Approval</div>
-        </div>
-        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-          <div style={{ color: 'var(--info)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><Send size={16} /></div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{stats?.sent || 0}</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Sent to Suppliers</div>
-        </div>
-        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-          <div style={{ color: 'var(--success)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><DollarSign size={16} /></div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{formatCurrency(Number(stats?.totalValue) || 0)}</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Total Value</div>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        <KpiCard 
+          title="Total POs" 
+          value={stats?.total || 0} 
+          icon={<FileText size={24} />}
+          color="primary"
+        />
+        <KpiCard 
+          title="Pending Approval" 
+          value={stats?.pendingApproval || 0} 
+          icon={<Clipboard size={24} />}
+          color="warning"
+        />
+        <KpiCard 
+          title="Sent to Suppliers" 
+          value={stats?.sent || 0} 
+          icon={<Send size={24} />}
+          color="info"
+        />
+        <KpiCard 
+          title="Total Value" 
+          value={formatCurrency(Number(stats?.totalValue) || 0)} 
+          icon={<DollarSign size={24} />}
+          color="success"
+        />
       </div>
 
       <div className="card">

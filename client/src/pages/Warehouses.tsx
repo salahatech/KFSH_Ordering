@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Warehouse, Plus, Search, MapPin, Thermometer, Package, Edit, Trash2, Eye, ChevronDown, ChevronUp } from 'lucide-react';
+import { Warehouse, Plus, Search, MapPin, Thermometer, Package, Edit, Trash2, Eye, ChevronDown, ChevronUp, CheckCircle, Wrench, Grid } from 'lucide-react';
 import api from '../lib/api';
+import { KpiCard } from '../components/shared';
 
 interface WarehouseLocation {
   id: string;
@@ -299,30 +300,38 @@ export default function Warehouses() {
         </button>
       </div>
 
-      {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary)' }}>{stats.total}</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total</div>
-          </div>
-          <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#22c55e' }}>{stats.active}</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Active</div>
-          </div>
-          <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#f59e0b' }}>{stats.maintenance}</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Maintenance</div>
-          </div>
-          <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#6366f1' }}>{stats.totalLocations}</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Locations</div>
-          </div>
-          <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#0ea5e9' }}>{stats.totalStockItems}</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Stock Items</div>
-          </div>
-        </div>
-      )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        <KpiCard 
+          title="Total Warehouses" 
+          value={stats?.total || 0} 
+          icon={<Warehouse size={24} />}
+          color="primary"
+        />
+        <KpiCard 
+          title="Active" 
+          value={stats?.active || 0} 
+          icon={<CheckCircle size={24} />}
+          color="success"
+        />
+        <KpiCard 
+          title="Maintenance" 
+          value={stats?.maintenance || 0} 
+          icon={<Wrench size={24} />}
+          color="warning"
+        />
+        <KpiCard 
+          title="Locations" 
+          value={stats?.totalLocations || 0} 
+          icon={<Grid size={24} />}
+          color="info"
+        />
+        <KpiCard 
+          title="Stock Items" 
+          value={stats?.totalStockItems || 0} 
+          icon={<Package size={24} />}
+          color="default"
+        />
+      </div>
 
       <div className="card">
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>

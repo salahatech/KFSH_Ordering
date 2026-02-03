@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Package, Search, ArrowLeftRight, TrendingUp, TrendingDown, AlertTriangle, Clock, Eye, Filter } from 'lucide-react';
+import { Package, Search, ArrowLeftRight, TrendingUp, TrendingDown, AlertTriangle, Clock, Eye, Filter, CheckCircle, AlertOctagon } from 'lucide-react';
 import api from '../lib/api';
+import { KpiCard } from '../components/shared';
 
 interface Material {
   id: string;
@@ -280,30 +281,38 @@ export default function Inventory() {
         </div>
       </div>
 
-      {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary)' }}>{stats.totalItems}</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total Items</div>
-          </div>
-          <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#22c55e' }}>{stats.available}</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Available</div>
-          </div>
-          <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#f59e0b' }}>{stats.quarantine}</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Quarantine</div>
-          </div>
-          <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#ef4444' }}>{stats.lowStockCount}</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Low Stock</div>
-          </div>
-          <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#8b5cf6' }}>{stats.expiringSoon}</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Expiring Soon</div>
-          </div>
-        </div>
-      )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        <KpiCard 
+          title="Total Items" 
+          value={stats?.totalItems || 0} 
+          icon={<Package size={24} />}
+          color="primary"
+        />
+        <KpiCard 
+          title="Available" 
+          value={stats?.available || 0} 
+          icon={<CheckCircle size={24} />}
+          color="success"
+        />
+        <KpiCard 
+          title="Quarantine" 
+          value={stats?.quarantine || 0} 
+          icon={<AlertOctagon size={24} />}
+          color="warning"
+        />
+        <KpiCard 
+          title="Low Stock" 
+          value={stats?.lowStockCount || 0} 
+          icon={<AlertTriangle size={24} />}
+          color="danger"
+        />
+        <KpiCard 
+          title="Expiring Soon" 
+          value={stats?.expiringSoon || 0} 
+          icon={<Clock size={24} />}
+          color="info"
+        />
+      </div>
 
       <div className="card">
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>

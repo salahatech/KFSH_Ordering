@@ -3,9 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import {
   Plus, Search, Edit2, Eye, X, User, Mail, Phone,
-  MapPin, FileText, ShoppingCart, Check, AlertCircle
+  MapPin, FileText, ShoppingCart, Check, AlertCircle, Ban
 } from 'lucide-react';
 import { useToast } from '../components/ui/Toast';
+import { KpiCard } from '../components/shared';
 
 const STATUSES = [
   { value: 'ACTIVE', label: 'Active', color: 'var(--success)' },
@@ -238,27 +239,31 @@ export default function Suppliers() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-          <div style={{ color: 'var(--primary)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><User size={16} /></div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{stats?.total || 0}</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Total Suppliers</div>
-        </div>
-        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-          <div style={{ color: 'var(--success)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><Check size={16} /></div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{stats?.active || 0}</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Active</div>
-        </div>
-        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-          <div style={{ color: 'var(--warning)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><AlertCircle size={16} /></div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{stats?.onHold || 0}</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>On Hold</div>
-        </div>
-        <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-          <div style={{ color: 'var(--error)', fontSize: '1.5rem', marginBottom: '0.5rem' }}><X size={16} /></div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{stats?.blocked || 0}</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Blocked</div>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        <KpiCard 
+          title="Total Suppliers" 
+          value={stats?.total || 0} 
+          icon={<User size={24} />}
+          color="primary"
+        />
+        <KpiCard 
+          title="Active" 
+          value={stats?.active || 0} 
+          icon={<Check size={24} />}
+          color="success"
+        />
+        <KpiCard 
+          title="On Hold" 
+          value={stats?.onHold || 0} 
+          icon={<AlertCircle size={24} />}
+          color="warning"
+        />
+        <KpiCard 
+          title="Blocked" 
+          value={stats?.blocked || 0} 
+          icon={<Ban size={24} />}
+          color="danger"
+        />
       </div>
 
       <div className="card">

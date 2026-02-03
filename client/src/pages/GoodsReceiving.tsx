@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Package, Plus, Search, Eye, Check, X, Send, FileText, ClipboardCheck } from 'lucide-react';
+import { Package, Plus, Search, Eye, Check, X, Send, FileText, ClipboardCheck, Clock, Calendar } from 'lucide-react';
 import api from '../lib/api';
+import { KpiCard } from '../components/shared';
 
 interface POItem {
   id: string;
@@ -309,30 +310,38 @@ export default function GoodsReceiving() {
         </button>
       </div>
 
-      {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary)' }}>{stats.total}</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total</div>
-          </div>
-          <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#94a3b8' }}>{stats.draft}</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Draft</div>
-          </div>
-          <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#f59e0b' }}>{stats.pendingQC}</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Pending QC</div>
-          </div>
-          <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#22c55e' }}>{stats.approved}</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Approved</div>
-          </div>
-          <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#0ea5e9' }}>{stats.receivedToday}</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Today</div>
-          </div>
-        </div>
-      )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        <KpiCard 
+          title="Total GRNs" 
+          value={stats?.total || 0} 
+          icon={<Package size={24} />}
+          color="primary"
+        />
+        <KpiCard 
+          title="Draft" 
+          value={stats?.draft || 0} 
+          icon={<FileText size={24} />}
+          color="default"
+        />
+        <KpiCard 
+          title="Pending QC" 
+          value={stats?.pendingQC || 0} 
+          icon={<Clock size={24} />}
+          color="warning"
+        />
+        <KpiCard 
+          title="Approved" 
+          value={stats?.approved || 0} 
+          icon={<Check size={24} />}
+          color="success"
+        />
+        <KpiCard 
+          title="Today" 
+          value={stats?.receivedToday || 0} 
+          icon={<Calendar size={24} />}
+          color="info"
+        />
+      </div>
 
       <div className="card">
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
