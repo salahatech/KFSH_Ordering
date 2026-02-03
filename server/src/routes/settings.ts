@@ -544,4 +544,106 @@ router.delete('/currencies/:id', authenticateToken, requireRole('Admin'), async 
   }
 });
 
+// Invoice Generation Trigger Configuration
+router.get('/invoice-trigger', authenticateToken, requireRole('Admin', 'Finance'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const config = await prisma.systemConfig.findFirst({
+      where: { key: 'INVOICE_GENERATION_TRIGGER' },
+    });
+    res.json({
+      trigger: config?.value || 'ON_DELIVERED',
+      options: [
+        { value: 'ON_DELIVERED', label: 'On Shipment Delivered', description: 'Generate invoice when shipment is marked as delivered (default)' },
+        { value: 'ON_DISPATCHED', label: 'On Shipment Dispatched', description: 'Generate invoice when shipment is dispatched' },
+        { value: 'ON_QP_RELEASED', label: 'On QP Release', description: 'Generate invoice when batch is QP released' },
+        { value: 'MANUAL_ONLY', label: 'Manual Only', description: 'Only generate invoices manually' },
+      ],
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch invoice trigger configuration' });
+  }
+});
+
+router.put('/invoice-trigger', authenticateToken, requireRole('Admin', 'Finance'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { trigger } = req.body;
+    const validTriggers = ['ON_DELIVERED', 'ON_DISPATCHED', 'ON_QP_RELEASED', 'MANUAL_ONLY'];
+    
+    if (!validTriggers.includes(trigger)) {
+      res.status(400).json({ error: 'Invalid trigger value' });
+      return;
+    }
+
+    const existing = await prisma.systemConfig.findFirst({
+      where: { key: 'INVOICE_GENERATION_TRIGGER' },
+    });
+
+    if (existing) {
+      await prisma.systemConfig.update({
+        where: { id: existing.id },
+        data: { value: trigger },
+      });
+    } else {
+      await prisma.systemConfig.create({
+        data: {
+          key: 'INVOICE_GENERATION_TRIGGER',
+          value: trigger,
+          description: 'Determines when invoices are automatically generated',
+        },
+      });
+    }
+
+    await createAuditLog(req.user?.userId, 'UPDATE', 'SystemConfig', 'INVOICE_GENERATION_TRIGGER',
+      { trigger: existing?.value }, { trigger }, req);
+
+    res.json({ success: true, trigger });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update invoice trigger configuration' });
+  }
+});
+
+// Invoice Auto-Close Configuration
+router.get('/invoice-auto-close', authenticateToken, requireRole('Admin', 'Finance'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const config = await prisma.systemConfig.findFirst({
+      where: { key: 'INVOICE_AUTO_CLOSE_ON_PAID' },
+    });
+    res.json({ autoClose: config?.value === 'true' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch auto-close configuration' });
+  }
+});
+
+router.put('/invoice-auto-close', authenticateToken, requireRole('Admin', 'Finance'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { autoClose } = req.body;
+
+    const existing = await prisma.systemConfig.findFirst({
+      where: { key: 'INVOICE_AUTO_CLOSE_ON_PAID' },
+    });
+
+    if (existing) {
+      await prisma.systemConfig.update({
+        where: { id: existing.id },
+        data: { value: autoClose ? 'true' : 'false' },
+      });
+    } else {
+      await prisma.systemConfig.create({
+        data: {
+          key: 'INVOICE_AUTO_CLOSE_ON_PAID',
+          value: autoClose ? 'true' : 'false',
+          description: 'Automatically close invoices when fully paid',
+        },
+      });
+    }
+
+    await createAuditLog(req.user?.userId, 'UPDATE', 'SystemConfig', 'INVOICE_AUTO_CLOSE_ON_PAID',
+      { autoClose: existing?.value }, { autoClose }, req);
+
+    res.json({ success: true, autoClose });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update auto-close configuration' });
+  }
+});
+
 export default router;

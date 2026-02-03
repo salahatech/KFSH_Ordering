@@ -367,6 +367,104 @@ router.post('/:id/deliver', authenticateToken, requireRole('Admin', 'Production 
     await createAuditLog(req.user?.userId, 'DELIVER', 'Shipment', shipment.id, null,
       { receiverName, activityAtDelivery: totalActivityAtDelivery }, req);
 
+    // Auto-generate invoice based on trigger configuration
+    try {
+      const triggerConfig = await prisma.systemConfig.findFirst({
+        where: { key: 'INVOICE_GENERATION_TRIGGER' },
+      });
+      const triggerValue = triggerConfig?.value || 'ON_DELIVERED';
+
+      if (triggerValue === 'ON_DELIVERED') {
+        // Check if invoice already exists for this shipment
+        const existingInvoice = await prisma.invoice.findFirst({
+          where: { shipmentId: shipment.id },
+        });
+
+        if (!existingInvoice) {
+          const user = (req as any).user;
+          const taxRate = 15; // Default VAT rate
+
+          // Get customer contract for pricing
+          const contract = await prisma.contract.findFirst({
+            where: {
+              customerId: shipment.customerId,
+              status: 'ACTIVE',
+              startDate: { lte: new Date() },
+              endDate: { gte: new Date() },
+            },
+            include: { priceItems: true },
+          });
+
+          // Fetch orders with products
+          const orders = await prisma.order.findMany({
+            where: { shipmentId: shipment.id },
+            include: { product: true, doseUnits: { where: { status: 'DISPENSED' } } },
+          });
+
+          const items = orders.map(order => {
+            const contractPrice = contract?.priceItems.find(p => p.productId === order.productId);
+            const unitPrice = contractPrice?.unitPrice || 100;
+            const quantity = order.doseUnits?.length || order.requestedActivity;
+            const discountPercent = contractPrice?.discountPercent || 0;
+            const lineTotal = quantity * unitPrice * (1 - discountPercent / 100);
+
+            return {
+              orderId: order.id,
+              description: `${order.product.name} - Order ${order.orderNumber}`,
+              productId: order.productId,
+              quantity,
+              unitPrice,
+              discountPercent,
+              taxPercent: taxRate,
+              lineTotal,
+            };
+          });
+
+          const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
+          const taxAmount = subtotal * (taxRate / 100);
+          const discountAmount = contract ? subtotal * (contract.discountPercent / 100) : 0;
+          const totalAmount = subtotal + taxAmount - discountAmount;
+
+          const invoiceNumber = `INV-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+          const invoice = await prisma.invoice.create({
+            data: {
+              invoiceNumber,
+              customerId: shipment.customerId,
+              contractId: contract?.id || null,
+              shipmentId: shipment.id,
+              invoiceDate: new Date(),
+              dueDate: new Date(Date.now() + (contract?.paymentTermsDays || 30) * 24 * 60 * 60 * 1000),
+              subtotal,
+              taxAmount,
+              discountAmount,
+              totalAmount,
+              remainingAmount: totalAmount,
+              paidAmount: 0,
+              status: 'DRAFT',
+              triggerSource: 'ON_DELIVERED',
+              items: { create: items },
+            },
+          });
+
+          await prisma.invoiceEvent.create({
+            data: {
+              invoiceId: invoice.id,
+              eventType: 'INVOICE_CREATED_FROM_DELIVERY',
+              description: `Invoice auto-generated from shipment ${shipment.shipmentNumber} delivery`,
+              userId: user?.id,
+              metadata: { shipmentId: shipment.id, triggerSource: 'ON_DELIVERED' },
+            },
+          });
+
+          console.log(`Auto-generated invoice ${invoice.invoiceNumber} for shipment ${shipment.shipmentNumber}`);
+        }
+      }
+    } catch (invoiceError) {
+      console.error('Failed to auto-generate invoice on delivery:', invoiceError);
+      // Don't fail the delivery if invoice generation fails
+    }
+
     res.json(updatedShipment);
   } catch (error) {
     res.status(500).json({ error: 'Failed to confirm delivery' });

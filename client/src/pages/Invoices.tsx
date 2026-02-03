@@ -69,9 +69,9 @@ export default function Invoices() {
   });
 
   const { data: summary } = useQuery({
-    queryKey: ['invoices', 'summary'],
+    queryKey: ['invoices', 'stats'],
     queryFn: async () => {
-      const { data } = await api.get('/invoices/summary');
+      const { data } = await api.get('/invoices/stats');
       return data;
     },
   });
@@ -99,9 +99,27 @@ export default function Invoices() {
     notes: '',
   });
 
-  const sendMutation = useMutation({
+  const submitForApprovalMutation = useMutation({
     mutationFn: async (id: string) => {
-      return api.put(`/invoices/${id}/send`);
+      return api.put(`/invoices/${id}/submit-for-approval`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    },
+  });
+
+  const approvePostMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return api.put(`/invoices/${id}/approve-post`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    },
+  });
+
+  const closeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return api.put(`/invoices/${id}/close`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
@@ -126,7 +144,7 @@ export default function Invoices() {
 
   const cancelMutation = useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
-      return api.put(`/invoices/${id}/cancel`, { reason });
+      return api.put(`/invoices/${id}/void`, { reason });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
@@ -152,11 +170,13 @@ export default function Invoices() {
   const getStatusColor = (status: string): string => {
     const colors: Record<string, string> = {
       DRAFT: 'default',
-      SENT: 'warning',
+      PENDING_APPROVAL: 'warning',
+      ISSUED_POSTED: 'info',
       PAID: 'success',
       PARTIALLY_PAID: 'warning',
+      CLOSED_ARCHIVED: 'success',
+      CANCELLED_VOIDED: 'danger',
       OVERDUE: 'danger',
-      CANCELLED: 'danger',
       DISPUTED: 'danger',
     };
     return colors[status] || 'default';
@@ -360,9 +380,10 @@ export default function Invoices() {
 
   const customerOrders = deliveredOrders?.filter((o: any) => o.customerId === createForm.customerId) || [];
 
-  const paidCount = invoices?.filter((i: any) => i.status === 'PAID').length || 0;
-  const sentCount = invoices?.filter((i: any) => i.status === 'SENT').length || 0;
+  const paidCount = invoices?.filter((i: any) => i.status === 'PAID' || i.status === 'CLOSED_ARCHIVED').length || 0;
+  const issuedCount = invoices?.filter((i: any) => i.status === 'ISSUED_POSTED').length || 0;
   const draftCount = invoices?.filter((i: any) => i.status === 'DRAFT').length || 0;
+  const pendingApprovalCount = invoices?.filter((i: any) => i.status === 'PENDING_APPROVAL').length || 0;
 
   if (isLoading) {
     return (
@@ -390,10 +411,12 @@ export default function Invoices() {
           >
             <option value="">All Statuses</option>
             <option value="DRAFT">Draft</option>
-            <option value="SENT">Sent</option>
-            <option value="PAID">Paid</option>
+            <option value="PENDING_APPROVAL">Pending Approval</option>
+            <option value="ISSUED_POSTED">Issued</option>
             <option value="PARTIALLY_PAID">Partially Paid</option>
-            <option value="OVERDUE">Overdue</option>
+            <option value="PAID">Paid</option>
+            <option value="CLOSED_ARCHIVED">Closed</option>
+            <option value="CANCELLED_VOIDED">Voided</option>
           </select>
           <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
             <Plus size={16} /> Generate Invoice
@@ -402,34 +425,42 @@ export default function Invoices() {
       </div>
 
       {summary && (
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
           <KpiCard 
-            title="Total Invoiced" 
-            value={`$${(summary.totalAmount / 1000)?.toFixed(1) || '0'}k`}
-            icon={<Receipt size={20} />}
+            title="Pending Approval" 
+            value={summary.pendingApproval || pendingApprovalCount}
+            icon={<Clock size={20} />}
+            color="warning"
+            onClick={() => setStatusFilter('PENDING_APPROVAL')}
+            selected={statusFilter === 'PENDING_APPROVAL'}
+          />
+          <KpiCard 
+            title="Issued" 
+            value={summary.issued || issuedCount}
+            icon={<Send size={20} />}
+            color="info"
+            onClick={() => setStatusFilter('ISSUED_POSTED')}
+            selected={statusFilter === 'ISSUED_POSTED'}
+          />
+          <KpiCard 
+            title="Outstanding" 
+            value={`SAR ${((summary.outstanding || 0) / 1000)?.toFixed(1)}k`}
+            icon={<DollarSign size={20} />}
             color="primary"
             onClick={() => setStatusFilter('')}
             selected={!statusFilter}
           />
           <KpiCard 
-            title="Total Paid" 
-            value={`$${(summary.totalPaid / 1000)?.toFixed(1) || '0'}k`}
-            icon={<TrendingUp size={20} />}
+            title="Paid" 
+            value={summary.paid || paidCount}
+            icon={<CheckCircle size={20} />}
             color="success"
             onClick={() => setStatusFilter('PAID')}
             selected={statusFilter === 'PAID'}
           />
           <KpiCard 
-            title="Outstanding" 
-            value={`$${(summary.totalOutstanding / 1000)?.toFixed(1) || '0'}k`}
-            icon={<Clock size={20} />}
-            color="warning"
-            onClick={() => setStatusFilter('SENT')}
-            selected={statusFilter === 'SENT'}
-          />
-          <KpiCard 
             title="Overdue" 
-            value={summary.byStatus?.overdue || 0}
+            value={summary.overdue || 0}
             icon={<AlertCircle size={20} />}
             color="danger"
             onClick={() => setStatusFilter('OVERDUE')}
@@ -523,14 +554,24 @@ export default function Invoices() {
                         {invoice.status === 'DRAFT' && (
                           <button
                             className="btn btn-sm btn-primary"
-                            onClick={() => sendMutation.mutate(invoice.id)}
-                            disabled={sendMutation.isPending}
-                            title="Send Invoice"
+                            onClick={() => submitForApprovalMutation.mutate(invoice.id)}
+                            disabled={submitForApprovalMutation.isPending}
+                            title="Submit for Approval"
                           >
                             <Send size={14} />
                           </button>
                         )}
-                        {['SENT', 'PARTIALLY_PAID'].includes(invoice.status) && (
+                        {invoice.status === 'PENDING_APPROVAL' && (
+                          <button
+                            className="btn btn-sm btn-success"
+                            onClick={() => approvePostMutation.mutate(invoice.id)}
+                            disabled={approvePostMutation.isPending}
+                            title="Approve & Post"
+                          >
+                            <CheckCircle size={14} />
+                          </button>
+                        )}
+                        {['ISSUED_POSTED', 'PARTIALLY_PAID'].includes(invoice.status) && (
                           <button
                             className="btn btn-sm btn-secondary"
                             style={{ background: 'rgba(34, 197, 94, 0.1)', color: 'var(--success)', border: 'none' }}

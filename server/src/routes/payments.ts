@@ -176,6 +176,29 @@ router.post('/:id/confirm', authenticateToken, requireRole('Admin', 'Finance'), 
         },
       });
 
+      // Create payment event
+      await tx.paymentEvent.create({
+        data: {
+          paymentRequestId: id,
+          receiptVoucherId: receiptVoucher.id,
+          eventType: 'PAYMENT_CONFIRMED',
+          description: `Payment of ${request.amount} ${request.currency} confirmed`,
+          userId: user.id,
+          metadata: { receiptNumber, amount: request.amount },
+        },
+      });
+
+      // Create invoice event
+      await tx.invoiceEvent.create({
+        data: {
+          invoiceId: request.invoiceId,
+          eventType: 'PAYMENT_RECEIVED',
+          description: `Payment of ${request.amount} ${request.currency} received and confirmed`,
+          userId: user.id,
+          metadata: { receiptNumber, amount: request.amount, newPaidAmount },
+        },
+      });
+
       return { updatedRequest, receiptVoucher };
     });
 
@@ -230,6 +253,17 @@ router.post('/:id/reject', authenticateToken, requireRole('Admin', 'Finance'), a
         action: 'REJECT',
         userId: user.id,
         newValues: { status: 'REJECTED', reason },
+      },
+    });
+
+    // Create payment event for rejection
+    await prisma.paymentEvent.create({
+      data: {
+        paymentRequestId: id,
+        eventType: 'PAYMENT_REJECTED',
+        description: `Payment of ${request.amount} rejected: ${reason}`,
+        userId: user.id,
+        metadata: { reason, amount: request.amount },
       },
     });
 

@@ -46,6 +46,14 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
   - Portal pages display customer context (e.g., "Ordering as: [Customer Name]")
 
 ## Recent Changes (2026-02-03)
+- **Invoice Approval Workflow**: Complete Finance/Admin invoice workflow enhancement:
+  - New InvoiceStatus state machine: DRAFT → PENDING_APPROVAL → ISSUED_POSTED → PARTIALLY_PAID → PAID → CLOSED_ARCHIVED (+ CANCELLED_VOIDED)
+  - InvoiceEvent model for append-only audit trail with userId, eventType, description, metadata
+  - PaymentEvent model for payment lifecycle audit logging
+  - Backend APIs: submit-for-approval, approve-post, close, void with role-based access
+  - Auto-invoice generation on shipment delivery via INVOICE_GENERATION_TRIGGER config
+  - Frontend Invoice page with new KPIs (Pending Approval, Issued, Outstanding, Paid, Overdue)
+  - Status-based action buttons for workflow transitions
 - **Dashboard Bug Fix**: Fixed `getJourneyCounts` function using incorrect data source for batch KPIs (was using shipmentStatusCounts instead of batchStatusCounts)
 - **Vite Config**: Added strictPort to ensure consistent port 5000 binding
 
