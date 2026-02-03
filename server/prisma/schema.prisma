@@ -72,6 +72,10 @@ model User {
   notificationChannelUpdates NotificationChannelConfig[] @relation("NotificationChannelUpdatedBy")
   notificationPreference     UserNotificationPreference? @relation("UserNotificationPreference")
   
+  announcementsCreated       Announcement[]              @relation("AnnouncementCreatedBy")
+  announcementAudiences      AnnouncementAudience[]      @relation("AnnouncementAudienceUser")
+  announcementDeliveries     AnnouncementDelivery[]      @relation("AnnouncementDeliveryUser")
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -162,6 +166,7 @@ model Customer {
   invoices            Invoice[]
   paymentRequests     PaymentRequest[]
   receiptVouchers     ReceiptVoucher[]
+  announcementAudiences AnnouncementAudience[]
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }
@@ -3083,4 +3088,97 @@ model ZatcaLog {
   @@index([action])
   @@index([invoiceId])
   @@index([createdAt])
+}
+
+// ==================== ANNOUNCEMENTS ====================
+
+enum AnnouncementSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AnnouncementPublishMode {
+  IMMEDIATE
+  SCHEDULED
+}
+
+enum AnnouncementAudienceType {
+  ROLE
+  CUSTOMER
+  USER
+}
+
+enum AnnouncementStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  EXPIRED
+}
+
+model Announcement {
+  id              String                    @id @default(uuid())
+  title           String
+  body            String                    @db.Text
+  severity        AnnouncementSeverity      @default(INFO)
+  publishMode     AnnouncementPublishMode   @default(IMMEDIATE)
+  status          AnnouncementStatus        @default(DRAFT)
+  startAt         DateTime?
+  endAt           DateTime?
+  isPublished     Boolean                   @default(false)
+  createdById     String
+  createdBy       User                      @relation("AnnouncementCreatedBy", fields: [createdById], references: [id])
+  audiences       AnnouncementAudience[]
+  deliveries      AnnouncementDelivery[]
+  sendEmail       Boolean                   @default(false)
+  sendSms         Boolean                   @default(false)
+  sendWhatsapp    Boolean                   @default(false)
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@index([status])
+  @@index([isPublished])
+  @@index([startAt])
+  @@index([endAt])
+  @@index([severity])
+}
+
+model AnnouncementAudience {
+  id              String                    @id @default(uuid())
+  announcementId  String
+  announcement    Announcement              @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  audienceType    AnnouncementAudienceType
+  roleCode        String?
+  customerId      String?
+  customer        Customer?                 @relation(fields: [customerId], references: [id])
+  userId          String?
+  user            User?                     @relation("AnnouncementAudienceUser", fields: [userId], references: [id])
+  createdAt       DateTime                  @default(now())
+
+  @@index([announcementId])
+  @@index([audienceType])
+  @@index([roleCode])
+  @@index([customerId])
+  @@index([userId])
+}
+
+model AnnouncementDelivery {
+  id              String        @id @default(uuid())
+  announcementId  String
+  announcement    Announcement  @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User          @relation("AnnouncementDeliveryUser", fields: [userId], references: [id])
+  deliveredAt     DateTime      @default(now())
+  isRead          Boolean       @default(false)
+  readAt          DateTime?
+  isDismissed     Boolean       @default(false)
+  dismissedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([announcementId, userId])
+  @@index([announcementId])
+  @@index([userId])
+  @@index([isRead])
+  @@index([isDismissed])
 }
