@@ -30,6 +30,7 @@ import {
   Settings,
   CreditCard,
   Check,
+  Shield,
 } from 'lucide-react';
 
 interface Notification {
@@ -62,6 +63,7 @@ const menuItems = [
   { path: '/payments', label: 'Payment Approvals', icon: CreditCard },
   { path: '/reports', label: 'Reports', icon: BarChart3 },
   { path: '/users', label: 'Users', icon: Users },
+  { path: '/roles', label: 'Roles', icon: Shield },
   { path: '/settings', label: 'Settings', icon: Settings },
   { path: '/audit', label: 'Audit Log', icon: FileText },
 ];

@@ -30,6 +30,27 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
 
 /**
  * @swagger
+ * /permissions:
+ *   get:
+ *     summary: Get all permissions
+ *     tags: [Roles]
+ *     responses:
+ *       200:
+ *         description: List of permissions
+ */
+router.get('/permissions/all', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const permissions = await prisma.permission.findMany({
+      orderBy: { name: 'asc' },
+    });
+    res.json(permissions);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch permissions' });
+  }
+});
+
+/**
+ * @swagger
  * /roles/{id}:
  *   get:
  *     summary: Get role by ID
@@ -131,27 +152,6 @@ router.put('/:id', authenticateToken, requireRole('Admin'), async (req: Request,
     res.json(role);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update role' });
-  }
-});
-
-/**
- * @swagger
- * /permissions:
- *   get:
- *     summary: Get all permissions
- *     tags: [Roles]
- *     responses:
- *       200:
- *         description: List of permissions
- */
-router.get('/permissions/all', authenticateToken, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const permissions = await prisma.permission.findMany({
-      orderBy: { name: 'asc' },
-    });
-    res.json(permissions);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch permissions' });
   }
 });
 
