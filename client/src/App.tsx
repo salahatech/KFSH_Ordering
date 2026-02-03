@@ -58,6 +58,7 @@ import Warehouses from './pages/Warehouses';
 import GoodsReceiving from './pages/GoodsReceiving';
 import Inventory from './pages/Inventory';
 import ManufacturingExecution from './pages/ManufacturingExecution';
+import OOSInvestigations from './pages/OOSInvestigations';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -224,6 +225,7 @@ export default function App() {
                   <Route path="/grn" element={<GoodsReceiving />} />
                   <Route path="/inventory" element={<Inventory />} />
                   <Route path="/manufacturing" element={<ManufacturingExecution />} />
+                  <Route path="/oos-investigations" element={<OOSInvestigations />} />
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/orders/new" element={<OrderForm />} />
                   <Route path="/orders/:id" element={<OrderForm />} />
