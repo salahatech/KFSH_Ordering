@@ -53,6 +53,9 @@ import notificationChannelRoutes from './routes/notificationChannels.js';
 import localizationRoutes from './routes/localization.js';
 import zatcaRoutes from './routes/zatca.js';
 import announcementRoutes from './routes/announcements.js';
+import qcTestDefinitionRoutes from './routes/qcTestDefinitions.js';
+import productQcTemplateRoutes from './routes/productQcTemplates.js';
+import batchQcSessionRoutes from './routes/batchQcSession.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -113,6 +116,9 @@ app.use('/api/notification-channels', notificationChannelRoutes);
 app.use('/api/localization', localizationRoutes);
 app.use('/api/zatca', zatcaRoutes);
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/qc/test-definitions', qcTestDefinitionRoutes);
+app.use('/api/products/:productId/qc-templates', productQcTemplateRoutes);
+app.use('/api/batches/:batchId/qc-session', batchQcSessionRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
