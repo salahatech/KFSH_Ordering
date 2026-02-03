@@ -1,8 +1,13 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Warehouse, Plus, Search, MapPin, Thermometer, Package, Edit, Trash2, Eye, ChevronDown, ChevronUp, CheckCircle, Wrench, Grid } from 'lucide-react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { 
+  Warehouse as WarehouseIcon, Plus, Search, MapPin, Thermometer, Package, Edit2, Trash2, 
+  X, CheckCircle, Wrench, Grid, Filter, Droplets, AlertTriangle, Atom, FlaskConical
+} from 'lucide-react';
 import api from '../lib/api';
-import { KpiCard } from '../components/shared';
+import { KpiCard, EmptyState } from '../components/shared';
+import { useToast } from '../components/ui/Toast';
+import AttachmentPanel from '../components/AttachmentPanel';
 
 interface WarehouseLocation {
   id: string;
@@ -50,13 +55,13 @@ interface Stats {
 }
 
 const WAREHOUSE_TYPES = [
-  { value: 'RAW_MATERIALS', label: 'Raw Materials' },
-  { value: 'QUARANTINE', label: 'Quarantine' },
-  { value: 'PRODUCTION', label: 'Production' },
-  { value: 'FINISHED_GOODS', label: 'Finished Goods' },
-  { value: 'COLD_STORAGE', label: 'Cold Storage' },
-  { value: 'RADIOACTIVE', label: 'Radioactive' },
-  { value: 'WASTE', label: 'Waste' },
+  { value: 'RAW_MATERIALS', label: 'Raw Materials', color: '#3b82f6' },
+  { value: 'QUARANTINE', label: 'Quarantine', color: '#f59e0b' },
+  { value: 'PRODUCTION', label: 'Production', color: '#8b5cf6' },
+  { value: 'FINISHED_GOODS', label: 'Finished Goods', color: '#22c55e' },
+  { value: 'COLD_STORAGE', label: 'Cold Storage', color: '#06b6d4' },
+  { value: 'RADIOACTIVE', label: 'Radioactive', color: '#ef4444' },
+  { value: 'WASTE', label: 'Waste', color: '#6b7280' },
 ];
 
 const WAREHOUSE_STATUSES = [
@@ -65,20 +70,29 @@ const WAREHOUSE_STATUSES = [
   { value: 'MAINTENANCE', label: 'Maintenance', color: '#f59e0b' },
 ];
 
+const getTypeStyle = (type: string) => {
+  const t = WAREHOUSE_TYPES.find(wt => wt.value === type);
+  return { bg: `${t?.color}15`, color: t?.color || '#6b7280' };
+};
+
+const getStatusStyle = (status: string) => {
+  const s = WAREHOUSE_STATUSES.find(st => st.value === status);
+  return { bg: `${s?.color}20`, color: s?.color || '#6b7280' };
+};
+
 export default function Warehouses() {
-  const navigate = useNavigate();
-  const [warehouses, setWarehouses] = useState<WarehouseData[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedWarehouse, setSelectedWarehouse] = useState<WarehouseData | null>(null);
-  const [expandedWarehouse, setExpandedWarehouse] = useState<string | null>(null);
+  const [editingWarehouse, setEditingWarehouse] = useState<WarehouseData | null>(null);
+  const [detailWarehouse, setDetailWarehouse] = useState<WarehouseData | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<WarehouseLocation | null>(null);
+  const [editingLocation, setEditingLocation] = useState<WarehouseLocation | null>(null);
+
   const [formData, setFormData] = useState({
     code: '',
     name: '',
@@ -94,6 +108,7 @@ export default function Warehouses() {
     isRadioactive: false,
     requiresQC: true,
   });
+
   const [locationFormData, setLocationFormData] = useState({
     code: '',
     name: '',
@@ -107,60 +122,120 @@ export default function Warehouses() {
     isActive: true,
   });
 
-  useEffect(() => {
-    fetchData();
-  }, [statusFilter, typeFilter, search]);
+  const { data: stats } = useQuery<Stats>({
+    queryKey: ['warehouse-stats'],
+    queryFn: async () => {
+      const { data } = await api.get('/warehouses/stats');
+      return data;
+    },
+  });
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
+  const { data: warehouses = [], isLoading } = useQuery<WarehouseData[]>({
+    queryKey: ['warehouses', search, statusFilter, typeFilter],
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter) params.append('status', statusFilter);
       if (typeFilter) params.append('type', typeFilter);
       if (search) params.append('search', search);
-      
-      const [warehouseRes, statsRes] = await Promise.all([
-        api.get(`/warehouses?${params}`),
-        api.get('/warehouses/stats'),
-      ]);
-      
-      setWarehouses(warehouseRes.data);
-      setStats(statsRes.data);
-    } catch (error) {
-      console.error('Error fetching warehouses:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      const { data } = await api.get(`/warehouses?${params}`);
+      return data;
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (selectedWarehouse) {
-        await api.put(`/warehouses/${selectedWarehouse.id}`, formData);
-      } else {
-        await api.post('/warehouses', formData);
+  const { data: warehouseDetail } = useQuery<WarehouseData>({
+    queryKey: ['warehouse', detailWarehouse?.id],
+    queryFn: async () => {
+      const { data } = await api.get(`/warehouses/${detailWarehouse?.id}`);
+      return data;
+    },
+    enabled: !!detailWarehouse?.id,
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      if (editingWarehouse) {
+        return api.put(`/warehouses/${editingWarehouse.id}`, data);
       }
-      setShowModal(false);
-      resetForm();
-      fetchData();
-    } catch (error) {
-      console.error('Error saving warehouse:', error);
-    }
-  };
+      return api.post('/warehouses', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stats'] });
+      toast.success(editingWarehouse ? 'Warehouse updated' : 'Warehouse created');
+      handleCloseModal();
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error || 'Failed to save warehouse');
+    },
+  });
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this warehouse?')) return;
-    try {
-      await api.delete(`/warehouses/${id}`);
-      fetchData();
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to delete warehouse');
-    }
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => api.delete(`/warehouses/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stats'] });
+      toast.success('Warehouse deleted');
+      if (detailWarehouse) setDetailWarehouse(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error || 'Failed to delete warehouse');
+    },
+  });
+
+  const locationMutation = useMutation({
+    mutationFn: async (data: typeof locationFormData) => {
+      if (editingLocation) {
+        return api.put(`/warehouses/${detailWarehouse?.id}/locations/${editingLocation.id}`, data);
+      }
+      return api.post(`/warehouses/${detailWarehouse?.id}/locations`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouse', detailWarehouse?.id] });
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stats'] });
+      toast.success(editingLocation ? 'Location updated' : 'Location added');
+      setShowLocationModal(false);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error || 'Failed to save location');
+    },
+  });
+
+  const deleteLocationMutation = useMutation({
+    mutationFn: async (locationId: string) => api.delete(`/warehouses/${detailWarehouse?.id}/locations/${locationId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouse', detailWarehouse?.id] });
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stats'] });
+      toast.success('Location deleted');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error || 'Failed to delete location');
+    },
+  });
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingWarehouse(null);
+    setFormData({
+      code: '',
+      name: '',
+      nameAr: '',
+      type: 'RAW_MATERIALS',
+      status: 'ACTIVE',
+      description: '',
+      address: '',
+      temperatureMin: '',
+      temperatureMax: '',
+      humidityMin: '',
+      humidityMax: '',
+      isRadioactive: false,
+      requiresQC: true,
+    });
   };
 
   const handleEdit = (warehouse: WarehouseData) => {
-    setSelectedWarehouse(warehouse);
+    setEditingWarehouse(warehouse);
     setFormData({
       code: warehouse.code,
       name: warehouse.name,
@@ -179,38 +254,13 @@ export default function Warehouses() {
     setShowModal(true);
   };
 
-  const handleViewDetail = async (warehouse: WarehouseData) => {
-    try {
-      const res = await api.get(`/warehouses/${warehouse.id}`);
-      setSelectedWarehouse(res.data);
-      setShowDetailModal(true);
-    } catch (error) {
-      console.error('Error fetching warehouse details:', error);
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMutation.mutate(formData);
   };
 
-  const resetForm = () => {
-    setSelectedWarehouse(null);
-    setFormData({
-      code: '',
-      name: '',
-      nameAr: '',
-      type: 'RAW_MATERIALS',
-      status: 'ACTIVE',
-      description: '',
-      address: '',
-      temperatureMin: '',
-      temperatureMax: '',
-      humidityMin: '',
-      humidityMax: '',
-      isRadioactive: false,
-      requiresQC: true,
-    });
-  };
-
-  const handleAddLocation = (warehouse: WarehouseData) => {
-    setSelectedWarehouse(warehouse);
-    setSelectedLocation(null);
+  const handleAddLocation = () => {
+    setEditingLocation(null);
     setLocationFormData({
       code: '',
       name: '',
@@ -226,9 +276,8 @@ export default function Warehouses() {
     setShowLocationModal(true);
   };
 
-  const handleEditLocation = (warehouse: WarehouseData, location: WarehouseLocation) => {
-    setSelectedWarehouse(warehouse);
-    setSelectedLocation(location);
+  const handleEditLocation = (location: WarehouseLocation) => {
+    setEditingLocation(location);
     setLocationFormData({
       code: location.code,
       name: location.name,
@@ -244,52 +293,23 @@ export default function Warehouses() {
     setShowLocationModal(true);
   };
 
-  const handleLocationSubmit = async (e: React.FormEvent) => {
+  const handleLocationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedWarehouse) return;
-    
-    try {
-      if (selectedLocation) {
-        await api.put(`/warehouses/${selectedWarehouse.id}/locations/${selectedLocation.id}`, locationFormData);
-      } else {
-        await api.post(`/warehouses/${selectedWarehouse.id}/locations`, locationFormData);
-      }
-      setShowLocationModal(false);
-      fetchData();
-      if (showDetailModal) {
-        const res = await api.get(`/warehouses/${selectedWarehouse.id}`);
-        setSelectedWarehouse(res.data);
-      }
-    } catch (error) {
-      console.error('Error saving location:', error);
-    }
+    locationMutation.mutate(locationFormData);
   };
 
-  const handleDeleteLocation = async (warehouseId: string, locationId: string) => {
-    if (!confirm('Are you sure you want to delete this location?')) return;
-    try {
-      await api.delete(`/warehouses/${warehouseId}/locations/${locationId}`);
-      fetchData();
-      if (showDetailModal && selectedWarehouse) {
-        const res = await api.get(`/warehouses/${selectedWarehouse.id}`);
-        setSelectedWarehouse(res.data);
-      }
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to delete location');
-    }
-  };
+  const displayWarehouse = warehouseDetail || detailWarehouse;
 
-  const getStatusStyle = (status: string) => {
-    const s = WAREHOUSE_STATUSES.find(st => st.value === status);
-    return { backgroundColor: `${s?.color}20`, color: s?.color };
-  };
-
-  const getTypeLabel = (type: string) => {
-    return WAREHOUSE_TYPES.find(t => t.value === type)?.label || type;
-  };
+  if (isLoading) {
+    return (
+      <div className="loading-overlay">
+        <div className="spinner" />
+      </div>
+    );
+  }
 
   return (
-    <div className="page-container">
+    <div style={{ padding: '1.5rem' }}>
       <div className="page-header">
         <div>
           <h1>Warehouses</h1>
@@ -297,16 +317,16 @@ export default function Warehouses() {
             Manage warehouse locations and storage areas
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => { resetForm(); setShowModal(true); }}>
-          <Plus size={18} /> Add Warehouse
+        <button className="btn btn-primary" onClick={() => { handleCloseModal(); setShowModal(true); }}>
+          <Plus size={16} /> Add Warehouse
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <KpiCard 
           title="Total Warehouses" 
           value={stats?.total || 0} 
-          icon={<Warehouse size={24} />}
+          icon={<WarehouseIcon size={24} />}
           color="primary"
         />
         <KpiCard 
@@ -335,178 +355,403 @@ export default function Warehouses() {
         />
       </div>
 
-      <div className="card">
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-            <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+      <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Filter size={18} style={{ color: 'var(--text-muted)' }} />
+            <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}>Filters:</span>
+          </div>
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '300px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
-              placeholder="Search warehouses..."
+              className="form-input"
+              placeholder="Search by name or code..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="form-input"
-              style={{ paddingLeft: '2.5rem' }}
+              style={{ paddingLeft: '2.25rem' }}
             />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+          <select 
             className="form-select"
-            style={{ minWidth: '150px' }}
-          >
-            <option value="">All Statuses</option>
-            {WAREHOUSE_STATUSES.map(s => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
-          <select
-            value={typeFilter}
+            style={{ width: 'auto', minWidth: '140px' }}
+            value={typeFilter} 
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="form-select"
-            style={{ minWidth: '150px' }}
           >
             <option value="">All Types</option>
             {WAREHOUSE_TYPES.map(t => (
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
           </select>
+          <select 
+            className="form-select"
+            style={{ width: 'auto', minWidth: '130px' }}
+            value={statusFilter} 
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="">All Statuses</option>
+            {WAREHOUSE_STATUSES.map(s => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+          {(statusFilter || typeFilter || search) && (
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => {
+                setStatusFilter('');
+                setTypeFilter('');
+                setSearch('');
+              }}
+            >
+              <X size={14} /> Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: detailWarehouse ? '1fr 420px' : '1fr', gap: '1.5rem' }}>
+        <div>
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+            {warehouses.map((wh) => {
+              const typeStyle = getTypeStyle(wh.type);
+              const statusStyle = getStatusStyle(wh.status);
+              const isSelected = detailWarehouse?.id === wh.id;
+              return (
+                <div 
+                  key={wh.id} 
+                  className="card" 
+                  style={{ 
+                    padding: '1.25rem', 
+                    cursor: 'pointer',
+                    border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border)',
+                    transition: 'all 0.2s',
+                  }}
+                  onClick={() => setDetailWarehouse(wh)}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                    <span 
+                      className="badge"
+                      style={{ 
+                        background: typeStyle.bg, 
+                        color: typeStyle.color,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {WAREHOUSE_TYPES.find(t => t.value === wh.type)?.label || wh.type}
+                    </span>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(wh);
+                      }}
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                  </div>
+                  
+                  <h3 style={{ fontWeight: 600, marginBottom: '0.25rem', fontSize: '1rem' }}>{wh.name}</h3>
+                  {wh.nameAr && (
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '0.25rem', direction: 'rtl' }}>
+                      {wh.nameAr}
+                    </p>
+                  )}
+                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                    <span style={{ fontFamily: 'monospace' }}>{wh.code}</span>
+                  </p>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.8125rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <Grid size={14} style={{ color: 'var(--text-muted)' }} />
+                      <span>{wh._count.locations} locations</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <Package size={14} style={{ color: 'var(--text-muted)' }} />
+                      <span>{wh._count.stockItems} items</span>
+                    </div>
+                    {(wh.temperatureMin !== null && wh.temperatureMax !== null) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', gridColumn: 'span 2' }}>
+                        <Thermometer size={14} style={{ color: 'var(--info)' }} />
+                        <span>{wh.temperatureMin}°C - {wh.temperatureMax}°C</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ 
+                    marginTop: '0.75rem', 
+                    paddingTop: '0.75rem', 
+                    borderTop: '1px solid var(--border)', 
+                    fontSize: '0.75rem', 
+                    display: 'flex',
+                    gap: '0.5rem',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                  }}>
+                    <span 
+                      className="badge" 
+                      style={{ 
+                        fontSize: '0.6875rem',
+                        background: statusStyle.bg,
+                        color: statusStyle.color,
+                      }}
+                    >
+                      {WAREHOUSE_STATUSES.find(s => s.value === wh.status)?.label || wh.status}
+                    </span>
+                    {wh.isRadioactive && (
+                      <span className="badge" style={{ fontSize: '0.6875rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+                        <Atom size={10} style={{ marginRight: '0.25rem' }} /> Radioactive
+                      </span>
+                    )}
+                    {wh.requiresQC && (
+                      <span className="badge" style={{ fontSize: '0.6875rem', background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
+                        <FlaskConical size={10} style={{ marginRight: '0.25rem' }} /> QC Required
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {warehouses.length === 0 && (
+            <div className="card" style={{ padding: '2rem' }}>
+              <EmptyState 
+                title="No warehouses found"
+                message={search || statusFilter || typeFilter ? 'Try adjusting your filters' : 'Add your first warehouse to get started'}
+                icon="package"
+              />
+            </div>
+          )}
         </div>
 
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem' }}>Loading...</div>
-        ) : warehouses.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-            <Warehouse size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-            <p>No warehouses found</p>
-          </div>
-        ) : (
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '40px' }}></th>
-                  <th>Code</th>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Locations</th>
-                  <th>Stock Items</th>
-                  <th>Temperature</th>
-                  <th style={{ width: '120px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {warehouses.map((wh) => (
-                  <>
-                    <tr key={wh.id}>
-                      <td>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => setExpandedWarehouse(expandedWarehouse === wh.id ? null : wh.id)}
-                        >
-                          {expandedWarehouse === wh.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
-                      </td>
-                      <td><strong>{wh.code}</strong></td>
-                      <td>
-                        <div>{wh.name}</div>
-                        {wh.nameAr && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{wh.nameAr}</div>}
-                      </td>
-                      <td>{getTypeLabel(wh.type)}</td>
-                      <td>
-                        <span className="badge" style={getStatusStyle(wh.status)}>
-                          {WAREHOUSE_STATUSES.find(s => s.value === wh.status)?.label}
-                        </span>
-                      </td>
-                      <td>{wh._count.locations}</td>
-                      <td>{wh._count.stockItems}</td>
-                      <td>
-                        {wh.temperatureMin !== null && wh.temperatureMax !== null ? (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <Thermometer size={14} />
-                            {wh.temperatureMin}°C - {wh.temperatureMax}°C
-                          </span>
-                        ) : '-'}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.25rem' }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/warehouses/${wh.id}`)} title="View">
-                            <Eye size={16} />
-                          </button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(wh)} title="Edit">
-                            <Edit size={16} />
-                          </button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(wh.id)} title="Delete">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    {expandedWarehouse === wh.id && (
-                      <tr>
-                        <td colSpan={9} style={{ padding: '1rem', backgroundColor: 'var(--bg-secondary)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                            <strong>Locations ({wh._count.locations})</strong>
-                            <button className="btn btn-sm" onClick={() => handleAddLocation(wh)}>
-                              <Plus size={14} /> Add Location
+        {detailWarehouse && displayWarehouse && (
+          <div className="card" style={{ padding: 0, height: 'fit-content', position: 'sticky', top: '1rem' }}>
+            <div style={{ 
+              padding: '1.25rem', 
+              borderBottom: '1px solid var(--border)',
+              background: getTypeStyle(displayWarehouse.type).bg,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <span 
+                    className="badge"
+                    style={{ 
+                      background: getTypeStyle(displayWarehouse.type).color, 
+                      color: 'white',
+                      marginBottom: '0.5rem',
+                    }}
+                  >
+                    {WAREHOUSE_TYPES.find(t => t.value === displayWarehouse.type)?.label || displayWarehouse.type}
+                  </span>
+                  <h3 style={{ fontWeight: 600, fontSize: '1.125rem', margin: '0.5rem 0 0.25rem' }}>{displayWarehouse.name}</h3>
+                  {displayWarehouse.nameAr && (
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: 0, direction: 'rtl' }}>
+                      {displayWarehouse.nameAr}
+                    </p>
+                  )}
+                  <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
+                    {displayWarehouse.code}
+                  </p>
+                </div>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => setDetailWarehouse(null)}
+                  style={{ borderRadius: '50%', width: '28px', height: '28px', padding: 0 }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div style={{ padding: '1.25rem', maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+                  Status & Attributes
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span className="badge" style={{ ...getStatusStyle(displayWarehouse.status) }}>
+                    {WAREHOUSE_STATUSES.find(s => s.value === displayWarehouse.status)?.label}
+                  </span>
+                  {displayWarehouse.isRadioactive && (
+                    <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+                      <Atom size={12} /> Radioactive
+                    </span>
+                  )}
+                  {displayWarehouse.requiresQC && (
+                    <span className="badge" style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
+                      <FlaskConical size={12} /> QC Required
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+                  Capacity Overview
+                </div>
+                <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <div style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>
+                      <Grid size={14} style={{ color: 'var(--primary)' }} />
+                      <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Locations</span>
+                    </div>
+                    <div style={{ fontWeight: 600, fontSize: '1.25rem' }}>{displayWarehouse._count.locations}</div>
+                  </div>
+                  <div style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>
+                      <Package size={14} style={{ color: 'var(--success)' }} />
+                      <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>Stock Items</span>
+                    </div>
+                    <div style={{ fontWeight: 600, fontSize: '1.25rem' }}>{displayWarehouse._count.stockItems}</div>
+                  </div>
+                </div>
+              </div>
+
+              {(displayWarehouse.temperatureMin !== null || displayWarehouse.humidityMin !== null) && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+                    Environmental Conditions
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {displayWarehouse.temperatureMin !== null && displayWarehouse.temperatureMax !== null && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                        <Thermometer size={16} style={{ color: 'var(--info)' }} />
+                        <span style={{ fontSize: '0.875rem' }}>Temperature: {displayWarehouse.temperatureMin}°C - {displayWarehouse.temperatureMax}°C</span>
+                      </div>
+                    )}
+                    {displayWarehouse.humidityMin !== null && displayWarehouse.humidityMax !== null && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                        <Droplets size={16} style={{ color: 'var(--primary)' }} />
+                        <span style={{ fontSize: '0.875rem' }}>Humidity: {displayWarehouse.humidityMin}% - {displayWarehouse.humidityMax}%</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {displayWarehouse.address && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                    Address
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                    <MapPin size={16} style={{ color: 'var(--primary)', marginTop: '0.125rem' }} />
+                    <span style={{ fontSize: '0.875rem' }}>{displayWarehouse.address}</span>
+                  </div>
+                </div>
+              )}
+
+              {displayWarehouse.description && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                    Description
+                  </div>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
+                    {displayWarehouse.description}
+                  </p>
+                </div>
+              )}
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Locations ({displayWarehouse.locations?.length || 0})
+                  </div>
+                  <button className="btn btn-sm btn-secondary" onClick={handleAddLocation}>
+                    <Plus size={14} /> Add
+                  </button>
+                </div>
+                {displayWarehouse.locations && displayWarehouse.locations.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {displayWarehouse.locations.map((loc) => (
+                      <div key={loc.id} style={{ padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <span style={{ fontWeight: 500 }}>{loc.name}</span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>({loc.code})</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.25rem' }}>
+                            <button className="btn btn-ghost btn-sm" onClick={() => handleEditLocation(loc)}>
+                              <Edit2 size={12} />
+                            </button>
+                            <button 
+                              className="btn btn-ghost btn-sm" 
+                              style={{ color: 'var(--error)' }}
+                              onClick={() => {
+                                if (confirm('Delete this location?')) {
+                                  deleteLocationMutation.mutate(loc.id);
+                                }
+                              }}
+                            >
+                              <Trash2 size={12} />
                             </button>
                           </div>
-                          {wh.locations && wh.locations.length > 0 ? (
-                            <table className="data-table" style={{ fontSize: '0.875rem' }}>
-                              <thead>
-                                <tr>
-                                  <th>Code</th>
-                                  <th>Name</th>
-                                  <th>Zone</th>
-                                  <th>Aisle/Rack/Shelf</th>
-                                  <th>Status</th>
-                                  <th>Actions</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {wh.locations.map(loc => (
-                                  <tr key={loc.id}>
-                                    <td>{loc.code}</td>
-                                    <td>{loc.name}</td>
-                                    <td>{loc.zone || '-'}</td>
-                                    <td>{[loc.aisle, loc.rack, loc.shelf].filter(Boolean).join(' / ') || '-'}</td>
-                                    <td>
-                                      <span className="badge" style={{ backgroundColor: loc.isActive ? '#dcfce7' : '#fee2e2', color: loc.isActive ? '#166534' : '#991b1b' }}>
-                                        {loc.isActive ? 'Active' : 'Inactive'}
-                                      </span>
-                                    </td>
-                                    <td>
-                                      <button className="btn btn-ghost btn-sm" onClick={() => handleEditLocation(wh, loc)}>
-                                        <Edit size={14} />
-                                      </button>
-                                      <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteLocation(wh.id, loc.id)}>
-                                        <Trash2 size={14} />
-                                      </button>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          ) : (
-                            <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '1rem' }}>No locations defined</p>
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                  </>
-                ))}
-              </tbody>
-            </table>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                          {[loc.zone, loc.aisle, loc.rack, loc.shelf].filter(Boolean).join(' / ') || 'No hierarchy defined'}
+                        </div>
+                        <span 
+                          className="badge" 
+                          style={{ 
+                            fontSize: '0.625rem', 
+                            marginTop: '0.375rem',
+                            background: loc.isActive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                            color: loc.isActive ? '#22c55e' : '#ef4444',
+                          }}
+                        >
+                          {loc.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                    No locations defined
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <AttachmentPanel
+                  entityType="Warehouse"
+                  entityId={displayWarehouse.id}
+                  title="Warehouse Documents"
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                  onClick={() => handleEdit(displayWarehouse)}
+                >
+                  <Edit2 size={16} /> Edit Warehouse
+                </button>
+                {displayWarehouse._count.stockItems === 0 && displayWarehouse._count.locations === 0 && (
+                  <button
+                    className="btn btn-secondary"
+                    style={{ color: 'var(--error)' }}
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this warehouse?')) {
+                        deleteMutation.mutate(displayWarehouse.id);
+                      }
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+        <div className="modal-overlay" onClick={handleCloseModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '90vh', overflow: 'auto' }}>
             <div className="modal-header">
-              <h2>{selectedWarehouse ? 'Edit Warehouse' : 'Add Warehouse'}</h2>
-              <button className="btn btn-ghost" onClick={() => setShowModal(false)}>&times;</button>
+              <h2>{editingWarehouse ? 'Edit Warehouse' : 'Add Warehouse'}</h2>
+              <button className="btn btn-ghost" onClick={handleCloseModal}>&times;</button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
@@ -519,7 +764,7 @@ export default function Warehouses() {
                       value={formData.code}
                       onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                       required
-                      disabled={!!selectedWarehouse}
+                      disabled={!!editingWarehouse}
                     />
                   </div>
                   <div className="form-group">
@@ -645,116 +890,12 @@ export default function Warehouses() {
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn" onClick={() => setShowModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">
-                  {selectedWarehouse ? 'Update' : 'Create'}
+                <button type="button" className="btn" onClick={handleCloseModal}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={saveMutation.isPending}>
+                  {saveMutation.isPending ? 'Saving...' : (editingWarehouse ? 'Update' : 'Create')}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {showDetailModal && selectedWarehouse && (
-        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
-            <div className="modal-header">
-              <h2>Warehouse Details - {selectedWarehouse.code}</h2>
-              <button className="btn btn-ghost" onClick={() => setShowDetailModal(false)}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Name</div>
-                  <div>{selectedWarehouse.name}</div>
-                  {selectedWarehouse.nameAr && <div style={{ color: 'var(--text-muted)' }}>{selectedWarehouse.nameAr}</div>}
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Type</div>
-                  <div>{getTypeLabel(selectedWarehouse.type)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Status</div>
-                  <span className="badge" style={getStatusStyle(selectedWarehouse.status)}>
-                    {WAREHOUSE_STATUSES.find(s => s.value === selectedWarehouse.status)?.label}
-                  </span>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Address</div>
-                  <div>{selectedWarehouse.address || '-'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Temperature Range</div>
-                  <div>
-                    {selectedWarehouse.temperatureMin !== null && selectedWarehouse.temperatureMax !== null
-                      ? `${selectedWarehouse.temperatureMin}°C - ${selectedWarehouse.temperatureMax}°C`
-                      : 'Not specified'}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Humidity Range</div>
-                  <div>
-                    {selectedWarehouse.humidityMin !== null && selectedWarehouse.humidityMax !== null
-                      ? `${selectedWarehouse.humidityMin}% - ${selectedWarehouse.humidityMax}%`
-                      : 'Not specified'}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3>Locations ({selectedWarehouse.locations?.length || 0})</h3>
-                <button className="btn btn-sm" onClick={() => handleAddLocation(selectedWarehouse)}>
-                  <Plus size={14} /> Add Location
-                </button>
-              </div>
-
-              {selectedWarehouse.locations && selectedWarehouse.locations.length > 0 ? (
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Name</th>
-                      <th>Zone</th>
-                      <th>Aisle</th>
-                      <th>Rack</th>
-                      <th>Shelf</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedWarehouse.locations.map(loc => (
-                      <tr key={loc.id}>
-                        <td>{loc.code}</td>
-                        <td>{loc.name}</td>
-                        <td>{loc.zone || '-'}</td>
-                        <td>{loc.aisle || '-'}</td>
-                        <td>{loc.rack || '-'}</td>
-                        <td>{loc.shelf || '-'}</td>
-                        <td>
-                          <span className="badge" style={{ backgroundColor: loc.isActive ? '#dcfce7' : '#fee2e2', color: loc.isActive ? '#166534' : '#991b1b' }}>
-                            {loc.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td>
-                          <button className="btn btn-ghost btn-sm" onClick={() => handleEditLocation(selectedWarehouse, loc)}>
-                            <Edit size={14} />
-                          </button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => handleDeleteLocation(selectedWarehouse.id, loc.id)}>
-                            <Trash2 size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>No locations defined</p>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button className="btn" onClick={() => setShowDetailModal(false)}>Close</button>
-            </div>
           </div>
         </div>
       )}
@@ -763,7 +904,7 @@ export default function Warehouses() {
         <div className="modal-overlay" onClick={() => setShowLocationModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h2>{selectedLocation ? 'Edit Location' : 'Add Location'}</h2>
+              <h2>{editingLocation ? 'Edit Location' : 'Add Location'}</h2>
               <button className="btn btn-ghost" onClick={() => setShowLocationModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleLocationSubmit}>
@@ -777,7 +918,7 @@ export default function Warehouses() {
                       value={locationFormData.code}
                       onChange={(e) => setLocationFormData({ ...locationFormData, code: e.target.value })}
                       required
-                      disabled={!!selectedLocation}
+                      disabled={!!editingLocation}
                     />
                   </div>
                   <div className="form-group">
@@ -849,8 +990,8 @@ export default function Warehouses() {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn" onClick={() => setShowLocationModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">
-                  {selectedLocation ? 'Update' : 'Create'}
+                <button type="submit" className="btn btn-primary" disabled={locationMutation.isPending}>
+                  {locationMutation.isPending ? 'Saving...' : (editingLocation ? 'Update' : 'Create')}
                 </button>
               </div>
             </form>
