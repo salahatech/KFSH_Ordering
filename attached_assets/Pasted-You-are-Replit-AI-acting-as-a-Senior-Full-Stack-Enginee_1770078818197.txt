@@ -1,0 +1,310 @@
+You are Replit AI acting as a Senior Full-Stack Engineer + UX Designer specialized in logistics workflows.
+
+Context:
+We have a RadioPharma OMS with Shipments module (list + detail), Orders/Batches/DoseUnits linkage, Customer Portal tracking, notifications, RBAC, PostgreSQL+Prisma, React+TS, Node+TS.
+Issue: In the Shipment List, clicking actions shows nothing (broken UI). Fix this AND enhance Shipments to support Drivers with full driver workflow: assign shipments, driver portal (receive → process → deliver), live status updates, and Proof of Delivery.
+
+Goal:
+1) Fix Shipment List actions so clicking shows menus/modals and performs actions with feedback.
+2) Add Driver entity + assignment to shipments.
+3) Build Driver Portal to manage assigned shipments with statuses and proof of delivery.
+4) Add scheduling + assignment + route and driver details.
+5) Ensure all statuses/events appear in the Shipment Journey and Order Journey, and notify customer (in-app/email/sms based on channel activation & user preferences).
+
+========================================================
+1) BUG FIX: SHIPMENT LIST ACTIONS NOT DISPLAYING (MANDATORY)
+- Identify why actions do not display (likely missing onClick, z-index overlay, menu component not mounted, or event propagation issue).
+- Fix Shipment List UI so:
+  - Each row has a working Actions button (kebab/menu)
+  - Clicking opens a dropdown menu with actions appropriate to shipment status and role
+  - Action click opens confirmation modal when needed and triggers API call
+  - UI shows toast feedback “Shipment dispatched”, “Assigned to driver”, etc.
+  - Disable actions that are not allowed (show tooltip explaining why)
+
+========================================================
+2) DRIVER MANAGEMENT (MASTER DATA) — MUST IMPLEMENT
+2.1 Driver Entity (DB)
+Create Driver table:
+- id
+- fullName
+- mobile (validated KSA/E.164)
+- email (optional)
+- nationalId / iqama (optional)
+- driverLicenseNo (optional)
+- licenseExpiryDate (optional)
+- vehicleType (Car/Van/Motorcycle)
+- vehiclePlateNo
+- vehicleModel
+- status (ACTIVE/INACTIVE)
+- photoUrl (optional)
+- createdAt, updatedAt
+
+2.2 Driver User Account
+- A Driver is also a User with role DRIVER.
+- Create linkage:
+  - User.driverId (nullable) OR Driver.userId (preferred)
+- RBAC:
+  - Drivers can only see their assigned shipments and limited customer details required for delivery.
+
+2.3 Driver Schedule / Availability (Basic)
+Create DriverAvailability table (MVP):
+- id, driverId, date, startTime, endTime, isAvailable, notes
+Optional Phase 2:
+- route planning optimization.
+
+UI Pages for Admin/Logistics:
+- /drivers (list with filters)
+- /drivers/new, /drivers/:id/edit (CRUD)
+- /drivers/:id (profile + assigned shipments + availability calendar)
+
+========================================================
+3) SHIPMENT MODEL ENHANCEMENTS (MANDATORY)
+3.1 Shipment should link to Driver
+Update Shipment:
+- driverId (nullable)
+- assignedAt
+- assignedByUserId
+- scheduledPickupAt (UTC)
+- scheduledDeliveryAt (UTC)
+- pickupAddress snapshot fields (facility/site)
+- deliveryAddress snapshot fields (customer)
+- deliveryLat, deliveryLng (from customer GPS if available)
+- specialHandling (e.g., radioactive handling notes)
+- currentLocationLat/Lng (optional if tracking)
+- lastCheckpointAt
+- priority (NORMAL/URGENT)
+
+3.2 Shipment Status Flow (Driver-aware)
+Statuses:
+- DRAFT / READY_TO_PACK
+- PACKED
+- ASSIGNED_TO_DRIVER
+- ACCEPTED_BY_DRIVER
+- PICKED_UP
+- IN_TRANSIT
+- ARRIVED
+- DELIVERED
+Exceptions:
+- DELIVERY_FAILED
+- RETURNED
+- CANCELLED
+- DELAYED
+
+Rules:
+- Dispatch should either:
+  (A) require a driver assignment first, OR
+  (B) allow dispatch and then assignment (choose A for control).
+- Driver can only progress statuses forward.
+- Every transition creates ShipmentEvent.
+
+========================================================
+4) PROOF OF DELIVERY (POD) (MANDATORY)
+Create ProofOfDelivery table:
+- id, shipmentId
+- deliveredAt
+- receiverName
+- receiverMobile optional
+- receiverIdType optional (none/iqama/national id) (store minimal, optional)
+- signatureFileUrl (optional)
+- photoFileUrl(s) (allow multiple)
+- gpsLat, gpsLng
+- notes
+- capturedByUserId (driver)
+- createdAt
+
+File rules:
+- Allow image/pdf uploads; max size 5MB per file.
+- Store fileUrl and metadata.
+- Show POD in customer portal if allowed.
+
+========================================================
+5) SHIPMENT LIST PAGE UI/UX (MANDATORY ENHANCEMENT)
+Page: /shipments
+
+A) Filters (widgets)
+- date range (scheduled pickup / delivery)
+- status multi-select
+- customer search
+- driver search
+- city/region
+- delayed toggle
+- priority toggle
+- search shipment no / order no
+
+B) Columns
+- Shipment No
+- Status badge
+- Customer
+- Driver (name + badge “Unassigned”)
+- Scheduled pickup
+- Scheduled delivery (ETA)
+- Orders count / DoseUnits count
+- Last checkpoint time
+- Delay flag
+
+C) Actions (must work)
+- View Details
+- Assign Driver (opens modal)
+- Schedule Pickup/Delivery
+- Mark Packed
+- Notify Driver
+- Cancel Shipment (with confirmation)
+- Export/Print manifest (optional)
+
+========================================================
+6) SHIPMENT DETAIL “JOURNEY” PAGE (MANDATORY)
+Page: /shipments/:id
+Must include:
+- Stepper: Packed → Assigned → Accepted → Picked up → In transit → Arrived → Delivered
+- Driver card:
+  - driver name, mobile, vehicle, plate, status
+  - call button (tel link) (optional)
+- Timeline logs (ShipmentEvent):
+  - assignments, acceptance, pickups, checkpoints, delivery and POD
+- Map block (optional MVP):
+  - show pickup and delivery GPS points if available
+- POD section:
+  - receiver name, timestamp, signature/photo previews, GPS capture
+- Linked Orders + DoseUnits table
+- Buttons role-based:
+  - reassign driver, reschedule, mark delayed, cancel, etc.
+
+========================================================
+7) DRIVER PORTAL (MANDATORY)
+Create a dedicated portal for driver role:
+Routes:
+- /driver (dashboard)
+- /driver/shipments (list)
+- /driver/shipments/:id (detail + actions)
+
+7.1 Driver Dashboard
+- KPI cards:
+  - Assigned today
+  - Awaiting acceptance
+  - In transit
+  - Delivered today
+  - Failed deliveries
+- Quick list: “Next deliveries” sorted by scheduled delivery time
+
+7.2 Driver Shipments List
+- Filters:
+  - date range, status, customer city, priority, search shipment no
+- Each shipment card shows:
+  - Shipment No, status, scheduled delivery, customer name, address (full), GPS, contact
+  - “Accept” button if status ASSIGNED_TO_DRIVER
+  - “Open” to view details
+
+7.3 Driver Shipment Detail + Workflow
+Screen includes:
+- Stepper + timeline
+- Pickup info (facility address)
+- Delivery info (customer address + GPS)
+- Handling instructions
+Actions (guided with confirmations):
+- Accept Shipment (ASSIGNED_TO_DRIVER → ACCEPTED_BY_DRIVER)
+- Confirm Pickup (→ PICKED_UP)
+- Start Transit (→ IN_TRANSIT) (optional auto)
+- Arrived (→ ARRIVED)
+- Deliver (→ DELIVERED) requires POD capture:
+  - receiver name required
+  - capture signature (canvas) OR upload signature image
+  - upload photo(s) optional
+  - auto capture GPS lat/lng if browser allows (fallback manual)
+  - add notes
+- Delivery Failed (→ DELIVERY_FAILED) requires:
+  - reason code + notes + optional photo
+
+All driver actions must:
+- create ShipmentEvent
+- trigger notifications to customer + logistics team
+- update order journey (order shows shipment tracking and POD after delivered)
+
+========================================================
+8) ASSIGNMENT & SCHEDULING (MANDATORY)
+Logistics workflow:
+- When shipment is PACKED/READY:
+  - Logistics user schedules pickup/delivery windows
+  - Assign driver
+- Assignment modal should include:
+  - driver dropdown (shows availability and current workload)
+  - scheduled pickup/delivery
+  - notes to driver
+- On assign:
+  - status becomes ASSIGNED_TO_DRIVER
+  - notify driver (in-app + email/sms based on config)
+- Driver acceptance required:
+  - if not accepted within configurable time, mark “at risk” and alert logistics
+
+========================================================
+9) NOTIFICATIONS (MANDATORY)
+Events must notify related parties:
+- SHIPMENT_ASSIGNED_TO_DRIVER → driver
+- SHIPMENT_ACCEPTED → logistics + customer (optional)
+- SHIPMENT_PICKED_UP → customer
+- SHIPMENT_IN_TRANSIT checkpoints → customer (optional)
+- SHIPMENT_DELIVERED + POD available → customer
+- SHIPMENT_DELIVERY_FAILED → logistics + customer
+
+Channels:
+- In-app always + top bar + notification center
+- Email/SMS only if active and user opted-in
+
+Templates:
+- Include shipment no, ETA, link to tracking page, customer address (driver only)
+
+========================================================
+10) SECURITY / PRIVACY (MANDATORY)
+- Driver can only view:
+  - customer name, delivery address, GPS, contact phone/email needed for delivery
+  - not QC details, not pricing, not internal batch genealogy
+- Customer portal sees:
+  - shipment tracking and POD
+  - no driver personal national ID (only driver name + mobile optional)
+
+========================================================
+11) APIs (MANDATORY)
+Admin/Logistics:
+- CRUD /drivers
+- GET /shipments (filters)
+- POST /shipments/:id/assign-driver
+- POST /shipments/:id/schedule
+- POST /shipments/:id/mark-packed
+Driver:
+- GET /driver/shipments (only assigned)
+- POST /driver/shipments/:id/accept
+- POST /driver/shipments/:id/pickup
+- POST /driver/shipments/:id/arrived
+- POST /driver/shipments/:id/deliver (multipart for POD uploads)
+- POST /driver/shipments/:id/fail (reason code)
+POD:
+- GET /shipments/:id/pod (role-based)
+- GET /portal/orders/:id/tracking (includes shipment events)
+
+All state transitions must be validated server-side.
+
+========================================================
+12) EXTRA FEATURES (RECOMMENDED)
+Add these improvements:
+- Shipment “Manifest” PDF (A4): list dose units/orders, handling notes, pickup/delivery addresses
+- Driver “Route view” for today: ordered list by delivery time
+- Delay detection: if current time > scheduledDeliveryAt and not delivered → mark DELAYED and notify logistics
+- Reassignment flow: allow logistics to reassign driver with event log
+- Driver check-in: optional periodic “checkpoint” button that updates lastCheckpointAt
+
+========================================================
+13) SEED DATA + DEMO
+Seed:
+- 3 drivers + driver users
+- 5 shipments: unassigned, assigned, accepted, in transit, delivered
+- POD files can be placeholders
+README demo:
+- logistics assigns shipment to driver
+- driver accepts, picks up, delivers with POD
+- customer portal shows tracking + POD
+
+Acceptance Criteria:
+- Shipment list actions work (menu shows, actions execute, UI feedback visible).
+- Shipment is assignable to a driver with scheduling.
+- Driver portal exists and supports accept → pickup → deliver with proof of delivery.
+- Driver details stored; events logged; customer can track shipment.
+- Notifications sent in-app + email/sms depending on active channels and preferences.

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
@@ -16,8 +16,23 @@ export default function Shipments() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [filters, setFilters] = useState<Record<string, any>>({});
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const toast = useToast();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setActiveDropdown(null);
+      }
+    };
+    if (activeDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [activeDropdown]);
 
   const { data: shipments, isLoading } = useQuery({
     queryKey: ['shipments', filters],
@@ -456,7 +471,7 @@ export default function Shipments() {
                       <Link to={`/shipments/${shipment.id}`} className="btn btn-sm btn-outline" title="View Details">
                         <Eye size={14} />
                       </Link>
-                      <div style={{ position: 'relative' }}>
+                      <div style={{ position: 'relative' }} ref={activeDropdown === shipment.id ? dropdownRef : null}>
                         <button
                           className="btn btn-sm btn-outline"
                           onClick={(e) => {
@@ -467,26 +482,10 @@ export default function Shipments() {
                           <MoreVertical size={14} />
                         </button>
                         {activeDropdown === shipment.id && (
-                          <div
-                            style={{
-                              position: 'absolute',
-                              right: 0,
-                              top: '100%',
-                              marginTop: '0.25rem',
-                              backgroundColor: 'var(--bg-primary)',
-                              border: '1px solid var(--border)',
-                              borderRadius: 'var(--radius)',
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                              minWidth: '180px',
-                              zIndex: 1000,
-                              overflow: 'hidden',
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {['PACKED', 'ASSIGNED_TO_DRIVER', 'DELIVERY_FAILED'].includes(shipment.status) && (
+                          <div className="dropdown-menu" onClick={(e) => e.stopPropagation()}>
+                            {['DRAFT', 'READY_TO_PACK', 'PACKED', 'ASSIGNED_TO_DRIVER', 'DELIVERY_FAILED'].includes(shipment.status) && (
                               <button
                                 className="dropdown-item"
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.5rem 1rem', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left' }}
                                 onClick={() => {
                                   setSelectedShipment(shipment);
                                   setShowAssignModal(true);
@@ -499,7 +498,6 @@ export default function Shipments() {
                             )}
                             <button
                               className="dropdown-item"
-                              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.5rem 1rem', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left' }}
                               onClick={() => {
                                 setSelectedShipment(shipment);
                                 setShowScheduleModal(true);
@@ -512,7 +510,6 @@ export default function Shipments() {
                             {['DRAFT', 'READY_TO_PACK'].includes(shipment.status) && (
                               <button
                                 className="dropdown-item"
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.5rem 1rem', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left' }}
                                 onClick={() => markPackedMutation.mutate(shipment.id)}
                               >
                                 <Package size={14} />
@@ -522,7 +519,6 @@ export default function Shipments() {
                             {shipment.status === 'PACKED' && shipment.driver && (
                               <button
                                 className="dropdown-item"
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.5rem 1rem', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left' }}
                                 onClick={() => dispatchMutation.mutate({ id: shipment.id, data: {} })}
                               >
                                 <Send size={14} />
@@ -532,7 +528,6 @@ export default function Shipments() {
                             {['ARRIVED', 'IN_TRANSIT'].includes(shipment.status) && (
                               <button
                                 className="dropdown-item"
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.5rem 1rem', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left' }}
                                 onClick={() => {
                                   setSelectedShipment(shipment);
                                   setShowDeliveryModal(true);
@@ -545,10 +540,9 @@ export default function Shipments() {
                             )}
                             {!['DELIVERED', 'CANCELLED'].includes(shipment.status) && (
                               <>
-                                <div style={{ borderTop: '1px solid var(--border)', margin: '0.25rem 0' }} />
+                                <div className="dropdown-divider" />
                                 <button
-                                  className="dropdown-item"
-                                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.5rem 1rem', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', color: 'var(--danger)' }}
+                                  className="dropdown-item danger"
                                   onClick={() => {
                                     if (confirm('Are you sure you want to cancel this shipment?')) {
                                       cancelMutation.mutate({ id: shipment.id, reason: 'Cancelled by user' });
