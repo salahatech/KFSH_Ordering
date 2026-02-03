@@ -903,7 +903,7 @@ async function main() {
 
       // Add product pricing for this contract
       for (let j = 0; j < Math.min(3, products.length); j++) {
-        const basePrice = products[j].defaultPrice || 500;
+        const basePrice = 500;
         await prisma.contractPriceItem.create({
           data: {
             contract: { connect: { id: contract.id } },
@@ -971,7 +971,7 @@ async function main() {
       dueDate.setDate(dueDate.getDate() + 30);
 
       const product = products.find(p => p.id === order.productId);
-      const unitPrice = product?.defaultPrice || 500;
+      const unitPrice = 500;
       const lineTotal = order.requestedActivity * unitPrice;
       const taxRate = 0;
       const taxAmount = lineTotal * taxRate;
@@ -986,7 +986,7 @@ async function main() {
           contractId: customerContract?.id || null,
           invoiceDate,
           dueDate,
-          status: i === 0 ? 'PAID' : (i === 1 ? 'SENT' : 'DRAFT'),
+          status: i === 0 ? 'PAID' : (i === 1 ? 'ISSUED_POSTED' : 'DRAFT'),
           subtotal: lineTotal,
           taxAmount,
           discountAmount: 0,

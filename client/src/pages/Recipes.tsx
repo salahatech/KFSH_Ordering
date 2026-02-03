@@ -220,25 +220,25 @@ export default function Recipes() {
           title="Total Recipes" 
           value={recipes?.length || 0} 
           icon={<FileText size={24} />}
-          color="var(--primary)"
+          color="primary"
         />
         <KpiCard 
           title="Active" 
           value={activeRecipes} 
           icon={<CheckCircle size={24} />}
-          color="var(--success)"
+          color="success"
         />
         <KpiCard 
           title="Drafts" 
           value={draftRecipes} 
           icon={<Edit2 size={24} />}
-          color="var(--text-muted)"
+          color="default"
         />
         <KpiCard 
           title="Pending Approval" 
           value={pendingRecipes} 
           icon={<Clock size={24} />}
-          color="var(--warning)"
+          color="warning"
         />
       </div>
 
@@ -290,18 +290,13 @@ export default function Recipes() {
             <div className="loading-spinner" style={{ padding: '3rem', textAlign: 'center' }}>Loading...</div>
           ) : recipes?.length === 0 ? (
             <EmptyState 
-              icon={<FileText size={48} />}
+              icon="package"
               title="No Recipes Found"
-              description={searchQuery || statusFilter || productFilter 
+              message={searchQuery || statusFilter || productFilter 
                 ? "No recipes match your search criteria" 
                 : "Get started by creating your first recipe"}
-              action={
-                !searchQuery && !statusFilter && !productFilter ? (
-                  <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-                    <Plus size={20} /> Create Recipe
-                  </button>
-                ) : undefined
-              }
+              ctaLabel={!searchQuery && !statusFilter && !productFilter ? "Create Recipe" : undefined}
+              onCta={!searchQuery && !statusFilter && !productFilter ? () => setShowModal(true) : undefined}
             />
           ) : (
             <div className="table-container">
@@ -544,7 +539,7 @@ export default function Recipes() {
                       </span>
                       <span style={{ fontWeight: 500 }}>{step.title}</span>
                       {step.qualityCheckpoint && (
-                        <CheckCircle size={14} style={{ color: 'var(--success)' }} title="QC Checkpoint" />
+                        <span title="QC Checkpoint"><CheckCircle size={14} style={{ color: 'var(--success)' }} /></span>
                       )}
                     </div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginLeft: '32px' }}>
