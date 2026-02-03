@@ -21,6 +21,8 @@ import {
   X,
   ExternalLink,
   Bell,
+  Languages,
+  Clock,
 } from 'lucide-react';
 
 const tabs = [
@@ -36,6 +38,10 @@ const tabs = [
   { id: 'currencies', label: 'Currencies', icon: DollarSign },
   { id: 'attachments', label: 'Attachment Types', icon: Paperclip },
   { id: 'notifications', label: 'Notifications', icon: Bell, link: '/settings/notifications' },
+  { id: 'languages', label: 'Languages', icon: Languages, link: '/admin/languages' },
+  { id: 'exchange-rates', label: 'Exchange Rates', icon: DollarSign, link: '/admin/exchange-rates' },
+  { id: 'localization', label: 'Localization', icon: Clock, link: '/admin/localization' },
+  { id: 'translations', label: 'Translations', icon: Globe, link: '/admin/translations' },
 ];
 
 export default function Settings() {

@@ -1920,12 +1920,15 @@ model ExchangeRate {
   fromCurrency  String
   toCurrency    String   @default("SAR")
   rate          Float
+  source        String   @default("MANUAL") // MANUAL or API
   isActive      Boolean  @default(true)
+  createdBy     String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@unique([date, fromCurrency, toCurrency])
   @@index([fromCurrency, toCurrency])
+  @@index([date])
 }
 
 model UserPreference {
@@ -1933,8 +1936,60 @@ model UserPreference {
   userId                String   @unique
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   preferredCurrencyCode String   @default("SAR")
+  preferredLanguageCode String   @default("en")
+  preferredTimezone     String   @default("Asia/Riyadh")
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+// ==================== INTERNATIONALIZATION ====================
+
+model Language {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  nativeName  String?
+  direction   String   @default("ltr") // ltr or rtl
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  translations TranslationEntry[]
+}
+
+model TranslationEntry {
+  id          String   @id @default(uuid())
+  entityType  String   // PRODUCT, CUSTOMER, MATERIAL, NOTIFICATION_TEMPLATE, REPORT_LABEL, etc.
+  entityId    String   // UUID/ID of the entity
+  fieldKey    String   // name, description, address, terms, etc.
+  langCode    String   // en, ar, fr, etc.
+  value       String   @db.Text
+  language    Language @relation(fields: [langCode], references: [code])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?
+
+  @@unique([entityType, entityId, fieldKey, langCode])
+  @@index([entityType, entityId])
+  @@index([langCode])
+}
+
+model SystemLocalization {
+  id                        String   @id @default(uuid())
+  defaultLanguageCode       String   @default("en")
+  defaultTimezone           String   @default("Asia/Riyadh")
+  baseCurrencyCode          String   @default("SAR")
+  enableMultiCurrencyDisplay Boolean  @default(true)
+  enableUserLanguageOverride Boolean  @default(true)
+  enableUserTimezoneOverride Boolean  @default(true)
+  enableUserCurrencyOverride Boolean  @default(true)
+  dateFormat                String   @default("yyyy-MM-dd")
+  timeFormat                String   @default("HH:mm")
+  numberFormat              String   @default("en-US") // locale for number formatting
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 }
 
 // ==================== TIME STANDARDS ====================

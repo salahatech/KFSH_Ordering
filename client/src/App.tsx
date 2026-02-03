@@ -43,6 +43,10 @@ import DashboardDispensing from './pages/DashboardDispensing';
 import DashboardLogistics from './pages/DashboardLogistics';
 import PaymentApprovals from './pages/admin/PaymentApprovals';
 import AttachmentSettings from './pages/admin/AttachmentSettings';
+import Languages from './pages/admin/Languages';
+import ExchangeRates from './pages/admin/ExchangeRates';
+import LocalizationSettings from './pages/admin/LocalizationSettings';
+import Translations from './pages/admin/Translations';
 import AdminDemo from './pages/AdminDemo';
 import Drivers from './pages/Drivers';
 import ShipmentDetail from './pages/ShipmentDetail';
@@ -267,6 +271,10 @@ export default function App() {
                   <Route path="/settings/attachments" element={<AttachmentSettings />} />
                   <Route path="/settings/notifications" element={<NotificationSettings />} />
                   <Route path="/admin/demo" element={<AdminDemo />} />
+                  <Route path="/admin/languages" element={<Languages />} />
+                  <Route path="/admin/exchange-rates" element={<ExchangeRates />} />
+                  <Route path="/admin/localization" element={<LocalizationSettings />} />
+                  <Route path="/admin/translations" element={<Translations />} />
                   <Route path="/notifications" element={<NotificationCenter />} />
                   <Route path="/roles" element={<Roles />} />
                 </Routes>

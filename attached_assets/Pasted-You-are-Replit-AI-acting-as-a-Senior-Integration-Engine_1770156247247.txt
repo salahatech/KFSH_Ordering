@@ -1,0 +1,235 @@
+You are Replit AI acting as a Senior Integration Engineer + ERP/Finance Architect.
+
+Context:
+We have a Finance/AR invoicing module (SAR base currency) with invoice PDF printing and customer payments.
+Now add a complete ZATCA (Fatoora) Phase 2 integration:
+- Admin settings + onboarding flow (CSID/PCSID)
+- Post invoices/notes to ZATCA (Reporting or Clearance as applicable)
+- Store and display ZATCA responses (status, UUID, invoice hash, warnings/errors)
+- Generate the correct e-invoice QR code AFTER receiving ZATCA response (Phase 2 security QR requirements)
+- Show “ZATCA receipt/clearance status” on the invoice and in reports.
+
+References (use these for correctness):
+- ZATCA/Fatoora portal endpoints + onboarding & core APIs are documented in ZATCA manuals. :contentReference[oaicite:0]{index=0}
+- Phase 1 minimum QR fields (seller, VAT, timestamp, total, VAT total). :contentReference[oaicite:1]{index=1}
+- Phase 2 electronic invoice security features include enhanced QR requirements. :contentReference[oaicite:2]{index=2}
+
+====================================================
+1) NEW MODULE: ZATCA INTEGRATION SETTINGS (MANDATORY)
+====================================================
+Create Admin pages:
+- /admin/zatca (overview + status)
+- /admin/zatca/onboarding (wizard)
+- /admin/zatca/config (environment + endpoints + toggles)
+- /admin/zatca/logs (requests/responses, errors, retries)
+
+Config fields:
+- environment: SIMULATION | PRODUCTION
+- enableZatcaPosting (boolean)
+- mode per invoice type:
+  - Simplified (B2C): REPORTING
+  - Standard (B2B): CLEARANCE
+  (Allow override by customer type / invoice type)
+- seller data (used in XML + QR):
+  - sellerName, VAT number, CR number, address
+- time zone (Asia/Riyadh), store UTC
+- retry policy: retriesCount, backoffSeconds
+- “block customer visibility until ZATCA status = accepted” toggle (optional)
+- notification toggle: alert finance/admin on rejection/failure
+
+Secrets handling:
+- Do NOT store private keys in plain DB fields.
+- Store encrypted secrets or use env secrets vault.
+- Keep separate configs per env (dev/stage/prod).
+
+====================================================
+2) ONBOARDING WIZARD (MANDATORY) – CSID/PCSID FLOW
+====================================================
+Implement the onboarding steps in a guided wizard UI:
+
+Step 1: Generate CSR / Key Pair (per “solution unit/device”)
+- Generate a private key + CSR with required fields (serial number, organization, VAT, etc.)
+- Store: keyId, CSR, createdAt
+- Provide “Download CSR” button and “Rotate keys” action
+
+Step 2: Request Pre-Compliance CSID (CCSID)
+- Use onboarding API endpoints (per ZATCA portal manual). :contentReference[oaicite:3]{index=3}
+- Requires OTP generated from Fatoora portal onboarding (OTP step described in ZATCA guidelines). :contentReference[oaicite:4]{index=4}
+UI:
+- input OTP
+- call endpoint
+- store CCSID + token/cert payload
+
+Step 3: Run Compliance Checks
+- Submit required sample invoices to compliance/invoices endpoint
+- Show results:
+  - passed / failed
+  - warnings
+  - errors (codes + messages)
+- Allow “Fix and re-run compliance checks”
+
+Step 4: Request Production CSID (PCSID)
+- Call production/csids endpoint after compliance passes (per portal manual endpoints). :contentReference[oaicite:5]{index=5}
+- Store PCSID credentials/certificate and mark integration status = ACTIVE
+
+Step 5: Connectivity Test
+- “Send test invoice” (simulation/prod)
+- Verify response stored and visible in logs.
+
+====================================================
+3) DATA MODEL (PRISMA) – MUST IMPLEMENT
+====================================================
+Add tables:
+
+3.1 ZatcaConfig
+- id, environment, enableZatcaPosting, modeConfig JSON
+- sellerName, sellerVatNo, sellerCrNo, sellerAddress
+- retry config, createdBy, updatedBy
+
+3.2 ZatcaCredential (per solution unit/device)
+- id, env, status (DRAFT/COMPLIANCE_READY/ACTIVE/REVOKED)
+- csrPem
+- keyRef (reference to stored private key in secure store)
+- ccsidData JSON (cert/token)
+- pcsidData JSON (cert/token)
+- createdAt, updatedAt
+
+3.3 ZatcaSubmission (per invoice/credit note/debit note)
+- id
+- invoiceId (or documentId + docType)
+- docType (INVOICE/CREDIT_NOTE/DEBIT_NOTE)
+- apiType (REPORTING/CLEARANCE)
+- requestUuid (if applicable)
+- invoiceHash (if produced)
+- icv (invoice counter value if tracked)
+- pih (previous invoice hash if required)
+- status:
+  - NOT_SENT
+  - PENDING
+  - ACCEPTED
+  - CLEARED
+  - REPORTED
+  - REJECTED
+  - FAILED
+- zatcaResponseCode, zatcaResponseMessage
+- warnings JSON, errors JSON
+- zatcaRawRequest (optional, masked)
+- zatcaRawResponse (optional)
+- submittedAt, lastTriedAt
+- retryCount
+- traceId
+
+3.4 ZatcaQrPayload
+- id, invoiceId
+- qrBase64 (string)
+- qrVersion (PHASE1_MIN | PHASE2_SECURITY)
+- generatedAt
+- basedOnSubmissionId
+
+====================================================
+4) INVOICE LIFECYCLE RULES (MANDATORY)
+====================================================
+Invoice statuses (existing):
+- DRAFT → PENDING_APPROVAL → ISSUED_POSTED → PARTIALLY_PAID → PAID → CLOSED_ARCHIVED
+
+Add ZATCA status (separate field):
+- zatcaStatus (from ZatcaSubmission.status)
+
+Posting rules:
+- When invoice becomes ISSUED_POSTED:
+  - if enableZatcaPosting = true:
+    - create ZatcaSubmission = NOT_SENT
+    - enqueue submission job (async)
+Customer visibility:
+- Customer portal can see invoice once ISSUED_POSTED
+- Show ZATCA badge in invoice header:
+  - “ZATCA: Pending / Accepted / Rejected”
+Optional strict mode:
+- Don’t allow customer payment until ZATCA Accepted/Cleared (configurable).
+
+====================================================
+5) SUBMISSION ENGINE (MANDATORY) – REPORTING/CLEARANCE
+====================================================
+Implement an async “ZatcaSubmitter” worker/service:
+- selects NOT_SENT/FAILED submissions
+- builds UBL 2.1 XML (or required XML format per ZATCA)
+- signs XML with active credential
+- sends to:
+  - reporting/single OR clearance/single endpoints (per ZATCA portal manual). :contentReference[oaicite:6]{index=6}
+- stores response and sets status accordingly
+- retries on transient failures
+- emits notifications to finance/admin on REJECTED/FAILED
+
+UI:
+- On invoice detail:
+  - “Submit to ZATCA” (manual retry)
+  - “View ZATCA response” panel (warnings/errors)
+
+====================================================
+6) E-INVOICE QR CODE GENERATION BASED ON ZATCA RESPONSE
+====================================================
+Requirement:
+- Phase 1 QR minimum fields are well-defined. :contentReference[oaicite:7]{index=7}
+- Phase 2 requires enhanced QR/security features per ZATCA security standards. :contentReference[oaicite:8]{index=8}
+
+Implementation:
+6.1 PHASE 1 (fallback/minimum)
+- Generate TLV Base64 with tags 1–5:
+  1 Seller name
+  2 Seller VAT number
+  3 Timestamp
+  4 Total with VAT
+  5 VAT total
+
+6.2 PHASE 2 (after ZATCA response)
+- Generate QR only after:
+  - ZatcaSubmission.status in {REPORTED, ACCEPTED, CLEARED}
+- Include Phase 2 security payload fields required by ZATCA security features standard (implement per the official spec). :contentReference[oaicite:9]{index=9}
+- Store qrBase64 in ZatcaQrPayload and embed into Invoice PDF.
+
+Invoice PDF:
+- Always print:
+  - invoice number, UUID (if returned/used), ZATCA status badge
+  - QR code (Phase 2 if available; else Phase 1)
+  - If rejected: show “Not valid for tax purposes until accepted by ZATCA” (configurable message)
+
+====================================================
+7) “RECEIPT STATUS” AND FEEDBACK HANDLING
+====================================================
+On every ZATCA response:
+- Parse and store:
+  - status (reported/cleared/accepted/rejected)
+  - warnings/errors
+  - any identifiers (uuid, hash)
+- Display in UI:
+  - invoice header status widget
+  - a dedicated “ZATCA” tab on invoice:
+    - last submission attempt
+    - response details
+    - raw payload download (admin only)
+- Reports:
+  - Add a report: “Invoices – ZATCA Status”
+    columns: invoiceNo, customer, total, postedAt, zatcaStatus, lastSubmittedAt, errorCount
+  - Export excel/pdf
+
+====================================================
+8) NOTIFICATIONS (MANDATORY)
+====================================================
+Trigger events:
+- INVOICE_SUBMITTED_TO_ZATCA
+- ZATCA_ACCEPTED / ZATCA_CLEARED
+- ZATCA_REJECTED
+Notify:
+- Finance/Admin (always in-app; email/SMS if enabled)
+- Customer optionally when accepted/cleared (config toggle)
+
+====================================================
+9) ACCEPTANCE CRITERIA
+====================================================
+- Admin can complete onboarding and activate credentials.
+- Issued invoices create a ZATCA submission and send async.
+- ZATCA response is stored, visible, and exportable.
+- Invoice PDF prints QR code:
+  - Phase 2 QR after acceptance/clearance/reporting response
+  - fallback to Phase 1 QR if not yet accepted (configurable)
+- ZATCA status appears everywhere: invoice list, invoice detail, customer portal, reports.
