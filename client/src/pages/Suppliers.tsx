@@ -630,202 +630,100 @@ export default function Suppliers() {
 
       {showModal && (
         <div className="modal-overlay" onClick={handleCloseModal}>
-          <div className="modal" style={{ maxWidth: '50rem', maxHeight: '90vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal" style={{ maxWidth: '40rem' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 600, margin: 0 }}>{editingSupplier ? 'Edit Supplier' : 'Add Supplier'}</h3>
+              <button type="button" onClick={handleCloseModal} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
+            </div>
             <form onSubmit={handleSubmit}>
-              <div className="modal-header">
-                <h3 style={{ fontWeight: 600, margin: 0 }}>{editingSupplier ? 'Edit Supplier' : 'Add Supplier'}</h3>
-                <button type="button" onClick={handleCloseModal} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
-              </div>
               <div className="modal-body">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div className="form-group">
-                    <label>Supplier Code *</label>
-                    <input
-                      type="text"
-                      value={formData.code}
-                      onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                      required
-                      disabled={!!editingSupplier}
-                      placeholder="e.g., SUP-001"
-                    />
+                    <label className="form-label">Code</label>
+                    <input className="form-input" type="text" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value })} required disabled={!!editingSupplier} placeholder="e.g., SUP-001" />
                   </div>
                   <div className="form-group">
-                    <label>Status</label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    >
+                    <label className="form-label">Status</label>
+                    <select className="form-select" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
                       {STATUSES.map(s => (
                         <option key={s.value} value={s.value}>{s.label}</option>
                       ))}
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Name (English) *</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                    />
+                    <label className="form-label">Name (English)</label>
+                    <input className="form-input" type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
                   </div>
                   <div className="form-group">
-                    <label>Name (Arabic)</label>
-                    <input
-                      type="text"
-                      value={formData.nameAr}
-                      onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
-                      dir="rtl"
-                    />
+                    <label className="form-label">Name (Arabic)</label>
+                    <input className="form-input" type="text" value={formData.nameAr} onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })} dir="rtl" />
                   </div>
                   <div className="form-group">
-                    <label>Email</label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    />
+                    <label className="form-label">Email</label>
+                    <input className="form-input" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label>Phone</label>
-                    <input
-                      type="text"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    />
+                    <label className="form-label">Phone</label>
+                    <input className="form-input" type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label>Mobile</label>
-                    <input
-                      type="text"
-                      value={formData.mobile}
-                      onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                    />
+                    <label className="form-label">Mobile</label>
+                    <input className="form-input" type="text" value={formData.mobile} onChange={(e) => setFormData({ ...formData, mobile: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label>Website</label>
-                    <input
-                      type="url"
-                      value={formData.website}
-                      onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <h4 style={{ marginTop: '1.5rem', marginBottom: '0.75rem' }}>Tax & Registration</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group">
-                    <label>Tax Number</label>
-                    <input
-                      type="text"
-                      value={formData.taxNumber}
-                      onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })}
-                    />
+                    <label className="form-label">Website</label>
+                    <input className="form-input" type="url" value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label>VAT Number</label>
-                    <input
-                      type="text"
-                      value={formData.vatNumber}
-                      onChange={(e) => setFormData({ ...formData, vatNumber: e.target.value })}
-                    />
+                    <label className="form-label">Tax Number</label>
+                    <input className="form-input" type="text" value={formData.taxNumber} onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label>CR Number</label>
-                    <input
-                      type="text"
-                      value={formData.crNumber}
-                      onChange={(e) => setFormData({ ...formData, crNumber: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <h4 style={{ marginTop: '1.5rem', marginBottom: '0.75rem' }}>Bank Information</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group">
-                    <label>Bank Name</label>
-                    <input
-                      type="text"
-                      value={formData.bankName}
-                      onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
-                    />
+                    <label className="form-label">VAT Number</label>
+                    <input className="form-input" type="text" value={formData.vatNumber} onChange={(e) => setFormData({ ...formData, vatNumber: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label>IBAN</label>
-                    <input
-                      type="text"
-                      value={formData.bankIban}
-                      onChange={(e) => setFormData({ ...formData, bankIban: e.target.value })}
-                      placeholder="SA..."
-                    />
+                    <label className="form-label">CR Number</label>
+                    <input className="form-input" type="text" value={formData.crNumber} onChange={(e) => setFormData({ ...formData, crNumber: e.target.value })} />
                   </div>
-                </div>
-
-                <h4 style={{ marginTop: '1.5rem', marginBottom: '0.75rem' }}>Address</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">Bank Name</label>
+                    <input className="form-input" type="text" value={formData.bankName} onChange={(e) => setFormData({ ...formData, bankName: e.target.value })} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">IBAN</label>
+                    <input className="form-input" type="text" value={formData.bankIban} onChange={(e) => setFormData({ ...formData, bankIban: e.target.value })} placeholder="SA..." />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Payment Terms (Days)</label>
+                    <input className="form-input" type="number" value={formData.paymentTermsDays} onChange={(e) => setFormData({ ...formData, paymentTermsDays: parseInt(e.target.value) || 30 })} min={0} />
+                  </div>
                   <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                    <label>Address</label>
-                    <input
-                      type="text"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    />
+                    <label className="form-label">Address</label>
+                    <input className="form-input" type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label>City</label>
-                    <input
-                      type="text"
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    />
+                    <label className="form-label">City</label>
+                    <input className="form-input" type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label>Region</label>
-                    <input
-                      type="text"
-                      value={formData.region}
-                      onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                    />
+                    <label className="form-label">Region</label>
+                    <input className="form-input" type="text" value={formData.region} onChange={(e) => setFormData({ ...formData, region: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label>Country</label>
-                    <input
-                      type="text"
-                      value={formData.country}
-                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    />
+                    <label className="form-label">Country</label>
+                    <input className="form-input" type="text" value={formData.country} onChange={(e) => setFormData({ ...formData, country: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label>Postal Code</label>
-                    <input
-                      type="text"
-                      value={formData.postalCode}
-                      onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                    />
+                    <label className="form-label">Postal Code</label>
+                    <input className="form-input" type="text" value={formData.postalCode} onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })} />
                   </div>
-                </div>
-
-                <h4 style={{ marginTop: '1.5rem', marginBottom: '0.75rem' }}>Payment Terms</h4>
-                <div className="form-group" style={{ maxWidth: '200px' }}>
-                  <label>Payment Terms (Days)</label>
-                  <input
-                    type="number"
-                    value={formData.paymentTermsDays}
-                    onChange={(e) => setFormData({ ...formData, paymentTermsDays: parseInt(e.target.value) || 30 })}
-                    min={0}
-                  />
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={createMutation.isPending || updateMutation.isPending}
-                >
-                  {(createMutation.isPending || updateMutation.isPending) ? 'Saving...' : (editingSupplier ? 'Update' : 'Create')}
+                <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={createMutation.isPending || updateMutation.isPending}>
+                  {(createMutation.isPending || updateMutation.isPending) ? 'Saving...' : 'Save Supplier'}
                 </button>
               </div>
             </form>
