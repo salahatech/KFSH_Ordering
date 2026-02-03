@@ -1,4 +1,4 @@
-import { PrismaClient, ProductType, ProductionMethod, OrderStatus, WorkflowEntityType } from '@prisma/client';
+import { PrismaClient, ProductType, ProductionMethod, OrderStatus, WorkflowEntityType, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -1750,6 +1750,283 @@ async function main() {
     }
   } else {
     console.log(`Materials already exist (${existingMaterials}), skipping material/recipe seeding...`);
+  }
+
+  // ==================== WAREHOUSES DEMO DATA ====================
+  console.log('Creating Warehouse demo data...');
+  const existingWarehouses = await prisma.warehouse.count();
+  let warehouses: any[] = [];
+  if (existingWarehouses === 0) {
+    const warehouseData = [
+      { code: 'WH-RAW', name: 'Raw Materials Warehouse', nameAr: 'مستودع المواد الخام', type: 'RAW_MATERIALS', temperatureMin: 15, temperatureMax: 25, humidityMin: 30, humidityMax: 60, requiresQC: true },
+      { code: 'WH-QRN', name: 'Quarantine Warehouse', nameAr: 'مستودع الحجر', type: 'QUARANTINE', temperatureMin: 15, temperatureMax: 25, requiresQC: true },
+      { code: 'WH-PROD', name: 'Production Warehouse', nameAr: 'مستودع الإنتاج', type: 'PRODUCTION', temperatureMin: 18, temperatureMax: 22, requiresQC: false },
+      { code: 'WH-FG', name: 'Finished Goods Warehouse', nameAr: 'مستودع المنتجات النهائية', type: 'FINISHED_GOODS', temperatureMin: 15, temperatureMax: 25, requiresQC: true },
+      { code: 'WH-COLD', name: 'Cold Storage', nameAr: 'التخزين البارد', type: 'COLD_STORAGE', temperatureMin: 2, temperatureMax: 8, humidityMin: 20, humidityMax: 50, requiresQC: true },
+      { code: 'WH-RAD', name: 'Radioactive Storage', nameAr: 'مستودع المواد المشعة', type: 'RADIOACTIVE', isRadioactive: true, requiresQC: true },
+    ];
+
+    warehouses = await Promise.all(
+      warehouseData.map(async (wh) => {
+        const warehouse = await prisma.warehouse.create({ data: wh as any });
+        await prisma.warehouseLocation.createMany({
+          data: [
+            { warehouseId: warehouse.id, code: `${wh.code}-A1`, name: 'Zone A - Rack 1', zone: 'A', aisle: '1', rack: '1' },
+            { warehouseId: warehouse.id, code: `${wh.code}-A2`, name: 'Zone A - Rack 2', zone: 'A', aisle: '1', rack: '2' },
+            { warehouseId: warehouse.id, code: `${wh.code}-B1`, name: 'Zone B - Rack 1', zone: 'B', aisle: '2', rack: '1' },
+          ],
+        });
+        return warehouse;
+      })
+    );
+    console.log(`Created ${warehouses.length} demo warehouses with locations.`);
+  } else {
+    warehouses = await prisma.warehouse.findMany();
+    console.log(`Warehouses already exist (${existingWarehouses}), skipping...`);
+  }
+
+  // ==================== PURCHASE ORDERS DEMO DATA ====================
+  console.log('Creating Purchase Order demo data...');
+  const existingPOs = await prisma.purchaseOrder.count();
+  let purchaseOrders: any[] = [];
+  if (existingPOs === 0) {
+    const allSuppliers = await prisma.supplier.findMany();
+    const allMaterials = await prisma.material.findMany();
+    
+    if (allSuppliers.length > 0 && allMaterials.length > 0) {
+      const poData = [
+        { poNumber: 'PO-2026-001', supplierId: allSuppliers[0].id, status: 'APPROVED', expectedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+        { poNumber: 'PO-2026-002', supplierId: allSuppliers[1 % allSuppliers.length].id, status: 'SENT', expectedDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) },
+        { poNumber: 'PO-2026-003', supplierId: allSuppliers[0].id, status: 'RECEIVED', expectedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
+        { poNumber: 'PO-2026-004', supplierId: allSuppliers[2 % allSuppliers.length].id, status: 'DRAFT', expectedDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000) },
+        { poNumber: 'PO-2026-005', supplierId: allSuppliers[0].id, status: 'PENDING_APPROVAL', expectedDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000) },
+      ];
+
+      for (const po of poData) {
+        const items = allMaterials.slice(0, 3).map((mat, idx) => ({
+          lineNumber: idx + 1,
+          itemCode: mat.code,
+          itemName: mat.name,
+          description: mat.name,
+          orderedQty: (idx + 1) * 10,
+          unit: mat.unit,
+          unitPrice: new Prisma.Decimal((idx + 1) * 50),
+          totalPrice: new Prisma.Decimal((idx + 1) * 10 * (idx + 1) * 50),
+        }));
+        
+        const subtotal = items.reduce((sum, item) => sum + Number(item.totalPrice), 0);
+        const taxAmount = subtotal * 0.15;
+        
+        const createdPO = await prisma.purchaseOrder.create({
+          data: {
+            poNumber: po.poNumber,
+            supplierId: po.supplierId,
+            status: po.status as any,
+            expectedDate: po.expectedDate,
+            subtotal: new Prisma.Decimal(subtotal),
+            taxAmount: new Prisma.Decimal(taxAmount),
+            totalAmount: new Prisma.Decimal(subtotal + taxAmount),
+            paymentTermsDays: 30,
+            items: { create: items },
+            createdById: adminUser.id,
+          },
+        });
+        purchaseOrders.push(createdPO);
+      }
+      console.log(`Created ${purchaseOrders.length} demo purchase orders.`);
+    }
+  } else {
+    purchaseOrders = await prisma.purchaseOrder.findMany();
+    console.log(`Purchase orders already exist (${existingPOs}), skipping...`);
+  }
+
+  // ==================== GOODS RECEIVING NOTES DEMO DATA ====================
+  console.log('Creating GRN demo data...');
+  const existingGRNs = await prisma.goodsReceivedNote.count();
+  let grns: any[] = [];
+  if (existingGRNs === 0 && purchaseOrders.length > 0) {
+    const receivedPO = purchaseOrders.find((po: any) => po.status === 'RECEIVED');
+    const approvedPO = purchaseOrders.find((po: any) => po.status === 'APPROVED');
+    
+    if (receivedPO) {
+      const poWithItems = await prisma.purchaseOrder.findUnique({ where: { id: receivedPO.id }, include: { items: true } });
+      if (poWithItems && poWithItems.items.length > 0) {
+        const grn = await prisma.goodsReceivedNote.create({
+          data: {
+            grnNumber: 'GRN-2026-001',
+            poId: receivedPO.id,
+            supplierId: receivedPO.supplierId,
+            status: 'APPROVED',
+            receivedById: adminUser.id,
+            approvedById: adminUser.id,
+            approvedAt: new Date(),
+            deliveryNoteNumber: 'DN-12345',
+            items: {
+              create: poWithItems.items.map((item: any) => ({
+                poItemId: item.id,
+                receivedQty: item.orderedQty,
+                acceptedQty: item.orderedQty,
+                rejectedQty: 0,
+                unit: item.unit,
+                status: 'RELEASED',
+                lotNumber: `LOT-${Date.now()}`,
+                expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+              })),
+            },
+          },
+        });
+        grns.push(grn);
+      }
+    }
+
+    if (approvedPO) {
+      const poWithItems = await prisma.purchaseOrder.findUnique({ where: { id: approvedPO.id }, include: { items: true } });
+      if (poWithItems && poWithItems.items.length > 0) {
+        const grn = await prisma.goodsReceivedNote.create({
+          data: {
+            grnNumber: 'GRN-2026-002',
+            poId: approvedPO.id,
+            supplierId: approvedPO.supplierId,
+            status: 'PENDING_QC',
+            receivedById: adminUser.id,
+            deliveryNoteNumber: 'DN-12346',
+            items: {
+              create: poWithItems.items.slice(0, 2).map((item: any) => ({
+                poItemId: item.id,
+                receivedQty: item.orderedQty - 2,
+                acceptedQty: 0,
+                rejectedQty: 0,
+                unit: item.unit,
+                status: 'QUARANTINE',
+                lotNumber: `LOT-${Date.now() + 1}`,
+              })),
+            },
+          },
+        });
+        grns.push(grn);
+      }
+    }
+    console.log(`Created ${grns.length} demo GRNs.`);
+  } else {
+    console.log(`GRNs already exist (${existingGRNs}), skipping...`);
+  }
+
+  // ==================== STOCK/INVENTORY DEMO DATA ====================
+  console.log('Creating Stock/Inventory demo data...');
+  const existingStock = await prisma.stockItem.count();
+  const allWarehouses = await prisma.warehouse.findMany();
+  if (existingStock === 0 && allWarehouses.length > 0) {
+    const allMaterials = await prisma.material.findMany();
+    const rawWarehouse = allWarehouses.find((w: any) => w.code === 'WH-RAW' || w.code === 'WH-RM' || w.type === 'RAW_MATERIALS');
+    const coldWarehouse = allWarehouses.find((w: any) => w.code === 'WH-COLD' || w.type === 'COLD_STORAGE');
+    const quarantineWarehouse = allWarehouses.find((w: any) => w.code === 'WH-QRN' || w.code === 'WH-QR' || w.type === 'QUARANTINE');
+    
+    if (rawWarehouse && allMaterials.length > 0) {
+      const stockData = [
+        { materialId: allMaterials[0].id, warehouseId: rawWarehouse.id, quantity: 500, lotNumber: 'LOT-2026-001', status: 'AVAILABLE' },
+        { materialId: allMaterials[1]?.id || allMaterials[0].id, warehouseId: rawWarehouse.id, quantity: 250, lotNumber: 'LOT-2026-002', status: 'AVAILABLE' },
+        { materialId: allMaterials[2]?.id || allMaterials[0].id, warehouseId: coldWarehouse?.id || rawWarehouse.id, quantity: 1000, lotNumber: 'LOT-2026-003', status: 'AVAILABLE' },
+        { materialId: allMaterials[3]?.id || allMaterials[0].id, warehouseId: quarantineWarehouse?.id || rawWarehouse.id, quantity: 100, lotNumber: 'LOT-2026-004', status: 'QUARANTINE' },
+        { materialId: allMaterials[4]?.id || allMaterials[0].id, warehouseId: rawWarehouse.id, quantity: 50, lotNumber: 'LOT-2026-005', status: 'RESERVED', reservedQty: 20 },
+      ];
+
+      await Promise.all(
+        stockData.map((stock) =>
+          prisma.stockItem.create({
+            data: {
+              materialId: stock.materialId,
+              warehouseId: stock.warehouseId,
+              quantity: stock.quantity,
+              availableQty: stock.quantity - (stock.reservedQty || 0),
+              reservedQty: stock.reservedQty || 0,
+              unit: 'EA',
+              lotNumber: stock.lotNumber,
+              status: stock.status as any,
+              expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+              receivedDate: new Date(),
+            },
+          })
+        )
+      );
+      console.log(`Created ${stockData.length} demo stock items.`);
+    }
+  } else {
+    console.log(`Stock items already exist (${existingStock}), skipping...`);
+  }
+
+  // ==================== BATCH RECORDS (Manufacturing Execution) DEMO DATA ====================
+  console.log('Creating Batch Record demo data...');
+  const existingBatchRecords = await prisma.batchRecord.count();
+  if (existingBatchRecords === 0 && batches.length > 0) {
+    const activeRecipe = await prisma.recipe.findFirst({ where: { status: 'ACTIVE' }, include: { steps: true } });
+    
+    if (activeRecipe) {
+      const batchRecordData = [
+        { batch: batches[0], status: 'IN_PROGRESS', startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000) },
+        { batch: batches[1], status: 'DRAFT', startedAt: null },
+        { batch: batches[2], status: 'APPROVED', startedAt: new Date(Date.now() - 24 * 60 * 60 * 1000), completedAt: new Date(Date.now() - 20 * 60 * 60 * 1000) },
+      ];
+
+      for (const brData of batchRecordData) {
+        if (!brData.batch) continue;
+        
+        const existingBR = await prisma.batchRecord.findUnique({ where: { batchId: brData.batch.id } });
+        if (existingBR) continue;
+
+        const batchRecord = await prisma.batchRecord.create({
+          data: {
+            batchId: brData.batch.id,
+            recipeId: activeRecipe.id,
+            recipeVersion: activeRecipe.version,
+            status: brData.status as any,
+            plannedYield: activeRecipe.yieldQuantity || 500,
+            actualYield: brData.status === 'APPROVED' ? (activeRecipe.yieldQuantity || 500) * 0.95 : null,
+            yieldUnit: activeRecipe.yieldUnit || 'mCi',
+            startedAt: brData.startedAt,
+            completedAt: brData.completedAt,
+            startedById: brData.startedAt ? adminUser.id : null,
+            completedById: brData.completedAt ? adminUser.id : null,
+            reviewedById: brData.status === 'APPROVED' ? adminUser.id : null,
+            approvedById: brData.status === 'APPROVED' ? adminUser.id : null,
+            reviewedAt: brData.status === 'APPROVED' ? new Date(Date.now() - 18 * 60 * 60 * 1000) : null,
+            approvedAt: brData.status === 'APPROVED' ? new Date(Date.now() - 16 * 60 * 60 * 1000) : null,
+          },
+        });
+
+        const stepStatuses = brData.status === 'APPROVED' 
+          ? ['COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED']
+          : brData.status === 'IN_PROGRESS'
+          ? ['COMPLETED', 'COMPLETED', 'IN_PROGRESS', 'PENDING', 'PENDING', 'PENDING']
+          : ['PENDING', 'PENDING', 'PENDING', 'PENDING', 'PENDING', 'PENDING'];
+
+        await Promise.all(
+          activeRecipe.steps.map((step, idx) =>
+            prisma.batchRecordStep.create({
+              data: {
+                batchRecordId: batchRecord.id,
+                recipeStepId: step.id,
+                stepNumber: step.stepNumber,
+                title: step.title,
+                description: step.description || '',
+                instructions: step.description,
+                status: stepStatuses[idx] as any || 'PENDING',
+                plannedDuration: step.durationMinutes,
+                actualDuration: stepStatuses[idx] === 'COMPLETED' ? (step.durationMinutes || 10) + Math.floor(Math.random() * 5) : null,
+                isQualityCheckpoint: step.qualityCheckpoint,
+                checkpointCriteria: step.checkpointCriteria,
+                checkpointPassed: stepStatuses[idx] === 'COMPLETED' && step.qualityCheckpoint ? true : null,
+                startedAt: stepStatuses[idx] !== 'PENDING' ? new Date(Date.now() - (6 - idx) * 30 * 60 * 1000) : null,
+                completedAt: stepStatuses[idx] === 'COMPLETED' ? new Date(Date.now() - (5 - idx) * 30 * 60 * 1000) : null,
+                executedById: stepStatuses[idx] !== 'PENDING' ? adminUser.id : null,
+              },
+            })
+          )
+        );
+      }
+      console.log(`Created batch records for manufacturing execution demo.`);
+    }
+  } else {
+    console.log(`Batch records already exist (${existingBatchRecords}), skipping...`);
   }
 
   // ==================== APPROVAL INBOX DEMO DATA ====================
