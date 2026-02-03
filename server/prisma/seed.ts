@@ -2471,14 +2471,14 @@ async function main() {
     },
   });
 
-  // CRITICAL announcement for technicians only
-  const techAnnouncement = await prisma.announcement.upsert({
-    where: { id: 'announcement-tech-safety' },
+  // CRITICAL announcement for QC Analysts
+  const qcAnnouncement = await prisma.announcement.upsert({
+    where: { id: 'announcement-qc-safety' },
     update: {},
     create: {
-      id: 'announcement-tech-safety',
-      title: 'Important: Updated Safety Protocols',
-      body: 'All technicians must review and acknowledge the updated safety protocols for handling radioactive materials. The new guidelines are effective immediately. Please contact your supervisor if you have any questions.',
+      id: 'announcement-qc-safety',
+      title: 'Important: Updated QC Safety Protocols',
+      body: 'All QC Analysts must review and acknowledge the updated safety protocols for handling radioactive materials. The new guidelines are effective immediately. Please contact your supervisor if you have any questions.',
       severity: 'CRITICAL',
       publishMode: 'IMMEDIATE',
       status: 'ACTIVE',
@@ -2488,15 +2488,15 @@ async function main() {
     },
   });
 
-  // Add audience targeting for tech announcement
+  // Add audience targeting for QC announcement
   await prisma.announcementAudience.upsert({
-    where: { id: 'audience-tech-safety' },
+    where: { id: 'audience-qc-safety' },
     update: {},
     create: {
-      id: 'audience-tech-safety',
-      announcementId: techAnnouncement.id,
+      id: 'audience-qc-safety',
+      announcementId: qcAnnouncement.id,
       audienceType: 'ROLE',
-      roleCode: 'Technician',
+      roleCode: 'QC Analyst',
     },
   });
 

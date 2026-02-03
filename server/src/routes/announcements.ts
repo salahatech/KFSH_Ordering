@@ -37,8 +37,10 @@ router.get('/admin/announcements', authenticateToken, requireRole('Admin'), asyn
       orderBy: { createdAt: 'desc' }
     });
 
-    // Update statuses based on current time
+    // Compute and persist status changes based on current time
     const now = new Date();
+    const statusUpdates: { id: string; newStatus: AnnouncementStatus }[] = [];
+
     const updatedAnnouncements = announcements.map(a => {
       let computedStatus = a.status;
       if (a.isPublished) {
@@ -50,8 +52,24 @@ router.get('/admin/announcements', authenticateToken, requireRole('Admin'), asyn
           computedStatus = AnnouncementStatus.SCHEDULED;
         }
       }
-      return { ...a, computedStatus };
+      // Track status changes for persistence
+      if (computedStatus !== a.status) {
+        statusUpdates.push({ id: a.id, newStatus: computedStatus });
+      }
+      return { ...a, computedStatus, status: computedStatus };
     });
+
+    // Persist status changes in background
+    if (statusUpdates.length > 0) {
+      Promise.all(
+        statusUpdates.map(u =>
+          prisma.announcement.update({
+            where: { id: u.id },
+            data: { status: u.newStatus }
+          })
+        )
+      ).catch(err => console.error('Error persisting announcement status updates:', err));
+    }
 
     res.json(updatedAnnouncements);
   } catch (error) {
@@ -427,15 +445,21 @@ router.get('/active', authenticateToken, async (req: Request, res: Response) => 
     const user = (req as any).user;
     const now = new Date();
 
-    // Find announcements that are active
+    // Find announcements that are published and currently active
+    // Include SCHEDULED announcements that have passed their startAt time (auto-activate)
     const activeAnnouncements = await prisma.announcement.findMany({
       where: {
         isPublished: true,
-        status: AnnouncementStatus.ACTIVE,
         OR: [
-          { startAt: { lte: now } },
-          { startAt: null }
+          // Already marked ACTIVE
+          { status: AnnouncementStatus.ACTIVE },
+          // SCHEDULED but startAt has passed (auto-activate)
+          {
+            status: AnnouncementStatus.SCHEDULED,
+            startAt: { lte: now }
+          }
         ],
+        // Not expired
         AND: [
           {
             OR: [
@@ -456,6 +480,21 @@ router.get('/active', authenticateToken, async (req: Request, res: Response) => 
         { startAt: 'desc' }
       ]
     });
+
+    // Auto-activate scheduled announcements that have reached their start time
+    const scheduledToActivate = activeAnnouncements.filter(
+      a => a.status === AnnouncementStatus.SCHEDULED && a.startAt && new Date(a.startAt) <= now
+    );
+    if (scheduledToActivate.length > 0) {
+      await Promise.all(
+        scheduledToActivate.map(a =>
+          prisma.announcement.update({
+            where: { id: a.id },
+            data: { status: AnnouncementStatus.ACTIVE }
+          })
+        )
+      );
+    }
 
     // Filter by audience targeting
     const userRole = user.role?.name;
