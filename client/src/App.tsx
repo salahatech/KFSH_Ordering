@@ -59,6 +59,7 @@ import GoodsReceiving from './pages/GoodsReceiving';
 import Inventory from './pages/Inventory';
 import ManufacturingExecution from './pages/ManufacturingExecution';
 import OOSInvestigations from './pages/OOSInvestigations';
+import NotificationSettings from './pages/NotificationSettings';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -250,6 +251,7 @@ export default function App() {
                   <Route path="/payments" element={<PaymentApprovals />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/settings/attachments" element={<AttachmentSettings />} />
+                  <Route path="/settings/notifications" element={<NotificationSettings />} />
                   <Route path="/admin/demo" element={<AdminDemo />} />
                   <Route path="/notifications" element={<NotificationCenter />} />
                   <Route path="/roles" element={<Roles />} />

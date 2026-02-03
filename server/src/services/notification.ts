@@ -1,7 +1,10 @@
 import { PrismaClient, NotificationType } from '@prisma/client';
 import { sendEmail } from './resend.js';
+import { sendSMS, sendWhatsApp } from './twilio.js';
 
 const prisma = new PrismaClient();
+
+export type NotificationChannel = 'email' | 'sms' | 'whatsapp';
 
 export interface NotificationParams {
   userId: string;
@@ -11,10 +14,72 @@ export interface NotificationParams {
   relatedId?: string;
   relatedType?: string;
   sendEmail?: boolean;
+  channels?: NotificationChannel[];
+  category?: 'order' | 'batch' | 'delivery' | 'approval' | 'invoice' | 'system';
+}
+
+async function getNotificationSettings(): Promise<{
+  emailEnabled: boolean;
+  smsEnabled: boolean;
+  whatsappEnabled: boolean;
+  defaultChannel: string;
+  categoryChannels: Record<string, string[]>;
+}> {
+  try {
+    const configs = await prisma.systemConfig.findMany({
+      where: {
+        key: {
+          in: [
+            'notification_email_enabled',
+            'notification_sms_enabled',
+            'notification_whatsapp_enabled',
+            'notification_default_channel',
+            'notification_order_events',
+            'notification_batch_events',
+            'notification_delivery_events',
+            'notification_approval_events',
+            'notification_invoice_events'
+          ]
+        }
+      }
+    });
+
+    const getConfig = (key: string, defaultVal: string) => {
+      const config = configs.find(c => c.key === key);
+      return config?.value || defaultVal;
+    };
+
+    const parseChannels = (value: string): string[] => {
+      return value.split(',').map(s => s.trim()).filter(Boolean);
+    };
+
+    return {
+      emailEnabled: getConfig('notification_email_enabled', 'true') === 'true',
+      smsEnabled: getConfig('notification_sms_enabled', 'false') === 'true',
+      whatsappEnabled: getConfig('notification_whatsapp_enabled', 'false') === 'true',
+      defaultChannel: getConfig('notification_default_channel', 'email'),
+      categoryChannels: {
+        order: parseChannels(getConfig('notification_order_events', 'email')),
+        batch: parseChannels(getConfig('notification_batch_events', 'email')),
+        delivery: parseChannels(getConfig('notification_delivery_events', 'email,sms')),
+        approval: parseChannels(getConfig('notification_approval_events', 'email')),
+        invoice: parseChannels(getConfig('notification_invoice_events', 'email')),
+      }
+    };
+  } catch (error) {
+    console.error('Failed to get notification settings:', error);
+    return {
+      emailEnabled: true,
+      smsEnabled: false,
+      whatsappEnabled: false,
+      defaultChannel: 'email',
+      categoryChannels: {}
+    };
+  }
 }
 
 export async function sendNotification(params: NotificationParams) {
-  const { userId, type, title, message, relatedId, relatedType, sendEmail: shouldSendEmail } = params;
+  const { userId, type, title, message, relatedId, relatedType, sendEmail: shouldSendEmail, channels, category } = params;
 
   const notification = await prisma.notification.create({
     data: {
@@ -27,18 +92,66 @@ export async function sendNotification(params: NotificationParams) {
     },
   });
 
-  if (shouldSendEmail) {
+  const settings = await getNotificationSettings();
+  
+  let activeChannels: string[] = [];
+  
+  if (channels && channels.length > 0) {
+    activeChannels = channels;
+  } else if (category && settings.categoryChannels[category]) {
+    activeChannels = settings.categoryChannels[category];
+  } else if (shouldSendEmail) {
+    activeChannels = ['email'];
+  } else if (settings.defaultChannel === 'all') {
+    activeChannels = ['email', 'sms', 'whatsapp'];
+  } else {
+    activeChannels = [settings.defaultChannel];
+  }
+
+  const user = await prisma.user.findUnique({ 
+    where: { id: userId },
+    select: { id: true, email: true, firstName: true, lastName: true, phone: true }
+  });
+
+  if (!user) {
+    return notification;
+  }
+
+  const deliveryResults: { channel: string; success: boolean; error?: string }[] = [];
+
+  if (activeChannels.includes('email') && settings.emailEnabled && user.email) {
     try {
-      const user = await prisma.user.findUnique({ where: { id: userId } });
-      if (user?.email) {
-        await sendEmail(
-          user.email,
-          `[RadioPharma OMS] ${title}`,
-          generateEmailHtml(title, message, user.firstName)
-        );
-      }
-    } catch (error) {
+      await sendEmail(
+        user.email,
+        `[RadioPharma OMS] ${title}`,
+        generateEmailHtml(title, message, user.firstName)
+      );
+      deliveryResults.push({ channel: 'email', success: true });
+    } catch (error: any) {
       console.error('Failed to send email notification:', error);
+      deliveryResults.push({ channel: 'email', success: false, error: error.message });
+    }
+  }
+
+  if (activeChannels.includes('sms') && settings.smsEnabled && user.phone) {
+    try {
+      const smsMessage = `${title}: ${message}`.substring(0, 160);
+      const result = await sendSMS(user.phone, smsMessage);
+      deliveryResults.push({ channel: 'sms', success: result.success, error: result.error });
+    } catch (error: any) {
+      console.error('Failed to send SMS notification:', error);
+      deliveryResults.push({ channel: 'sms', success: false, error: error.message });
+    }
+  }
+
+  if (activeChannels.includes('whatsapp') && settings.whatsappEnabled && user.phone) {
+    try {
+      const waMessage = `*${title}*\n\n${message}`;
+      const result = await sendWhatsApp(user.phone, waMessage);
+      deliveryResults.push({ channel: 'whatsapp', success: result.success, error: result.error });
+    } catch (error: any) {
+      console.error('Failed to send WhatsApp notification:', error);
+      deliveryResults.push({ channel: 'whatsapp', success: false, error: error.message });
     }
   }
 

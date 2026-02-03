@@ -20,6 +20,7 @@ import {
   Trash2,
   X,
   ExternalLink,
+  Bell,
 } from 'lucide-react';
 
 const tabs = [
@@ -34,6 +35,7 @@ const tabs = [
   { id: 'production-methods', label: 'Production Methods', icon: Factory },
   { id: 'currencies', label: 'Currencies', icon: DollarSign },
   { id: 'attachments', label: 'Attachment Types', icon: Paperclip },
+  { id: 'notifications', label: 'Notifications', icon: Bell, link: '/settings/notifications' },
 ];
 
 export default function Settings() {
@@ -1011,10 +1013,17 @@ export default function Settings() {
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
+              const tabWithLink = tab as typeof tab & { link?: string };
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    if (tabWithLink.link) {
+                      navigate(tabWithLink.link);
+                    } else {
+                      setActiveTab(tab.id);
+                    }
+                  }}
                   className={isActive ? 'btn btn-primary' : 'btn btn-secondary'}
                   style={{
                     justifyContent: 'flex-start',
@@ -1024,6 +1033,7 @@ export default function Settings() {
                 >
                   <Icon size={16} />
                   {tab.label}
+                  {tabWithLink.link && <ExternalLink size={12} style={{ marginLeft: 'auto' }} />}
                 </button>
               );
             })}
