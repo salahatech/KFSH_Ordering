@@ -51,6 +51,20 @@ model User {
   recipesActivated         Recipe[]         @relation("RecipeActivatedBy")
   posCreated               PurchaseOrder[]  @relation("POCreator")
   posApproved              PurchaseOrder[]  @relation("POApprover")
+  
+  batchRecordsStarted      BatchRecord[]    @relation("BatchRecordStartedBy")
+  batchRecordsCompleted    BatchRecord[]    @relation("BatchRecordCompletedBy")
+  batchRecordsReviewed     BatchRecord[]    @relation("BatchRecordReviewedBy")
+  batchRecordsApproved     BatchRecord[]    @relation("BatchRecordApprovedBy")
+  stepsExecuted            BatchRecordStep[] @relation("StepExecutedBy")
+  stepsVerified            BatchRecordStep[] @relation("StepVerifiedBy")
+  materialConsumptions     BatchMaterialConsumption[]
+  batchEquipmentUsages     BatchEquipmentUsage[]
+  deviationsReported       BatchDeviation[] @relation("DeviationReportedBy")
+  deviationsAssigned       BatchDeviation[] @relation("DeviationAssignedTo")
+  deviationsApproved       BatchDeviation[] @relation("DeviationApprovedBy")
+  deviationsClosed         BatchDeviation[] @relation("DeviationClosedBy")
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -419,6 +433,7 @@ model Batch {
   events              BatchEvent[]
   samples             Sample[]
   oosCases            OOSCase[]
+  batchRecord         BatchRecord?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 }
@@ -437,6 +452,264 @@ model BatchOperator {
   @@unique([batchId, userId])
 }
 
+// ==================== eBR (Electronic Batch Record) MODULE ====================
+
+enum BatchRecordStatus {
+  DRAFT
+  IN_PROGRESS
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum StepExecutionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+  FAILED
+  ON_HOLD
+}
+
+enum DeviationType {
+  PROCESS
+  EQUIPMENT
+  MATERIAL
+  ENVIRONMENT
+  PERSONNEL
+  DOCUMENTATION
+  OTHER
+}
+
+enum DeviationSeverity {
+  MINOR
+  MAJOR
+  CRITICAL
+}
+
+enum DeviationStatus {
+  OPEN
+  UNDER_INVESTIGATION
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  CLOSED
+}
+
+model BatchRecord {
+  id                    String            @id @default(uuid())
+  batchId               String            @unique
+  batch                 Batch             @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  recipeId              String
+  recipe                Recipe            @relation(fields: [recipeId], references: [id])
+  recipeVersion         Int
+  status                BatchRecordStatus @default(DRAFT)
+  
+  plannedYield          Float
+  actualYield           Float?
+  yieldUnit             String
+  yieldVariance         Float?
+  
+  startedAt             DateTime?
+  completedAt           DateTime?
+  reviewedAt            DateTime?
+  approvedAt            DateTime?
+  
+  startedById           String?
+  startedBy             User?             @relation("BatchRecordStartedBy", fields: [startedById], references: [id])
+  completedById         String?
+  completedBy           User?             @relation("BatchRecordCompletedBy", fields: [completedById], references: [id])
+  reviewedById          String?
+  reviewedBy            User?             @relation("BatchRecordReviewedBy", fields: [reviewedById], references: [id])
+  approvedById          String?
+  approvedBy            User?             @relation("BatchRecordApprovedBy", fields: [approvedById], references: [id])
+  
+  approvalSignatureId   String?
+  approvalSignature     ESignature?       @relation(fields: [approvalSignatureId], references: [id])
+  
+  remarks               String?
+  
+  steps                 BatchRecordStep[]
+  materialConsumptions  BatchMaterialConsumption[]
+  equipmentUsages       BatchEquipmentUsage[]
+  deviations            BatchDeviation[]
+  
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  @@index([batchId])
+  @@index([status])
+}
+
+model BatchRecordStep {
+  id                    String              @id @default(uuid())
+  batchRecordId         String
+  batchRecord           BatchRecord         @relation(fields: [batchRecordId], references: [id], onDelete: Cascade)
+  recipeStepId          String?
+  
+  stepNumber            Int
+  title                 String
+  description           String
+  instructions          String?
+  
+  status                StepExecutionStatus @default(PENDING)
+  
+  plannedDuration       Int?
+  actualDuration        Int?
+  
+  startedAt             DateTime?
+  completedAt           DateTime?
+  
+  executedById          String?
+  executedBy            User?               @relation("StepExecutedBy", fields: [executedById], references: [id])
+  verifiedById          String?
+  verifiedBy            User?               @relation("StepVerifiedBy", fields: [verifiedById], references: [id])
+  
+  isQualityCheckpoint   Boolean             @default(false)
+  checkpointCriteria    String?
+  checkpointPassed      Boolean?
+  checkpointNotes       String?
+  
+  targetTemperature     String?
+  actualTemperature     String?
+  targetPressure        String?
+  actualPressure        String?
+  
+  equipmentUsed         String?
+  observations          String?
+  remarks               String?
+  
+  signatureId           String?
+  signature             ESignature?         @relation(fields: [signatureId], references: [id])
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@unique([batchRecordId, stepNumber])
+  @@index([batchRecordId])
+  @@index([status])
+}
+
+model BatchMaterialConsumption {
+  id                    String            @id @default(uuid())
+  batchRecordId         String
+  batchRecord           BatchRecord       @relation(fields: [batchRecordId], references: [id], onDelete: Cascade)
+  
+  materialId            String
+  material              Material          @relation(fields: [materialId], references: [id])
+  stockItemId           String?
+  stockItem             StockItem?        @relation(fields: [stockItemId], references: [id])
+  stockMovementId       String?
+  stockMovement         StockMovement?    @relation(fields: [stockMovementId], references: [id])
+  
+  recipeComponentId     String?
+  
+  plannedQuantity       Float
+  actualQuantity        Float?
+  unit                  String
+  variance              Float?
+  variancePercent       Float?
+  
+  lotNumber             String?
+  expiryDate            DateTime?
+  
+  consumedAt            DateTime?
+  consumedById          String?
+  consumedBy            User?             @relation(fields: [consumedById], references: [id])
+  
+  issuedFromWarehouseId String?
+  issuedFromWarehouse   Warehouse?        @relation(fields: [issuedFromWarehouseId], references: [id])
+  
+  notes                 String?
+  
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  @@index([batchRecordId])
+  @@index([materialId])
+}
+
+model BatchEquipmentUsage {
+  id                    String            @id @default(uuid())
+  batchRecordId         String
+  batchRecord           BatchRecord       @relation(fields: [batchRecordId], references: [id], onDelete: Cascade)
+  equipmentId           String
+  equipment             Equipment         @relation(fields: [equipmentId], references: [id])
+  
+  usageType             String            @default("PRODUCTION")
+  
+  startTime             DateTime?
+  endTime               DateTime?
+  durationMinutes       Int?
+  
+  operatorId            String?
+  operator              User?             @relation(fields: [operatorId], references: [id])
+  
+  preUseCheckPassed     Boolean?
+  postUseCheckPassed    Boolean?
+  cleaningVerified      Boolean?
+  
+  settings              Json?
+  readings              Json?
+  
+  notes                 String?
+  
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  @@index([batchRecordId])
+  @@index([equipmentId])
+}
+
+model BatchDeviation {
+  id                    String            @id @default(uuid())
+  deviationNumber       String            @unique
+  batchRecordId         String?
+  batchRecord           BatchRecord?      @relation(fields: [batchRecordId], references: [id])
+  batchId               String?
+  
+  type                  DeviationType
+  severity              DeviationSeverity
+  status                DeviationStatus   @default(OPEN)
+  
+  title                 String
+  description           String
+  rootCause             String?
+  impact                String?
+  
+  occurredAt            DateTime
+  detectedAt            DateTime          @default(now())
+  
+  reportedById          String
+  reportedBy            User              @relation("DeviationReportedBy", fields: [reportedById], references: [id])
+  
+  assignedToId          String?
+  assignedTo            User?             @relation("DeviationAssignedTo", fields: [assignedToId], references: [id])
+  
+  investigationNotes    String?
+  correctiveAction      String?
+  preventiveAction      String?
+  
+  approvedById          String?
+  approvedBy            User?             @relation("DeviationApprovedBy", fields: [approvedById], references: [id])
+  approvedAt            DateTime?
+  approvalSignatureId   String?
+  approvalSignature     ESignature?       @relation(fields: [approvalSignatureId], references: [id])
+  
+  closedById            String?
+  closedBy              User?             @relation("DeviationClosedBy", fields: [closedById], references: [id])
+  closedAt              DateTime?
+  closureNotes          String?
+  
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  @@index([batchRecordId])
+  @@index([status])
+  @@index([severity])
+}
+
 model Equipment {
   id                String   @id @default(uuid())
   name              String
@@ -448,6 +721,7 @@ model Equipment {
   synthesisBatches  Batch[]  @relation("SynthesisModule")
   hotCellBatches    Batch[]  @relation("HotCell")
   resourceCalendars ResourceCalendar[]
+  batchEquipmentUsages BatchEquipmentUsage[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -533,6 +807,7 @@ model Material {
   halfLifeMinutes       Float?
   recipeComponents      RecipeComponent[]
   stockItems            StockItem[]
+  batchMaterialConsumptions BatchMaterialConsumption[]
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
 }
@@ -577,6 +852,7 @@ model Recipe {
   components            RecipeComponent[]
   steps                 RecipeStep[]
   batches               Batch[]          @relation("BatchRecipe")
+  batchRecords          BatchRecord[]
   createdById           String?
   createdBy             User?            @relation("RecipeCreatedBy", fields: [createdById], references: [id])
   createdAt             DateTime         @default(now())
@@ -703,6 +979,10 @@ model ESignature {
   comment     String?
   metadata    Json?
   createdAt   DateTime        @default(now())
+
+  batchRecords          BatchRecord[]
+  batchRecordSteps      BatchRecordStep[]
+  batchDeviations       BatchDeviation[]
 
   @@index([entityType, entityId])
   @@index([signedById])
@@ -2229,6 +2509,7 @@ model Warehouse {
   locations       WarehouseLocation[]
   stockItems      StockItem[]
   stockMovements  StockMovement[]
+  batchMaterialConsumptions BatchMaterialConsumption[]
   
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -2307,6 +2588,7 @@ model StockItem {
   notes           String?
   
   movements       StockMovement[]
+  batchMaterialConsumptions BatchMaterialConsumption[]
   
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -2357,6 +2639,8 @@ model StockMovement {
   
   performedById   String
   performedAt     DateTime        @default(now())
+  
+  batchMaterialConsumptions BatchMaterialConsumption[]
   
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
