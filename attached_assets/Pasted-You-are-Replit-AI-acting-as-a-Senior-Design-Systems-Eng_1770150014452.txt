@@ -1,0 +1,193 @@
+You are Replit AI acting as a Senior Design Systems Engineer + UI/UX Lead.
+
+Goal:
+Unify the entire application UI so ALL pages (internal portal + customer portal + driver portal) follow ONE consistent design system:
+- typography (font family, sizes, weights)
+- colors (palette + usage rules)
+- spacing + radii + shadows
+- buttons, inputs, tables, cards, badges
+- page layouts (list pages + detail pages)
+- icons + status colors
+- error/success/warning styling
+This must match the best existing pages in the app (Products / Orders) and make every other module consistent.
+
+Tech:
+- React + TypeScript
+- TailwindCSS (or existing CSS framework)
+- Component library currently used in the app (keep it; do not replace unless required)
+- Use a single theme file + reusable components
+- Support Arabic/English (RTL ready) but keep English default
+
+========================================================
+1) DESIGN SYSTEM FOUNDATION (MANDATORY)
+========================================================
+1.1 Create a Theme/Tokens Layer
+Create a single source of truth:
+- /src/theme/tokens.ts (or json)
+Tokens:
+A) Typography
+- fontFamily: primary, arabic fallback
+- fontSizes: xs, sm, base, lg, xl, 2xl
+- lineHeights
+- fontWeights
+- letterSpacing
+
+B) Color Palette
+- brand: primary, primaryHover, primarySoft
+- neutrals: 50..900
+- semantic:
+  - success, warning, danger, info
+- status colors:
+  - draft, pending, active, completed, blocked, cancelled
+Rules:
+- Use semantic colors for statuses, not random colors
+
+C) Spacing & Layout
+- spacing scale
+- container widths
+- page padding
+- grid breakpoints
+
+D) Borders/Radii/Shadows
+- border colors
+- radii: sm/md/lg/2xl (use one standard)
+- shadows: sm/md
+
+E) Components Tokens
+- button height, input height
+- table row height
+- card padding
+- focus ring style
+
+1.2 Fonts
+Use a modern UI font:
+- Primary: Inter (or existing)
+- Arabic fallback: IBM Plex Sans Arabic (or Tajawal) if already available
+Ensure consistent font rendering across the app.
+
+========================================================
+2) GLOBAL STYLES (MANDATORY)
+========================================================
+- Apply theme to:
+  - body background, default text
+  - headings (h1-h4)
+  - links
+  - borders
+- Standardize focus states:
+  - visible focus ring, consistent color
+
+========================================================
+3) COMPONENT STANDARDIZATION (MANDATORY)
+========================================================
+Build/Refactor reusable components so every page uses the same UI:
+
+Core:
+- <AppLayout> (top bar + sidebar + content)
+- <PageHeader> (title, breadcrumb, actions)
+- <Card> / <CardSection>
+- <Button> (primary, secondary, ghost, danger)
+- <Input>, <Select>, <Textarea>, <DatePicker>
+- <Badge> (status + severity)
+- <Table> (sorting, pagination, empty state)
+- <FilterBar> (chips + apply/clear)
+- <Drawer> and <Modal> (consistent spacing)
+- <Toast> (success/error)
+- <Stepper> (journey)
+- <Timeline> (logs)
+
+Rules:
+- No page can build custom buttons/tables from scratch.
+- All statuses must use <StatusBadge status={...} />
+
+========================================================
+4) LAYOUT TEMPLATES (MANDATORY)
+========================================================
+4.1 List Page Template (apply everywhere)
+Pattern:
+- PageHeader
+- KPI widget row (optional)
+- FilterBar
+- Table + pagination
+- Row actions menu (kebab)
+- Bulk actions (optional)
+
+4.2 Detail Page Template (apply everywhere)
+Pattern:
+- Sticky PageHeader with title + status + actions
+- Summary cards row (KPIs)
+- Tabs: Overview / Linked / Documents / Timeline / Audit
+- Right sidebar: Linked Records (optional)
+- Timeline always accessible
+
+========================================================
+5) STATUS & SEVERITY VISUAL LANGUAGE (MANDATORY)
+========================================================
+Define a status map file:
+- /src/theme/statusColors.ts
+Example statuses:
+- DRAFT (neutral)
+- PENDING (info)
+- APPROVED (success)
+- ON_HOLD (warning)
+- REJECTED/FAILED (danger)
+- COMPLETED/CLOSED (success)
+All modules must use the same mapping.
+
+========================================================
+6) FORM & VALIDATION UX (MANDATORY)
+========================================================
+- Inline field errors (red text + border)
+- Top “Form Error Summary” for multiple errors
+- Required field indicator
+- Disabled button while saving
+- Confirmation modals for destructive actions
+- Meaningful server error mapping to user-friendly messages
+
+========================================================
+7) DARK/LIGHT MODE (OPTIONAL)
+========================================================
+If already supported: ensure tokens cover both.
+If not: keep light mode only for now but structure tokens to allow later.
+
+========================================================
+8) APPLY DESIGN SYSTEM TO ALL MODULES (MANDATORY)
+========================================================
+Refactor the following pages to adopt the templates and components:
+- Materials, Recipes/BOM, Suppliers, Purchase Orders, Warehouses, GRN, Inventory, Manufacturing Execution
+- QC, QP Release, Dispensing, Shipments/Driver Portal
+- Customer Portal (orders, invoices, receipts)
+- Reports module
+
+Implementation strategy:
+1) Create tokens + global styles
+2) Refactor core components (Button/Input/Table/PageHeader/Card/Badge/FilterBar)
+3) Update layouts (List & Detail templates)
+4) Migrate pages module-by-module (highest traffic first)
+5) Remove duplicated CSS and ad-hoc styles
+
+========================================================
+9) STYLE GUIDE & DOCUMENTATION (MANDATORY)
+========================================================
+Create /src/design-system/README.md:
+- Typography scale
+- Color palette
+- Component usage rules
+- Examples for:
+  - list pages
+  - detail pages
+  - form validation
+  - statuses
+
+Optionally create a “Style Playground” page:
+- /design-system (Admin-only)
+- shows all components and tokens
+
+========================================================
+10) ACCEPTANCE CRITERIA
+========================================================
+- All pages use one font family and consistent sizes.
+- Colors are unified and status colors are consistent across modules.
+- Lists and details follow the same layout pattern as Products/Orders.
+- No ad-hoc UI styling remains in the migrated modules.
+- Forms/errors look consistent everywhere.
+- Design tokens exist and components reference tokens instead of hard-coded values.
