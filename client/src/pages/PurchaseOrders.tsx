@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuthStore } from '../store/authStore';
+import api from '../lib/api';
 import {
   Plus, Search, Edit2, Eye, X, Check, Send,
   Clipboard, Truck, Trash2, FileText, DollarSign
@@ -74,7 +74,6 @@ interface POStats {
 }
 
 export default function PurchaseOrders() {
-  const { token } = useAuthStore();
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -104,11 +103,8 @@ export default function PurchaseOrders() {
   const { data: stats } = useQuery<POStats>({
     queryKey: ['po-stats'],
     queryFn: async () => {
-      const res = await fetch('/api/purchase-orders/stats', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed to fetch stats');
-      return res.json();
+      const { data } = await api.get('/purchase-orders/stats');
+      return data;
     },
   });
 
@@ -119,33 +115,24 @@ export default function PurchaseOrders() {
       if (search) params.append('search', search);
       if (statusFilter) params.append('status', statusFilter);
       if (supplierFilter) params.append('supplierId', supplierFilter);
-      const res = await fetch(`/api/purchase-orders?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed to fetch purchase orders');
-      return res.json();
+      const { data } = await api.get(`/purchase-orders?${params}`);
+      return data;
     },
   });
 
   const { data: suppliers = [] } = useQuery<Supplier[]>({
     queryKey: ['suppliers-list'],
     queryFn: async () => {
-      const res = await fetch('/api/suppliers?status=ACTIVE', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed to fetch suppliers');
-      return res.json();
+      const { data } = await api.get('/suppliers?status=ACTIVE');
+      return data;
     },
   });
 
   const { data: poDetail } = useQuery<PurchaseOrder>({
     queryKey: ['purchase-order', selectedPO?.id],
     queryFn: async () => {
-      const res = await fetch(`/api/purchase-orders/${selectedPO?.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed to fetch purchase order');
-      return res.json();
+      const { data } = await api.get(`/purchase-orders/${selectedPO?.id}`);
+      return data;
     },
     enabled: !!selectedPO?.id,
   });
@@ -153,30 +140,16 @@ export default function PurchaseOrders() {
   const { data: nextNumber } = useQuery<{ poNumber: string }>({
     queryKey: ['po-next-number'],
     queryFn: async () => {
-      const res = await fetch('/api/purchase-orders/next-number', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed to get PO number');
-      return res.json();
+      const { data } = await api.get('/purchase-orders/next-number');
+      return data;
     },
     enabled: showModal && !editingPO,
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await fetch('/api/purchase-orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Failed to create PO');
-      }
-      return res.json();
+      const response = await api.post('/purchase-orders', data);
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
@@ -192,19 +165,8 @@ export default function PurchaseOrders() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await fetch(`/api/purchase-orders/${editingPO?.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Failed to update PO');
-      }
-      return res.json();
+      const response = await api.put(`/purchase-orders/${editingPO?.id}`, data);
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
@@ -219,19 +181,8 @@ export default function PurchaseOrders() {
 
   const actionMutation = useMutation({
     mutationFn: async ({ id, action, data }: { id: string; action: string; data?: any }) => {
-      const res = await fetch(`/api/purchase-orders/${id}/${action}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data || {}),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || `Failed to ${action} PO`);
-      }
-      return res.json();
+      const response = await api.post(`/purchase-orders/${id}/${action}`, data || {});
+      return response.data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
@@ -246,15 +197,8 @@ export default function PurchaseOrders() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/purchase-orders/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Failed to delete PO');
-      }
-      return res.json();
+      const response = await api.delete(`/purchase-orders/${id}`);
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
@@ -361,9 +305,9 @@ export default function PurchaseOrders() {
     return { subtotal, tax, total: subtotal + tax };
   };
 
-  const handleApprove = async (signatureId: string) => {
+  const handleApprove = async (signature: any) => {
     if (selectedPO) {
-      await actionMutation.mutateAsync({ id: selectedPO.id, action: 'approve', data: { signatureId } });
+      await actionMutation.mutateAsync({ id: selectedPO.id, action: 'approve', data: { signatureId: signature.id } });
       setShowESignModal(false);
     }
   };
@@ -852,8 +796,11 @@ export default function PurchaseOrders() {
           isOpen={showESignModal}
           onClose={() => setShowESignModal(false)}
           scope="PO_APPROVAL"
-          meaning={`I approve Purchase Order ${selectedPO.poNumber} for ${formatCurrency(Number(selectedPO.totalAmount))}`}
-          onSign={handleApprove}
+          entityType="PURCHASE_ORDER"
+          entityId={selectedPO.id}
+          title={`Approve Purchase Order ${selectedPO.poNumber}`}
+          description={`I approve this purchase order for ${formatCurrency(Number(selectedPO.totalAmount))}`}
+          onSuccess={handleApprove}
         />
       )}
     </div>

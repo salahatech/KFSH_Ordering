@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuthStore } from '../store/authStore';
+import api from '../lib/api';
 import {
   Plus, Search, Edit2, Eye, X, User, Mail, Phone,
   MapPin, FileText, ShoppingCart, Check, AlertCircle
@@ -56,7 +56,6 @@ interface SupplierStats {
 }
 
 export default function Suppliers() {
-  const { token } = useAuthStore();
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -96,11 +95,8 @@ export default function Suppliers() {
   const { data: stats } = useQuery<SupplierStats>({
     queryKey: ['supplier-stats'],
     queryFn: async () => {
-      const res = await fetch('/api/suppliers/stats', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed to fetch stats');
-      return res.json();
+      const { data } = await api.get('/suppliers/stats');
+      return data;
     },
   });
 
@@ -110,41 +106,24 @@ export default function Suppliers() {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
       if (statusFilter) params.append('status', statusFilter);
-      const res = await fetch(`/api/suppliers?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed to fetch suppliers');
-      return res.json();
+      const { data } = await api.get(`/suppliers?${params}`);
+      return data;
     },
   });
 
   const { data: supplierDetail } = useQuery<Supplier>({
     queryKey: ['supplier', selectedSupplier?.id],
     queryFn: async () => {
-      const res = await fetch(`/api/suppliers/${selectedSupplier?.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed to fetch supplier');
-      return res.json();
+      const { data } = await api.get(`/suppliers/${selectedSupplier?.id}`);
+      return data;
     },
     enabled: !!selectedSupplier?.id,
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const res = await fetch('/api/suppliers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Failed to create supplier');
-      }
-      return res.json();
+      const response = await api.post('/suppliers', data);
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
@@ -159,19 +138,8 @@ export default function Suppliers() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const res = await fetch(`/api/suppliers/${editingSupplier?.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Failed to update supplier');
-      }
-      return res.json();
+      const response = await api.put(`/suppliers/${editingSupplier?.id}`, data);
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });

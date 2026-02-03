@@ -163,25 +163,25 @@ export default function Materials() {
           title="Total Materials" 
           value={materials?.length || 0} 
           icon={<Package size={24} />}
-          color="var(--primary)"
+          color="primary"
         />
         <KpiCard 
           title="Active" 
           value={activeMaterials} 
           icon={<Beaker size={24} />}
-          color="var(--success)"
+          color="success"
         />
         <KpiCard 
           title="Radioactive" 
           value={radioactiveMaterials} 
           icon={<Atom size={24} />}
-          color="var(--warning)"
+          color="warning"
         />
         <KpiCard 
           title="Low Stock" 
           value={lowStockMaterials} 
           icon={<AlertTriangle size={24} />}
-          color="var(--error)"
+          color="danger"
         />
       </div>
 
@@ -232,18 +232,13 @@ export default function Materials() {
           <div className="loading-spinner" style={{ padding: '3rem', textAlign: 'center' }}>Loading...</div>
         ) : materials?.length === 0 ? (
           <EmptyState 
-            icon={<Package size={48} />}
+            icon="package"
             title="No Materials Found"
-            description={searchQuery || categoryFilter || statusFilter 
+            message={searchQuery || categoryFilter || statusFilter 
               ? "No materials match your search criteria" 
               : "Get started by adding your first material"}
-            action={
-              !searchQuery && !categoryFilter && !statusFilter ? (
-                <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-                  <Plus size={20} /> Add Material
-                </button>
-              ) : undefined
-            }
+            ctaLabel={!searchQuery && !categoryFilter && !statusFilter ? "Add Material" : undefined}
+            onCta={!searchQuery && !categoryFilter && !statusFilter ? () => setShowModal(true) : undefined}
           />
         ) : (
           <div className="table-container">
@@ -267,7 +262,7 @@ export default function Materials() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <code style={{ fontWeight: 600 }}>{material.code}</code>
                         {material.isRadioactive && (
-                          <Atom size={14} style={{ color: 'var(--warning)' }} title="Radioactive" />
+                          <span title="Radioactive"><Atom size={14} style={{ color: 'var(--warning)' }} /></span>
                         )}
                       </div>
                     </td>
