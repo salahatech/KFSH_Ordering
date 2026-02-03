@@ -1,9 +1,30 @@
 import twilio from 'twilio';
+import { PrismaClient, NotificationChannel } from '@prisma/client';
 
+const prisma = new PrismaClient();
 let connectionSettings: any;
 let twilioClient: any = null;
+let useStoredCredentials = false;
 
-async function getCredentials() {
+async function getStoredCredentials() {
+  const config = await prisma.notificationChannelConfig.findUnique({
+    where: { channel: NotificationChannel.SMS }
+  });
+
+  if (!config?.settingsJson) return null;
+
+  const settings = config.settingsJson as any;
+  if (settings.accountSid && settings.authToken && settings.phoneNumber) {
+    return {
+      accountSid: settings.accountSid,
+      authToken: settings.authToken,
+      phoneNumber: settings.phoneNumber
+    };
+  }
+  return null;
+}
+
+async function getReplitCredentials() {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
     ? 'repl ' + process.env.REPL_IDENTITY
@@ -37,13 +58,29 @@ async function getCredentials() {
   };
 }
 
-export async function getTwilioClient() {
-  if (twilioClient) return twilioClient;
+async function getCredentials() {
+  const storedCreds = await getStoredCredentials();
+  if (storedCreds) {
+    useStoredCredentials = true;
+    return storedCreds;
+  }
   
-  const { accountSid, apiKey, apiKeySecret } = await getCredentials();
-  twilioClient = twilio(apiKey, apiKeySecret, {
-    accountSid: accountSid
-  });
+  useStoredCredentials = false;
+  return getReplitCredentials();
+}
+
+export async function getTwilioClient() {
+  twilioClient = null;
+  
+  const creds = await getCredentials();
+  
+  if (useStoredCredentials) {
+    twilioClient = twilio(creds.accountSid, creds.authToken);
+  } else {
+    twilioClient = twilio(creds.apiKey, creds.apiKeySecret, {
+      accountSid: creds.accountSid
+    });
+  }
   return twilioClient;
 }
 

@@ -1,6 +1,8 @@
-import { PrismaClient, NotificationChannel, DeliveryStatus } from '@prisma/client';
+import { PrismaClient, NotificationChannel, NotificationProviderType, DeliveryStatus } from '@prisma/client';
 import { sendEmail, testResendConnection } from './resend.js';
 import { sendSMS, sendWhatsApp, testTwilioConnection } from './twilio.js';
+import { sendEmailViaSMTP, testSMTPConnection } from './smtp.js';
+import { sendWhatsAppViaMeta, testMetaWhatsAppConnection } from './metaWhatsApp.js';
 
 const prisma = new PrismaClient();
 
@@ -19,40 +21,76 @@ interface ChannelStatus {
 }
 
 export async function getChannelStatuses(): Promise<Record<string, ChannelStatus>> {
+  const configs = await prisma.notificationChannelConfig.findMany();
+  
+  const emailConfig = configs.find(c => c.channel === NotificationChannel.EMAIL);
+  const smsConfig = configs.find(c => c.channel === NotificationChannel.SMS);
+  const whatsappConfig = configs.find(c => c.channel === NotificationChannel.WHATSAPP);
+
   const results: Record<string, ChannelStatus> = {
-    email: { connected: false, provider: 'Resend' },
-    sms: { connected: false, provider: 'Twilio' },
-    whatsapp: { connected: false, provider: 'Twilio' }
+    email: { connected: false, provider: emailConfig?.providerType || 'SMTP' },
+    sms: { connected: false, provider: smsConfig?.providerType || 'Twilio' },
+    whatsapp: { connected: false, provider: whatsappConfig?.providerType || 'Meta Cloud API' }
   };
 
   try {
-    const emailStatus = await testResendConnection();
-    results.email = {
-      connected: emailStatus.connected,
-      provider: 'Resend',
-      fromAddress: emailStatus.fromEmail,
-      error: emailStatus.error
-    };
+    const emailProvider = emailConfig?.providerType || NotificationProviderType.SMTP;
+    if (emailProvider === NotificationProviderType.RESEND) {
+      const emailStatus = await testResendConnection();
+      results.email = {
+        connected: emailStatus.connected,
+        provider: 'Resend',
+        fromAddress: emailStatus.fromEmail,
+        error: emailStatus.error
+      };
+    } else {
+      const smtpStatus = await testSMTPConnection();
+      results.email = {
+        connected: smtpStatus.connected,
+        provider: 'SMTP',
+        fromAddress: smtpStatus.fromEmail,
+        error: smtpStatus.error
+      };
+    }
   } catch (e: any) {
     results.email.error = e.message;
   }
 
   try {
-    const twilioStatus = await testTwilioConnection();
-    results.sms = {
-      connected: twilioStatus.connected,
-      provider: 'Twilio',
-      phoneNumber: twilioStatus.phoneNumber,
-      error: twilioStatus.error
-    };
-    results.whatsapp = {
-      connected: twilioStatus.connected,
-      provider: 'Twilio',
-      phoneNumber: twilioStatus.phoneNumber,
-      error: twilioStatus.error
-    };
+    const smsProvider = smsConfig?.providerType || NotificationProviderType.TWILIO;
+    if (smsProvider === NotificationProviderType.TWILIO) {
+      const twilioStatus = await testTwilioConnection();
+      results.sms = {
+        connected: twilioStatus.connected,
+        provider: 'Twilio',
+        phoneNumber: twilioStatus.phoneNumber,
+        error: twilioStatus.error
+      };
+    }
   } catch (e: any) {
     results.sms.error = e.message;
+  }
+
+  try {
+    const whatsappProvider = whatsappConfig?.providerType || NotificationProviderType.META_WHATSAPP;
+    if (whatsappProvider === NotificationProviderType.META_WHATSAPP) {
+      const metaStatus = await testMetaWhatsAppConnection();
+      results.whatsapp = {
+        connected: metaStatus.connected,
+        provider: 'Meta Cloud API',
+        phoneNumber: metaStatus.phoneNumber,
+        error: metaStatus.error
+      };
+    } else if (whatsappProvider === NotificationProviderType.TWILIO) {
+      const twilioStatus = await testTwilioConnection();
+      results.whatsapp = {
+        connected: twilioStatus.connected,
+        provider: 'Twilio',
+        phoneNumber: twilioStatus.phoneNumber,
+        error: twilioStatus.error
+      };
+    }
+  } catch (e: any) {
     results.whatsapp.error = e.message;
   }
 
@@ -82,7 +120,14 @@ export async function sendViaEmail(
     return { success: false, error: 'Email channel is disabled' };
   }
 
-  const result = await sendEmail(to, subject, html, fromName || config.fromName || undefined);
+  let result: SendResult;
+  const senderName = fromName || config.fromName || undefined;
+  
+  if (config.providerType === NotificationProviderType.RESEND) {
+    result = await sendEmail(to, subject, html, senderName);
+  } else {
+    result = await sendEmailViaSMTP(to, subject, html, senderName);
+  }
   
   await logDeliveryAttempt(
     NotificationChannel.EMAIL,
@@ -138,7 +183,13 @@ export async function sendViaWhatsApp(
     return { success: false, error: 'WhatsApp channel is disabled' };
   }
 
-  const result = await sendWhatsApp(to, message);
+  let result: SendResult;
+  
+  if (config.providerType === NotificationProviderType.TWILIO) {
+    result = await sendWhatsApp(to, message);
+  } else {
+    result = await sendWhatsAppViaMeta(to, message);
+  }
   
   await logDeliveryAttempt(
     NotificationChannel.WHATSAPP,
@@ -179,12 +230,13 @@ export async function sendTestMessage(
 ): Promise<{ success: boolean; message: string }> {
   let result: SendResult;
   
+  const config = await prisma.notificationChannelConfig.findUnique({
+    where: { channel }
+  });
+  
   switch (channel) {
     case NotificationChannel.EMAIL:
-      result = await sendEmail(
-        recipient,
-        'RadioPharma OMS - Test Email',
-        `<html>
+      const emailHtml = `<html>
           <body style="font-family: Arial, sans-serif; padding: 20px;">
             <h2>Test Email from RadioPharma OMS</h2>
             <p>This is a test email to verify your email notification configuration.</p>
@@ -192,8 +244,12 @@ export async function sendTestMessage(
             <hr />
             <p style="color: #666; font-size: 12px;">Sent at: ${new Date().toISOString()}</p>
           </body>
-        </html>`
-      );
+        </html>`;
+      if (config?.providerType === NotificationProviderType.RESEND) {
+        result = await sendEmail(recipient, 'RadioPharma OMS - Test Email', emailHtml);
+      } else {
+        result = await sendEmailViaSMTP(recipient, 'RadioPharma OMS - Test Email', emailHtml);
+      }
       break;
       
     case NotificationChannel.SMS:
@@ -204,10 +260,12 @@ export async function sendTestMessage(
       break;
       
     case NotificationChannel.WHATSAPP:
-      result = await sendWhatsApp(
-        recipient,
-        'RadioPharma OMS Test: This is a test WhatsApp message to verify your WhatsApp notification configuration.'
-      );
+      const whatsappMsg = 'RadioPharma OMS Test: This is a test WhatsApp message to verify your WhatsApp notification configuration.';
+      if (config?.providerType === NotificationProviderType.TWILIO) {
+        result = await sendWhatsApp(recipient, whatsappMsg);
+      } else {
+        result = await sendWhatsAppViaMeta(recipient, whatsappMsg);
+      }
       break;
       
     default:
