@@ -36,6 +36,9 @@ import {
   PackageCheck,
   Boxes,
   Factory,
+  Clock,
+  Globe,
+  DollarSign,
 } from 'lucide-react';
 
 interface Notification {
@@ -85,11 +88,20 @@ const menuItems = [
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const notificationRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, logout } = useAuthStore();
+
+  // Update time every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const { data: notificationData } = useQuery({
     queryKey: ['notifications'],
@@ -245,7 +257,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           style={{
             background: 'white',
             borderBottom: '1px solid var(--border)',
-            padding: '1rem 1.5rem',
+            padding: '0.75rem 1.5rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -255,9 +267,64 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           }}
         >
           <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>
+            <h2 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>
               {menuItems.find((m) => m.path === location.pathname)?.label || 'RadioPharma OMS'}
             </h2>
+          </div>
+
+          {/* Context Bar - Date, Time, Language, Currency */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.25rem',
+            background: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            padding: '0.375rem 0.5rem',
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.375rem',
+              padding: '0.25rem 0.625rem',
+              borderRight: '1px solid var(--border)',
+            }}>
+              <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
+              <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+                {format(currentTime, 'EEE, MMM d, yyyy')}
+              </span>
+            </div>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.375rem',
+              padding: '0.25rem 0.625rem',
+              borderRight: '1px solid var(--border)',
+            }}>
+              <Clock size={14} style={{ color: 'var(--text-muted)' }} />
+              <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+                {format(currentTime, 'HH:mm')}
+              </span>
+              <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>AST</span>
+            </div>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.375rem',
+              padding: '0.25rem 0.625rem',
+              borderRight: '1px solid var(--border)',
+            }}>
+              <Globe size={14} style={{ color: 'var(--text-muted)' }} />
+              <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>EN</span>
+            </div>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.375rem',
+              padding: '0.25rem 0.625rem',
+            }}>
+              <DollarSign size={14} style={{ color: 'var(--text-muted)' }} />
+              <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>SAR</span>
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
