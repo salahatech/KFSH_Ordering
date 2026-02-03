@@ -45,6 +45,10 @@ RadioPharma OMS is a comprehensive web application designed for managing radioph
   - Frontend User management shows validation warnings for Customer role
   - Portal pages display customer context (e.g., "Ordering as: [Customer Name]")
 
+## Recent Changes (2026-02-03)
+- **Dashboard Bug Fix**: Fixed `getJourneyCounts` function using incorrect data source for batch KPIs (was using shipmentStatusCounts instead of batchStatusCounts)
+- **Vite Config**: Added strictPort to ensure consistent port 5000 binding
+
 ## Recent Changes (2026-02-02)
 - **Customer Payment Workflow**: Complete payment submission and approval system:
   - Portal customers can submit payments with proof uploads (PNG/JPG/PDF up to 10MB)
