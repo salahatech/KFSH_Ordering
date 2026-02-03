@@ -1,0 +1,278 @@
+You are Replit AI acting as a Senior LIMS/QC Workflow Engineer + Full-Stack Developer.
+
+Context:
+We have a RadioPharma OMS with Products, Batches, QC module. We need a configurable QC Batch Testing system where:
+- QC tests are defined in SETTINGS (templates)
+- Each Product has its own predefined QC batch testing panel: Test + Criteria + Result + Status
+- When a Batch is created for a Product, the system auto-generates the QC test list for that batch from the Product’s QC template
+- UI should match the table layout shown (Test | Criteria | Result | Status) with good UX and status badges.
+
+Goal:
+Implement “QC Test Templates per Product” + “Batch QC Execution” with pass/fail rules and clear statuses.
+
+========================================================
+1) DATA MODEL (PRISMA) — MUST IMPLEMENT
+========================================================
+
+1.1 QC Test Master (Catalog)
+Table: QcTestDefinition
+- id
+- code (unique)             // e.g., VISUAL, PH, RCP, RNID, ENDOTOXIN
+- nameEn (required)
+- nameAr (optional)
+- methodEn (optional)       // e.g., HPLC, LAL, pH meter
+- methodAr (optional)
+- resultType (enum):
+    - PASS_FAIL
+    - NUMERIC
+    - TEXT
+    - OPTION_LIST
+- unit (optional)           // e.g., %, EU/V, min
+- decimalPlaces (optional)  // numeric display
+- isActive (boolean)
+
+1.2 Criteria / Specs
+Table: QcSpecRule
+- id
+- ruleType (enum): MIN, MAX, RANGE, EQUAL, PASS_FAIL_ONLY, CUSTOM_TEXT
+- minValue (decimal nullable)
+- maxValue (decimal nullable)
+- targetValue (decimal nullable)
+- textCriteriaEn (nullable)  // for complex criteria
+- textCriteriaAr (nullable)
+- failIfOutside (boolean default true)
+
+1.3 Product QC Template (predefined per product)
+Table: ProductQcTemplate
+- id
+- productId
+- version (int)             // allow versioning
+- status (DRAFT/ACTIVE/RETIRED)
+- effectiveFrom (datetime)
+- effectiveTo (datetime nullable)
+- createdAt, createdBy
+
+Table: ProductQcTemplateLine
+- id
+- templateId
+- testDefinitionId
+- displayOrder (int)
+- isRequired (boolean default true)
+- specRuleId (nullable)     // criteria for this product/test
+- criteriaTextOverrideEn (nullable) // show exactly as desired in UI
+- criteriaTextOverrideAr (nullable)
+- defaultResultValue (nullable)      // optional
+- allowManualPassFail (boolean default false) // if numeric, allow override with reason
+
+1.4 Batch QC Instance (generated from template when batch created)
+Table: BatchQcSession
+- id
+- batchId
+- productId
+- templateId (which version used)
+- status (enum):
+    - NOT_STARTED
+    - IN_PROGRESS
+    - COMPLETED
+    - QC_PASSED
+    - QC_FAILED
+    - WAITING_REVIEW
+- startedAt, completedAt
+- analystUserId (nullable)
+- reviewedByUserId (nullable)
+- reviewedAt (nullable)
+- notes (nullable)
+
+Table: BatchQcResult
+- id
+- qcSessionId
+- testDefinitionId
+- displayOrder
+- criteriaDisplayEn (string)    // snapshot text used for audit
+- criteriaDisplayAr (string)
+- resultType (copied from definition)
+- numericValue (decimal nullable)
+- textValue (string nullable)
+- passFailValue (PASS/FAIL nullable)
+- unit (string nullable)
+- status (enum):
+    - PENDING
+    - PASS
+    - FAIL
+    - NOT_APPLICABLE
+- enteredByUserId (nullable)
+- enteredAt (nullable)
+- attachmentsCount (int default 0)
+
+Table: BatchQcAttachment
+- id
+- batchQcResultId
+- fileUrl
+- fileName
+- fileSizeBytes
+- mimeType
+- uploadedByUserId
+- uploadedAt
+Rules:
+- Max file size 5MB each
+- Allowed types: PDF/JPG/PNG/DOCX (configurable)
+
+========================================================
+2) WORKFLOW RULES (MANDATORY)
+========================================================
+
+2.1 Template assignment per Product
+- Each Product must have exactly one ACTIVE QC template at a time (by effective dates).
+- Admin/QC Manager can create new versions and activate them.
+- When batch is created, snapshot the ACTIVE template into BatchQcSession and BatchQcResult rows.
+
+2.2 Status auto-evaluation
+When user enters result:
+- If PASS_FAIL test:
+  - status = PASS or FAIL based on selection
+- If NUMERIC test:
+  - evaluate specRule:
+    - MIN: PASS if value >= min
+    - MAX: PASS if value <= max
+    - RANGE: PASS if min <= value <= max
+    - EQUAL: PASS if value == target (within small tolerance if needed)
+  - status auto-set PASS/FAIL
+- If TEXT/CUSTOM_TEXT:
+  - user sets PASS/FAIL (or requires reviewer decision)
+
+2.3 Batch QC Session status
+- If any required test FAIL => session can be QC_FAILED (or WAITING_REVIEW if configured)
+- If all required tests PASS => QC_PASSED
+- If some pending => IN_PROGRESS
+- Add optional 2-step:
+  - Analyst completes => WAITING_REVIEW
+  - Reviewer approves => QC_PASSED / QC_FAILED
+
+2.4 Blocking rules
+- Batch cannot proceed to QP Release unless QC Session status = QC_PASSED
+- If QC_FAILED, batch status becomes ON_HOLD (or FAILED_QC) and triggers notification + investigation (Phase 2 OOS/OOT)
+
+========================================================
+3) SETTINGS UI (MANDATORY) — DEFINE QC TESTS & TEMPLATES
+========================================================
+
+3.1 QC Test Definitions
+Page: /admin/qc/test-definitions
+- CRUD test definitions (code, name, method, result type, unit)
+- Search and filter active/inactive
+
+3.2 Product QC Template Builder
+Page: /products/:id/qc-template (Admin/QC Manager)
+- Header: Product name + current active template version
+- Template versions panel:
+  - create new version, activate, retire
+- Template lines grid:
+  Columns:
+   - Order (drag/drop)
+   - Test (select from definition)
+   - Criteria (builder + preview)
+   - Required toggle
+   - Attachments required toggle (optional)
+- Criteria builder UX:
+  - Choose rule type (MIN/MAX/RANGE/EQUAL/CUSTOM_TEXT/PASS_FAIL_ONLY)
+  - Input min/max values + unit
+  - Auto-generate criteria display text:
+    examples:
+     - “4.5–8.5”
+     - “≥95%”
+     - “<175 EU/V”
+  - Allow override criteria display text (exact string) if needed
+
+- Save + Activate actions:
+  - Activation requires e-signature (optional if you already have e-sign module)
+
+========================================================
+4) BATCH QC TESTING UI (MANDATORY) — MATCH THE TABLE STYLE
+========================================================
+
+Page: /batches/:id/qc
+Show the table exactly like:
+TEST | CRITERIA | RESULT | STATUS
+
+TEST column:
+- Main: Test name (e.g., “Radiochemical Purity”)
+- Subtitle: method (e.g., “HPLC”)
+
+CRITERIA column:
+- Display criteria text (snapshot)
+- Optionally show “Range: …” secondary line
+
+RESULT column:
+- If PASS_FAIL: show Pass/Fail segmented buttons
+- If NUMERIC: numeric input with unit suffix + validation
+- If TEXT: text input / dropdown
+- Add attachment icon/button per row:
+  - upload files
+  - show attachment count
+
+STATUS column:
+- Badge: Pending / Pass / Fail / N/A
+- Status auto-updates as result entered
+- If FAIL: show tooltip “Out of range” or fail reason
+
+Top summary:
+- Batch QC session status widget:
+  - Not started / In progress / Waiting review / Passed / Failed
+- Progress indicator: “3/8 tests completed”
+- Actions:
+  - “Save Draft”
+  - “Submit for Review” (if reviewer flow enabled)
+  - “Mark QC Complete” (requires all required tests entered)
+- Timeline panel: who entered what and when (audit)
+
+Filters (optional but recommended):
+- show only Pending
+- show only Failed
+- search by test name
+
+========================================================
+5) PRODUCT-SPECIFIC PRESETS (MANDATORY)
+========================================================
+Each Product must have its own QC template:
+Example template for FDG:
+- Visual Inspection (PASS/FAIL)
+- pH (RANGE 4.5–8.5)
+- Radiochemical Purity (MIN 95%)
+- Radionuclidic Identity (RANGE 105–115 min)
+- Endotoxin (MAX 175 EU/V)
+These are created in product template settings, then auto-instantiated per batch.
+
+========================================================
+6) APIs (MANDATORY)
+========================================================
+Admin:
+- GET/POST/PUT /qc/test-definitions
+- GET/POST/PUT /products/:id/qc-templates
+- POST /products/:id/qc-templates/:templateId/activate
+
+Batch QC:
+- GET /batches/:id/qc-session
+- PUT /batches/:id/qc-results/:resultId
+- POST /batches/:id/qc-results/:resultId/attachments
+- POST /batches/:id/qc-session/submit
+- POST /batches/:id/qc-session/review (approve/reject)
+
+========================================================
+7) REPORTING (RECOMMENDED)
+========================================================
+Add QC reports:
+- QC Results by Product/Batch
+- Pass/Fail rate
+- Out-of-spec list
+Export: Excel + PDF
+
+========================================================
+8) ACCEPTANCE CRITERIA
+========================================================
+- Admin can define QC tests and build a QC template per product.
+- Creating a batch auto-generates batch QC tests from the product’s active template.
+- QC table shows Test | Criteria | Result | Status with clean UX and status badges.
+- Numeric results auto-evaluate PASS/FAIL based on criteria.
+- Attachments can be uploaded per test row (max 5MB).
+- Batch cannot proceed to QP Release unless QC session is QC_PASSED.
+- Full audit trail exists for results entry and approvals.
