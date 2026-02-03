@@ -55,9 +55,9 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
         where,
         include: {
           batch: { include: { product: true } },
-          openedBy: { select: { id: true, name: true, email: true } },
-          phase1Investigator: { select: { id: true, name: true, email: true } },
-          phase2Lead: { select: { id: true, name: true, email: true } },
+          openedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+          phase1Investigator: { select: { id: true, firstName: true, lastName: true, email: true } },
+          phase2Lead: { select: { id: true, firstName: true, lastName: true, email: true } },
         },
         orderBy: [{ priority: 'desc' }, { openedAt: 'desc' }],
         skip,
@@ -99,12 +99,12 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response): Promi
       where: { id: req.params.id },
       include: {
         batch: { include: { product: true } },
-        openedBy: { select: { id: true, name: true, email: true } },
-        closedBy: { select: { id: true, name: true, email: true } },
-        phase1Investigator: { select: { id: true, name: true, email: true } },
-        phase2Lead: { select: { id: true, name: true, email: true } },
-        capaProposedBy: { select: { id: true, name: true, email: true } },
-        capaApprovedBy: { select: { id: true, name: true, email: true } },
+        openedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        closedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        phase1Investigator: { select: { id: true, firstName: true, lastName: true, email: true } },
+        phase2Lead: { select: { id: true, firstName: true, lastName: true, email: true } },
+        capaProposedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        capaApprovedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
         capaApprovalSignature: true,
         closureSignature: true,
         attachments: { orderBy: { uploadedAt: 'desc' } },
@@ -159,7 +159,7 @@ router.post('/', authenticateToken, requireRole('Admin', 'QC Manager', 'QC Analy
         openedById: userId,
         dueDate: dueDate ? new Date(dueDate) : null,
       },
-      include: { batch: { include: { product: true } }, openedBy: { select: { id: true, name: true, email: true } } },
+      include: { batch: { include: { product: true } }, openedBy: { select: { id: true, firstName: true, lastName: true, email: true } } },
     });
 
     await addTimelineEntry(oosCase.id, 'CASE_OPENED', `OOS case opened for test: ${testName}`, userId, undefined, 'OPEN');
@@ -196,7 +196,7 @@ router.post('/:id/start-phase1', authenticateToken, requireRole('Admin', 'QC Man
         phase1StartedAt: new Date(),
         phase1InvestigatorId: investigatorId || userId,
       },
-      include: { phase1Investigator: { select: { id: true, name: true, email: true } } },
+      include: { phase1Investigator: { select: { id: true, firstName: true, lastName: true, email: true } } },
     });
 
     await addTimelineEntry(oosCase.id, 'PHASE1_STARTED', 'Phase 1 Lab Investigation started', userId, 'OPEN', 'PHASE_1_LAB_INVESTIGATION');
@@ -304,7 +304,7 @@ router.post('/:id/start-phase2', authenticateToken, requireRole('Admin', 'QC Man
         phase2StartedAt: new Date(),
         phase2LeadId: leadId || userId,
       },
-      include: { phase2Lead: { select: { id: true, name: true, email: true } } },
+      include: { phase2Lead: { select: { id: true, firstName: true, lastName: true, email: true } } },
     });
 
     await addTimelineEntry(oosCase.id, 'PHASE2_STARTED', 'Phase 2 Full Investigation started', userId, 'PHASE_1_COMPLETE', 'PHASE_2_FULL_INVESTIGATION');

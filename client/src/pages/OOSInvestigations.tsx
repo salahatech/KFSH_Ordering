@@ -20,14 +20,14 @@ interface OOSCase {
   deviationPercent?: number;
   initialDescription: string;
   openedAt: string;
-  openedBy: { id: string; name: string; email: string };
+  openedBy: { id: string; firstName: string; lastName: string; email: string };
   phase1InvestigatorId?: string;
-  phase1Investigator?: { id: string; name: string };
+  phase1Investigator?: { id: string; firstName: string; lastName: string };
   phase1StartedAt?: string;
   phase1CompletedAt?: string;
   phase1Conclusion?: string;
   phase2LeadId?: string;
-  phase2Lead?: { id: string; name: string };
+  phase2Lead?: { id: string; firstName: string; lastName: string };
   phase2StartedAt?: string;
   phase2CompletedAt?: string;
   phase2Conclusion?: string;
@@ -35,7 +35,7 @@ interface OOSCase {
   correctiveAction?: string;
   preventiveAction?: string;
   closedAt?: string;
-  closedBy?: { id: string; name: string };
+  closedBy?: { id: string; firstName: string; lastName: string };
   closureType?: string;
   finalConclusion?: string;
   dueDate?: string;
@@ -767,7 +767,7 @@ export default function OOSInvestigations() {
                         )}
                       </div>
                       {selectedCase.phase1Investigator && (
-                        <p className="text-sm text-gray-500 mt-1">Investigator: {selectedCase.phase1Investigator.name}</p>
+                        <p className="text-sm text-gray-500 mt-1">Investigator: {selectedCase.phase1Investigator.firstName} {selectedCase.phase1Investigator.lastName}</p>
                       )}
                       {selectedCase.phase1Conclusion && (
                         <p className="text-sm text-gray-600 mt-1">{selectedCase.phase1Conclusion}</p>
@@ -786,7 +786,7 @@ export default function OOSInvestigations() {
                         )}
                       </div>
                       {selectedCase.phase2Lead && (
-                        <p className="text-sm text-gray-500 mt-1">Lead: {selectedCase.phase2Lead.name}</p>
+                        <p className="text-sm text-gray-500 mt-1">Lead: {selectedCase.phase2Lead.firstName} {selectedCase.phase2Lead.lastName}</p>
                       )}
                       {selectedCase.phase2Conclusion && (
                         <p className="text-sm text-gray-600 mt-1">{selectedCase.phase2Conclusion}</p>
