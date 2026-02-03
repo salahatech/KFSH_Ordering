@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Clock, User, FileText, AlertTriangle, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
-import { format } from 'date-fns';
+import { useLocalization } from '../../hooks/useLocalization';
 
 export interface TimelineEvent {
   id: string;
@@ -41,6 +41,7 @@ const severityColors = {
 export function Timeline({ events, maxVisible = 5, showMetadata = false, emptyMessage = 'No events yet' }: TimelineProps) {
   const [expanded, setExpanded] = useState(false);
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
+  const { formatDateTime } = useLocalization();
 
   const displayEvents = expanded ? events : events.slice(0, maxVisible);
   const hasMore = events.length > maxVisible;
@@ -129,7 +130,7 @@ export function Timeline({ events, maxVisible = 5, showMetadata = false, emptyMe
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>
-                      {format(new Date(event.timestamp), 'MMM dd, HH:mm')}
+                      {formatDateTime(event.timestamp)}
                     </div>
                     {event.actor && (
                       <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'flex-end', marginTop: '0.125rem' }}>

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
-import { format } from 'date-fns';
 import { Filter, ChevronLeft, ChevronRight, X, Clock, User, FileText, Hash, Activity, ArrowRight } from 'lucide-react';
+import { useLocalization } from '../hooks/useLocalization';
 
 interface AuditLogEntry {
   id: string;
@@ -31,6 +31,7 @@ export default function AuditLog() {
     offset: 0,
   });
   const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
+  const { formatDateOnly, formatTimeOnly } = useLocalization();
 
   const { data: auditData, isLoading } = useQuery({
     queryKey: ['audit-logs', filters],
@@ -159,9 +160,9 @@ export default function AuditLog() {
             {auditData?.logs?.map((log: any) => (
               <tr key={log.id}>
                 <td>
-                  <div>{format(new Date(log.createdAt), 'MMM dd, yyyy')}</div>
+                  <div>{formatDateOnly(log.createdAt)}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {format(new Date(log.createdAt), 'HH:mm:ss')}
+                    {formatTimeOnly(log.createdAt)}
                   </div>
                 </td>
                 <td>
@@ -271,7 +272,7 @@ export default function AuditLog() {
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: 'white' }}>Audit Log Details</h3>
                   <p style={{ margin: 0, fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                    {format(new Date(selectedLog.createdAt), 'MMMM dd, yyyy \'at\' HH:mm:ss')}
+                    {formatDateOnly(selectedLog.createdAt)} at {formatTimeOnly(selectedLog.createdAt)}
                   </p>
                 </div>
               </div>
@@ -347,8 +348,8 @@ export default function AuditLog() {
                     </div>
                     <span style={{ fontSize: '0.75rem', color: '#15803d', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Timestamp</span>
                   </div>
-                  <div style={{ fontWeight: 600, fontSize: '1rem', color: '#14532d' }}>{format(new Date(selectedLog.createdAt), 'MMM dd, yyyy')}</div>
-                  <div style={{ fontSize: '0.875rem', color: '#15803d', marginTop: '0.25rem' }}>{format(new Date(selectedLog.createdAt), 'HH:mm:ss.SSS')}</div>
+                  <div style={{ fontWeight: 600, fontSize: '1rem', color: '#14532d' }}>{formatDateOnly(selectedLog.createdAt)}</div>
+                  <div style={{ fontSize: '0.875rem', color: '#15803d', marginTop: '0.25rem' }}>{formatTimeOnly(selectedLog.createdAt)}</div>
                 </div>
 
                 <div style={{ 

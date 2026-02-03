@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
-import { format } from 'date-fns';
 import { ClipboardCheck, CheckCircle, XCircle, Play, Clock, AlertTriangle, Beaker, FileText, Eye, History } from 'lucide-react';
+import { useLocalization } from '../hooks/useLocalization';
 import { KpiCard, StatusBadge, FilterBar, EmptyState, type FilterWidget } from '../components/shared';
 import { useToast } from '../components/ui/Toast';
 
@@ -28,6 +28,7 @@ export default function QC() {
   const [filters, setFilters] = useState<Record<string, any>>({});
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { formatDateTime } = useLocalization();
 
   const { data: stats } = useQuery({
     queryKey: ['qc-stats'],
@@ -251,7 +252,7 @@ export default function QC() {
                           {batch.product?.name}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                          {batch.orders?.length || 0} orders | {format(new Date(batch.plannedStartTime || batch.createdAt), 'MMM dd HH:mm')}
+                          {batch.orders?.length || 0} orders | {formatDateTime(batch.plannedStartTime || batch.createdAt)}
                         </div>
                         {batchProgress.total > 0 && (
                           <div style={{ marginTop: '0.5rem' }}>

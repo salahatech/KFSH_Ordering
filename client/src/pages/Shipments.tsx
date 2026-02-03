@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import { format } from 'date-fns';
 import { Truck, Package, Send, CheckCircle, Plus, Clock, AlertTriangle, Eye, UserPlus, MoreVertical, Calendar, X, MapPin, Phone } from 'lucide-react';
+import { useLocalization } from '../hooks/useLocalization';
 import { useToast } from '../components/ui/Toast';
 import { parseApiError } from '../components/ui/FormErrors';
 import { KpiCard, StatusBadge, FilterBar, EmptyState, type FilterWidget } from '../components/shared';
@@ -19,6 +20,7 @@ export default function Shipments() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { formatDateOnly, formatTimeOnly, formatDateTime } = useLocalization();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -438,17 +440,17 @@ export default function Shipments() {
                   <td>
                     {shipment.scheduledDeliveryAt ? (
                       <div>
-                        <div>{format(new Date(shipment.scheduledDeliveryAt), 'MMM dd')}</div>
+                        <div>{formatDateOnly(shipment.scheduledDeliveryAt)}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {format(new Date(shipment.scheduledDeliveryAt), 'HH:mm')}
+                          {formatTimeOnly(shipment.scheduledDeliveryAt)}
                         </div>
                       </div>
                     ) : shipment.scheduledDepartureTime ? (
                       <div>
-                        <div>{format(new Date(shipment.scheduledDepartureTime), 'MMM dd, HH:mm')}</div>
+                        <div>{formatDateTime(shipment.scheduledDepartureTime)}</div>
                         {shipment.expectedArrivalTime && (
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            ETA: {format(new Date(shipment.expectedArrivalTime), 'HH:mm')}
+                            ETA: {formatTimeOnly(shipment.expectedArrivalTime)}
                           </div>
                         )}
                       </div>

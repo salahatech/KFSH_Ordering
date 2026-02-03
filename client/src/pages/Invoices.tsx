@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { format } from 'date-fns';
 import { jsPDF } from 'jspdf';
+import { useLocalization } from '../hooks/useLocalization';
 import QRCode from 'qrcode';
 import { 
   Plus, 
@@ -59,6 +59,7 @@ export default function Invoices() {
   const [detailTab, setDetailTab] = useState<'details' | 'payments' | 'attachments'>('details');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const queryClient = useQueryClient();
+  const { formatDateOnly, formatMoney } = useLocalization();
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['invoices', statusFilter],
@@ -270,8 +271,8 @@ export default function Invoices() {
         doc.text(invoice.customer.address, margin, yPos + 14);
       }
       
-      const invoiceDateFormatted = format(new Date(invoice.invoiceDate), 'MMMM d, yyyy');
-      const dueDateFormatted = format(new Date(invoice.dueDate), 'MMMM d, yyyy');
+      const invoiceDateFormatted = formatDateOnly(invoice.invoiceDate);
+      const dueDateFormatted = formatDateOnly(invoice.dueDate);
       
       doc.setTextColor(100, 100, 100);
       doc.setFontSize(9);
@@ -504,7 +505,7 @@ export default function Invoices() {
                     <td>
                       <div style={{ fontWeight: 600, marginBottom: '0.125rem' }}>{invoice.invoiceNumber}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        Due: {format(new Date(invoice.dueDate), 'MMM d, yyyy')}
+                        Due: {formatDateOnly(invoice.dueDate)}
                       </div>
                     </td>
                     <td>
@@ -525,7 +526,7 @@ export default function Invoices() {
                     </td>
                     <td>
                       <div style={{ fontSize: '0.875rem' }}>
-                        {format(new Date(invoice.invoiceDate), 'MMM d, yyyy')}
+                        {formatDateOnly(invoice.invoiceDate)}
                       </div>
                     </td>
                     <td>
@@ -715,7 +716,7 @@ export default function Invoices() {
                       <Calendar size={18} style={{ color: 'var(--primary)' }} />
                       <div>
                         <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Invoice Date</div>
-                        <div style={{ fontWeight: 500 }}>{format(new Date(selectedInvoice.invoiceDate), 'MMM d, yyyy')}</div>
+                        <div style={{ fontWeight: 500 }}>{formatDateOnly(selectedInvoice.invoiceDate)}</div>
                       </div>
                     </div>
                     <div style={{ 
@@ -730,7 +731,7 @@ export default function Invoices() {
                       <div>
                         <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Due Date</div>
                         <div style={{ fontWeight: 500, color: new Date(selectedInvoice.dueDate) < new Date() ? 'var(--danger)' : undefined }}>
-                          {format(new Date(selectedInvoice.dueDate), 'MMM d, yyyy')}
+                          {formatDateOnly(selectedInvoice.dueDate)}
                         </div>
                       </div>
                     </div>
@@ -857,7 +858,7 @@ export default function Invoices() {
                               ${payment.amount.toFixed(2)}
                             </div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                              {format(new Date(payment.paymentDate), 'MMM d, yyyy')} via {payment.paymentMethod.replace('_', ' ')}
+                              {formatDateOnly(payment.paymentDate)} via {payment.paymentMethod.replace('_', ' ')}
                             </div>
                           </div>
                           {payment.referenceNumber && (

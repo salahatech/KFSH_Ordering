@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
-import { format } from 'date-fns';
 import { Plus, Eye, ArrowRight, HelpCircle, ChevronDown, ChevronUp, Route, ShoppingCart, Clock, CheckCircle, Truck, Package } from 'lucide-react';
+import { useLocalization } from '../hooks/useLocalization';
 import { useToast } from '../components/ui/Toast';
 import { parseApiError } from '../components/ui/FormErrors';
 import { KpiCard, StatusBadge, FilterBar, EmptyState, type FilterWidget } from '../components/shared';
@@ -81,6 +81,7 @@ export default function Orders() {
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [showStatusGuide, setShowStatusGuide] = useState(false);
   const queryClient = useQueryClient();
+  const { formatDateOnly, formatTimeOnly } = useLocalization();
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['orders', filters.status, filters.date],
@@ -360,9 +361,9 @@ export default function Orders() {
                     </div>
                   </td>
                   <td>
-                    <div>{format(new Date(order.deliveryDate), 'MMM dd, yyyy')}</div>
+                    <div>{formatDateOnly(order.deliveryDate)}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {format(new Date(order.deliveryTimeStart), 'HH:mm')} - {format(new Date(order.deliveryTimeEnd), 'HH:mm')}
+                      {formatTimeOnly(order.deliveryTimeStart)} - {formatTimeOnly(order.deliveryTimeEnd)}
                     </div>
                   </td>
                   <td>
