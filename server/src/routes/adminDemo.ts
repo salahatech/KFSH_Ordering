@@ -376,6 +376,138 @@ router.post('/actions/close-invoice', async (req: Request, res: Response) => {
   }
 });
 
+router.post('/actions/create-logistics-shipments', async (req: Request, res: Response) => {
+  try {
+    const customer = await prisma.customer.findFirst({ where: { code: 'CUST-001' } });
+    if (!customer) {
+      return res.status(400).json({ error: 'Demo customer not found. Please seed demo data first.' });
+    }
+
+    const products = await prisma.product.findMany({ take: 3 });
+    if (products.length === 0) {
+      return res.status(400).json({ error: 'No products found. Please seed demo data first.' });
+    }
+
+    const drivers = await prisma.driver.findMany({ where: { status: 'ACTIVE' }, take: 3 });
+    
+    const existingShipmentCount = await prisma.shipment.count();
+    const baseNumber = 50000 + existingShipmentCount;
+
+    const shipmentsToCreate = [
+      {
+        shipmentNumber: `S-${baseNumber + 1}`,
+        status: ShipmentStatus.PACKED,
+        priority: 'URGENT',
+        deliveryAddress: 'King Faisal Specialist Hospital, Riyadh',
+        deliveryLat: 24.7136,
+        deliveryLng: 46.6753,
+        scheduledDeliveryAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+        driverNotes: 'Handle with care - Time-critical radioactive material',
+      },
+      {
+        shipmentNumber: `S-${baseNumber + 2}`,
+        status: ShipmentStatus.PACKED,
+        priority: 'NORMAL',
+        deliveryAddress: 'Prince Sultan Military Medical City, Riyadh',
+        deliveryLat: 24.6877,
+        deliveryLng: 46.7219,
+        scheduledDeliveryAt: new Date(Date.now() + 4 * 60 * 60 * 1000),
+        driverNotes: 'Deliver to Nuclear Medicine Dept - Building C',
+      },
+      {
+        shipmentNumber: `S-${baseNumber + 3}`,
+        status: ShipmentStatus.PACKED,
+        priority: 'NORMAL',
+        deliveryAddress: 'King Khalid University Hospital, Riyadh',
+        deliveryLat: 24.7243,
+        deliveryLng: 46.6392,
+        scheduledDeliveryAt: new Date(Date.now() + 6 * 60 * 60 * 1000),
+        driverNotes: 'Reception at main entrance - Call before arrival',
+      },
+    ];
+
+    const createdShipments = [];
+
+    for (let i = 0; i < shipmentsToCreate.length; i++) {
+      const shipmentData = shipmentsToCreate[i];
+      const product = products[i % products.length];
+      
+      const existingOrderCount = await prisma.order.count();
+      const orderNumber = `O-${60000 + existingOrderCount + 1}`;
+
+      const order = await prisma.order.create({
+        data: {
+          orderNumber,
+          customerId: customer.id,
+          productId: product.id,
+          numberOfDoses: Math.floor(Math.random() * 3) + 1,
+          requestedActivity: 100 + Math.floor(Math.random() * 200),
+          deliveryDate: shipmentData.scheduledDeliveryAt,
+          deliveryTimeStart: shipmentData.scheduledDeliveryAt,
+          deliveryTimeEnd: new Date(shipmentData.scheduledDeliveryAt.getTime() + 60 * 60 * 1000),
+          status: OrderStatus.DISPATCHED,
+          hospitalOrderReference: `HOS-REF-${Date.now().toString().slice(-6)}`,
+        },
+      });
+
+      const shipment = await prisma.shipment.create({
+        data: {
+          shipmentNumber: shipmentData.shipmentNumber,
+          customerId: customer.id,
+          status: shipmentData.status,
+          priority: shipmentData.priority as any,
+          deliveryAddress: shipmentData.deliveryAddress,
+          deliveryLat: shipmentData.deliveryLat,
+          deliveryLng: shipmentData.deliveryLng,
+          scheduledDeliveryAt: shipmentData.scheduledDeliveryAt,
+          driverNotes: shipmentData.driverNotes,
+          orders: {
+            connect: { id: order.id },
+          },
+        },
+        include: { customer: true, orders: { include: { product: true } } },
+      });
+
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { shipmentId: shipment.id },
+      });
+
+      await prisma.shipmentEvent.create({
+        data: {
+          shipmentId: shipment.id,
+          eventType: 'STATUS_CHANGE',
+          fromStatus: null,
+          toStatus: ShipmentStatus.PACKED,
+          notes: 'Shipment packed and ready for driver assignment',
+        },
+      });
+
+      createdShipments.push({
+        id: shipment.id,
+        shipmentNumber: shipment.shipmentNumber,
+        status: shipment.status,
+        priority: shipment.priority,
+        customer: customer.nameEn || customer.name,
+        deliveryAddress: shipment.deliveryAddress,
+        scheduledDeliveryAt: shipment.scheduledDeliveryAt,
+        orderCount: 1,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Created ${createdShipments.length} shipments ready for driver assignment`,
+      shipments: createdShipments,
+      availableDrivers: drivers.map(d => ({ id: d.id, name: d.fullName, vehicle: d.vehicleType })),
+      nextStep: 'Go to Logistics > Shipments to assign drivers to these shipments',
+    });
+  } catch (error) {
+    console.error('Error creating logistics shipments:', error);
+    res.status(500).json({ error: 'Failed to create logistics shipments' });
+  }
+});
+
 router.post('/seed', async (req: Request, res: Response) => {
   try {
     const { spawn } = require('child_process');

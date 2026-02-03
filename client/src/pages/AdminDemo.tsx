@@ -277,22 +277,40 @@ export default function AdminDemo() {
             <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>Archive paid invoice</span>
           </button>
 
-          <div style={{ 
-            padding: '1.5rem', 
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: '1.5rem' }}>
+        <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Truck size={20} style={{ color: '#3b82f6' }} />
+          Logistics Demo Data
+        </h3>
+        <p style={{ marginBottom: '1rem', color: '#6b7280', fontSize: '0.875rem' }}>
+          Create shipments ready for driver assignment to test the logistics workflow.
+        </p>
+        <button
+          className="btn btn-primary"
+          style={{ 
+            padding: '1rem 2rem', 
             display: 'flex', 
-            flexDirection: 'column', 
             alignItems: 'center', 
-            justifyContent: 'center',
-            gap: '0.5rem',
-            background: '#f3f4f6',
-            borderRadius: '0.5rem',
-            color: '#6b7280',
-          }}>
-            <Play size={32} />
-            <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Demo Flow</span>
-            <span style={{ fontSize: '0.7rem', textAlign: 'center' }}>
-              Arrived → Delivered → Payment → Confirm → Close
-            </span>
+            gap: '0.75rem',
+          }}
+          disabled={actionMutation.isPending}
+          onClick={() => actionMutation.mutate({ action: 'create-logistics-shipments' })}
+        >
+          <Package size={20} />
+          <span style={{ fontWeight: 600 }}>Create Shipments for Driver Assignment</span>
+        </button>
+        <div style={{ marginTop: '1rem', padding: '1rem', background: '#eff6ff', borderRadius: '0.5rem', fontSize: '0.875rem' }}>
+          <strong>This will create:</strong>
+          <ul style={{ marginTop: '0.5rem', paddingLeft: '1.25rem', lineHeight: 1.8 }}>
+            <li>3 shipments with PACKED status (ready for driver assignment)</li>
+            <li>Each with an associated order and realistic delivery address</li>
+            <li>One marked as URGENT priority</li>
+          </ul>
+          <div style={{ marginTop: '0.75rem', color: '#1d4ed8' }}>
+            After creation, go to <strong>Logistics → Shipments</strong> to assign drivers.
           </div>
         </div>
       </div>
