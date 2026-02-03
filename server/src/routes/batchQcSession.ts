@@ -76,21 +76,20 @@ async function updateSessionStatus(sessionId: string): Promise<void> {
   
   if (!session) return;
   
+  if (['WAITING_REVIEW', 'QC_PASSED', 'QC_FAILED'].includes(session.status)) {
+    return;
+  }
+  
   const requiredResults = session.results.filter(r => r.isRequired);
-  const allResults = session.results;
   
   const pendingRequired = requiredResults.filter(r => r.status === 'PENDING');
-  const failedRequired = requiredResults.filter(r => r.status === 'FAIL');
-  const passedRequired = requiredResults.filter(r => r.status === 'PASS');
   
   let newStatus: QcSessionStatus = session.status;
   
   if (pendingRequired.length === requiredResults.length) {
     newStatus = QcSessionStatus.NOT_STARTED;
-  } else if (failedRequired.length > 0) {
-    newStatus = QcSessionStatus.QC_FAILED;
-  } else if (passedRequired.length === requiredResults.length) {
-    newStatus = QcSessionStatus.QC_PASSED;
+  } else if (pendingRequired.length > 0) {
+    newStatus = QcSessionStatus.IN_PROGRESS;
   } else {
     newStatus = QcSessionStatus.IN_PROGRESS;
   }
@@ -98,10 +97,7 @@ async function updateSessionStatus(sessionId: string): Promise<void> {
   if (newStatus !== session.status) {
     await prisma.batchQcSession.update({
       where: { id: sessionId },
-      data: {
-        status: newStatus,
-        completedAt: ['QC_PASSED', 'QC_FAILED'].includes(newStatus) ? new Date() : undefined
-      }
+      data: { status: newStatus }
     });
   }
 }
@@ -293,8 +289,8 @@ router.put('/results/:resultId', authenticateToken, requireRole('Admin', 'QC Man
       return res.status(404).json({ error: 'QC result not found' });
     }
     
-    if (['QC_PASSED', 'QC_FAILED'].includes(existing.qcSession.status)) {
-      return res.status(400).json({ error: 'Cannot modify results for a completed QC session' });
+    if (['WAITING_REVIEW', 'QC_PASSED', 'QC_FAILED'].includes(existing.qcSession.status)) {
+      return res.status(400).json({ error: 'Cannot modify results after session has been submitted for review' });
     }
     
     const evaluation = evaluateResult(
@@ -360,6 +356,12 @@ router.post('/submit', authenticateToken, requireRole('Admin', 'QC Manager', 'QC
       return res.status(404).json({ error: 'QC session not found' });
     }
     
+    if (!['NOT_STARTED', 'IN_PROGRESS'].includes(session.status)) {
+      return res.status(400).json({ 
+        error: `Cannot submit: session is already ${session.status}. Only IN_PROGRESS sessions can be submitted for review.`
+      });
+    }
+    
     const pendingRequired = session.results.filter(r => r.isRequired && r.status === 'PENDING');
     if (pendingRequired.length > 0) {
       return res.status(400).json({ 
@@ -410,6 +412,12 @@ router.post('/review', authenticateToken, requireRole('Admin', 'QC Manager', 'QP
     
     if (!session) {
       return res.status(404).json({ error: 'QC session not found' });
+    }
+    
+    if (session.status !== 'WAITING_REVIEW') {
+      return res.status(400).json({ 
+        error: `Cannot review: session status is ${session.status}. Only sessions with status WAITING_REVIEW can be reviewed.`
+      });
     }
     
     const hasFailures = session.results.some(r => r.status === 'FAIL');

@@ -399,7 +399,10 @@ router.post('/:id/release', authenticateToken, requireRole('Qualified Person', '
     
     const batch = await prisma.batch.findUnique({
       where: { id: req.params.id },
-      include: { qcResults: { include: { testedBy: true } } },
+      include: { 
+        qcResults: { include: { testedBy: true } },
+        batchQcSession: true
+      },
     });
 
     if (!batch) {
@@ -409,6 +412,16 @@ router.post('/:id/release', authenticateToken, requireRole('Qualified Person', '
 
     if (batchDisposition === 'RELEASE' && batch.status !== 'QC_PASSED' && batch.status !== 'QP_REVIEW') {
       res.status(400).json({ error: 'Batch must pass QC before release' });
+      return;
+    }
+    
+    if (batchDisposition === 'RELEASE' && batch.batchQcSession && batch.batchQcSession.status !== 'QC_PASSED') {
+      res.status(400).json({ 
+        error: 'QC_SESSION_NOT_PASSED',
+        message: 'Batch QC session must be passed before release',
+        userMessage: `QC session status is "${batch.batchQcSession.status}". All QC tests must pass before the batch can be released.`,
+        currentQcStatus: batch.batchQcSession.status
+      });
       return;
     }
 
