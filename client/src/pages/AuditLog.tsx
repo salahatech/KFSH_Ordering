@@ -238,146 +238,250 @@ export default function AuditLog() {
         <div className="modal-overlay" onClick={() => setSelectedLog(null)}>
           <div
             className="modal-content"
-            style={{ maxWidth: '700px', maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+            style={{ 
+              maxWidth: '720px', 
+              maxHeight: '90vh', 
+              overflow: 'hidden', 
+              display: 'flex', 
+              flexDirection: 'column',
+              borderRadius: '16px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-header" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div className="modal-header" style={{ 
+              background: 'linear-gradient(135deg, var(--primary) 0%, #1e40af 100%)',
+              padding: '1.5rem',
+              borderRadius: '16px 16px 0 0',
+              color: 'white'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ 
-                  width: '40px', 
-                  height: '40px', 
-                  borderRadius: '10px', 
-                  background: 'var(--primary)', 
+                  width: '48px', 
+                  height: '48px', 
+                  borderRadius: '12px', 
+                  background: 'rgba(255,255,255,0.2)', 
                   display: 'flex', 
                   alignItems: 'center', 
-                  justifyContent: 'center' 
+                  justifyContent: 'center',
+                  backdropFilter: 'blur(10px)'
                 }}>
-                  <Activity size={20} color="white" />
+                  <Activity size={24} color="white" />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600 }}>Audit Log Details</h3>
-                  <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: 'white' }}>Audit Log Details</h3>
+                  <p style={{ margin: 0, fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
                     {format(new Date(selectedLog.createdAt), 'MMMM dd, yyyy \'at\' HH:mm:ss')}
                   </p>
                 </div>
               </div>
-              <button className="modal-close" onClick={() => setSelectedLog(null)}>
-                <X size={20} />
+              <button 
+                onClick={() => setSelectedLog(null)}
+                style={{ 
+                  background: 'rgba(255,255,255,0.2)', 
+                  border: 'none', 
+                  borderRadius: '8px',
+                  padding: '0.5rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={20} color="white" />
               </button>
             </div>
 
-            <div className="modal-body" style={{ overflow: 'auto', flex: 1 }}>
+            <div className="modal-body" style={{ overflow: 'auto', flex: 1, padding: '1.5rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div style={{ 
-                  padding: '1rem', 
-                  background: 'var(--bg-secondary)', 
-                  borderRadius: '8px',
-                  border: '1px solid var(--border)'
+                  padding: '1.25rem', 
+                  background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)', 
+                  borderRadius: '12px',
+                  border: '1px solid #bae6fd'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <User size={14} color="var(--text-muted)" />
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 500 }}>User</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <div style={{ 
+                      width: '28px', 
+                      height: '28px', 
+                      borderRadius: '6px', 
+                      background: '#0284c7', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center' 
+                    }}>
+                      <User size={14} color="white" />
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#0369a1', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>User</span>
                   </div>
                   {selectedLog.user ? (
                     <>
-                      <div style={{ fontWeight: 500 }}>{selectedLog.user.firstName} {selectedLog.user.lastName}</div>
-                      <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{selectedLog.user.email}</div>
+                      <div style={{ fontWeight: 600, fontSize: '1rem', color: '#0c4a6e' }}>{selectedLog.user.firstName} {selectedLog.user.lastName}</div>
+                      <div style={{ fontSize: '0.875rem', color: '#0369a1', marginTop: '0.25rem' }}>{selectedLog.user.email}</div>
                       {selectedLog.actorRole && (
-                        <span className="badge badge-info" style={{ marginTop: '0.5rem' }}>{selectedLog.actorRole}</span>
+                        <span className="badge badge-info" style={{ marginTop: '0.75rem', display: 'inline-block' }}>{selectedLog.actorRole}</span>
                       )}
                     </>
                   ) : (
-                    <div style={{ fontWeight: 500, color: 'var(--text-muted)' }}>System</div>
+                    <div style={{ fontWeight: 600, fontSize: '1rem', color: '#64748b' }}>System</div>
                   )}
                 </div>
 
                 <div style={{ 
-                  padding: '1rem', 
-                  background: 'var(--bg-secondary)', 
-                  borderRadius: '8px',
-                  border: '1px solid var(--border)'
+                  padding: '1.25rem', 
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', 
+                  borderRadius: '12px',
+                  border: '1px solid #bbf7d0'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <Clock size={14} color="var(--text-muted)" />
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 500 }}>Timestamp</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <div style={{ 
+                      width: '28px', 
+                      height: '28px', 
+                      borderRadius: '6px', 
+                      background: '#16a34a', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center' 
+                    }}>
+                      <Clock size={14} color="white" />
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#15803d', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Timestamp</span>
                   </div>
-                  <div style={{ fontWeight: 500 }}>{format(new Date(selectedLog.createdAt), 'MMM dd, yyyy')}</div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{format(new Date(selectedLog.createdAt), 'HH:mm:ss.SSS')}</div>
+                  <div style={{ fontWeight: 600, fontSize: '1rem', color: '#14532d' }}>{format(new Date(selectedLog.createdAt), 'MMM dd, yyyy')}</div>
+                  <div style={{ fontSize: '0.875rem', color: '#15803d', marginTop: '0.25rem' }}>{format(new Date(selectedLog.createdAt), 'HH:mm:ss.SSS')}</div>
                 </div>
 
                 <div style={{ 
-                  padding: '1rem', 
-                  background: 'var(--bg-secondary)', 
-                  borderRadius: '8px',
-                  border: '1px solid var(--border)'
+                  padding: '1.25rem', 
+                  background: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)', 
+                  borderRadius: '12px',
+                  border: '1px solid #fde047'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <FileText size={14} color="var(--text-muted)" />
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 500 }}>Entity</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <div style={{ 
+                      width: '28px', 
+                      height: '28px', 
+                      borderRadius: '6px', 
+                      background: '#ca8a04', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center' 
+                    }}>
+                      <FileText size={14} color="white" />
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#a16207', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Entity</span>
                   </div>
-                  <div style={{ fontWeight: 500 }}>{selectedLog.entityType}</div>
+                  <div style={{ fontWeight: 600, fontSize: '1rem', color: '#713f12' }}>{selectedLog.entityType}</div>
                   <code style={{ 
                     fontSize: '0.75rem', 
-                    background: 'var(--bg-tertiary)', 
-                    padding: '0.25rem 0.5rem', 
-                    borderRadius: '4px',
+                    background: 'rgba(0,0,0,0.05)', 
+                    padding: '0.375rem 0.625rem', 
+                    borderRadius: '6px',
                     display: 'inline-block',
-                    marginTop: '0.25rem'
+                    marginTop: '0.5rem',
+                    color: '#92400e',
+                    fontFamily: 'monospace',
+                    wordBreak: 'break-all'
                   }}>
                     {selectedLog.entityId || 'N/A'}
                   </code>
                 </div>
 
                 <div style={{ 
-                  padding: '1rem', 
-                  background: 'var(--bg-secondary)', 
-                  borderRadius: '8px',
-                  border: '1px solid var(--border)'
+                  padding: '1.25rem', 
+                  background: 'linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%)', 
+                  borderRadius: '12px',
+                  border: '1px solid #e879f9'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <Hash size={14} color="var(--text-muted)" />
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 500 }}>Action</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <div style={{ 
+                      width: '28px', 
+                      height: '28px', 
+                      borderRadius: '6px', 
+                      background: '#a855f7', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center' 
+                    }}>
+                      <Hash size={14} color="white" />
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#7e22ce', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Action</span>
                   </div>
-                  <span className={`badge badge-${getActionColor(selectedLog.action)}`} style={{ fontSize: '0.875rem' }}>
+                  <span className={`badge badge-${getActionColor(selectedLog.action)}`} style={{ fontSize: '0.875rem', fontWeight: 600 }}>
                     {selectedLog.action}
                   </span>
                   {selectedLog.traceId && (
-                    <div style={{ marginTop: '0.5rem' }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Trace: </span>
-                      <code style={{ fontSize: '0.7rem' }}>{selectedLog.traceId.slice(0, 12)}...</code>
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#7e22ce' }}>Trace ID: </span>
+                      <code style={{ fontSize: '0.7rem', background: 'rgba(0,0,0,0.05)', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
+                        {selectedLog.traceId.slice(0, 16)}...
+                      </code>
                     </div>
                   )}
                 </div>
               </div>
 
               {(selectedLog.oldValues || selectedLog.newValues) && (
-                <div style={{ marginTop: '1rem' }}>
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <ArrowRight size={16} />
-                    Changes
-                  </h4>
+                <div style={{ 
+                  marginTop: '1.5rem',
+                  padding: '1.25rem',
+                  background: 'var(--bg-secondary)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border)'
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.75rem', 
+                    marginBottom: '1rem',
+                    paddingBottom: '0.75rem',
+                    borderBottom: '1px solid var(--border)'
+                  }}>
+                    <div style={{ 
+                      width: '32px', 
+                      height: '32px', 
+                      borderRadius: '8px', 
+                      background: 'var(--primary)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center' 
+                    }}>
+                      <ArrowRight size={16} color="white" />
+                    </div>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 600, margin: 0, color: 'var(--text-primary)' }}>
+                      Changes
+                    </h4>
+                  </div>
                   
                   {selectedLog.oldValues && selectedLog.newValues ? (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                       <div>
                         <div style={{ 
                           fontSize: '0.75rem', 
-                          fontWeight: 500, 
-                          color: 'var(--text-muted)', 
+                          fontWeight: 600, 
+                          color: '#dc2626', 
                           marginBottom: '0.5rem',
-                          textTransform: 'uppercase'
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
                         }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#dc2626' }} />
                           Before
                         </div>
                         <pre style={{ 
-                          background: 'var(--bg-tertiary)', 
+                          background: '#fef2f2', 
                           padding: '1rem', 
                           borderRadius: '8px', 
-                          fontSize: '0.75rem',
+                          fontSize: '0.8rem',
                           overflow: 'auto',
-                          maxHeight: '200px',
-                          border: '1px solid var(--border)',
-                          margin: 0
+                          maxHeight: '220px',
+                          border: '1px solid #fecaca',
+                          margin: 0,
+                          color: '#991b1b',
+                          fontFamily: '"SF Mono", "Fira Code", monospace',
+                          lineHeight: 1.5
                         }}>
                           {JSON.stringify(selectedLog.oldValues, null, 2)}
                         </pre>
@@ -385,22 +489,30 @@ export default function AuditLog() {
                       <div>
                         <div style={{ 
                           fontSize: '0.75rem', 
-                          fontWeight: 500, 
-                          color: 'var(--text-muted)', 
+                          fontWeight: 600, 
+                          color: '#16a34a', 
                           marginBottom: '0.5rem',
-                          textTransform: 'uppercase'
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
                         }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16a34a' }} />
                           After
                         </div>
                         <pre style={{ 
-                          background: 'var(--bg-tertiary)', 
+                          background: '#f0fdf4', 
                           padding: '1rem', 
                           borderRadius: '8px', 
-                          fontSize: '0.75rem',
+                          fontSize: '0.8rem',
                           overflow: 'auto',
-                          maxHeight: '200px',
-                          border: '1px solid var(--border)',
-                          margin: 0
+                          maxHeight: '220px',
+                          border: '1px solid #bbf7d0',
+                          margin: 0,
+                          color: '#166534',
+                          fontFamily: '"SF Mono", "Fira Code", monospace',
+                          lineHeight: 1.5
                         }}>
                           {JSON.stringify(selectedLog.newValues, null, 2)}
                         </pre>
@@ -410,22 +522,35 @@ export default function AuditLog() {
                     <div>
                       <div style={{ 
                         fontSize: '0.75rem', 
-                        fontWeight: 500, 
-                        color: 'var(--text-muted)', 
+                        fontWeight: 600, 
+                        color: selectedLog.oldValues ? '#dc2626' : '#16a34a', 
                         marginBottom: '0.5rem',
-                        textTransform: 'uppercase'
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
                       }}>
+                        <span style={{ 
+                          width: '8px', 
+                          height: '8px', 
+                          borderRadius: '50%', 
+                          background: selectedLog.oldValues ? '#dc2626' : '#16a34a' 
+                        }} />
                         {selectedLog.oldValues ? 'Previous Values' : 'New Values'}
                       </div>
                       <pre style={{ 
-                        background: 'var(--bg-tertiary)', 
+                        background: selectedLog.oldValues ? '#fef2f2' : '#f0fdf4', 
                         padding: '1rem', 
                         borderRadius: '8px', 
-                        fontSize: '0.75rem',
+                        fontSize: '0.8rem',
                         overflow: 'auto',
                         maxHeight: '300px',
-                        border: '1px solid var(--border)',
-                        margin: 0
+                        border: `1px solid ${selectedLog.oldValues ? '#fecaca' : '#bbf7d0'}`,
+                        margin: 0,
+                        color: selectedLog.oldValues ? '#991b1b' : '#166534',
+                        fontFamily: '"SF Mono", "Fira Code", monospace',
+                        lineHeight: 1.5
                       }}>
                         {JSON.stringify(selectedLog.oldValues || selectedLog.newValues, null, 2)}
                       </pre>
@@ -437,19 +562,29 @@ export default function AuditLog() {
               {!selectedLog.oldValues && !selectedLog.newValues && (
                 <div style={{ 
                   textAlign: 'center', 
-                  padding: '2rem', 
+                  padding: '2.5rem', 
                   color: 'var(--text-muted)',
                   background: 'var(--bg-secondary)',
-                  borderRadius: '8px',
-                  border: '1px dashed var(--border)'
+                  borderRadius: '12px',
+                  border: '2px dashed var(--border)',
+                  marginTop: '1rem'
                 }}>
-                  No detailed change data available for this entry.
+                  <FileText size={32} style={{ marginBottom: '0.75rem', opacity: 0.5 }} />
+                  <div style={{ fontWeight: 500 }}>No detailed change data available</div>
+                  <div style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>This log entry does not contain before/after values.</div>
                 </div>
               )}
             </div>
 
-            <div className="modal-footer" style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="btn btn-secondary" onClick={() => setSelectedLog(null)}>
+            <div className="modal-footer" style={{ 
+              borderTop: '1px solid var(--border)', 
+              padding: '1rem 1.5rem', 
+              display: 'flex', 
+              justifyContent: 'flex-end',
+              background: 'var(--bg-secondary)',
+              borderRadius: '0 0 16px 16px'
+            }}>
+              <button className="btn btn-primary" onClick={() => setSelectedLog(null)}>
                 Close
               </button>
             </div>
