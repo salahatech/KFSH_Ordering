@@ -24,7 +24,7 @@ router.get('/languages', authenticateToken, async (req: Request, res: Response):
   }
 });
 
-router.post('/languages', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.post('/languages', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { code, name, nativeName, direction, isActive, isDefault, sortOrder } = req.body;
     
@@ -60,7 +60,7 @@ router.post('/languages', authenticateToken, requireRole(['Admin']), async (req:
   }
 });
 
-router.put('/languages/:id', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.put('/languages/:id', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { code, name, nativeName, direction, isActive, isDefault, sortOrder } = req.body;
@@ -89,7 +89,7 @@ router.put('/languages/:id', authenticateToken, requireRole(['Admin']), async (r
   }
 });
 
-router.delete('/languages/:id', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.delete('/languages/:id', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     
@@ -149,7 +149,7 @@ router.get('/translations', authenticateToken, async (req: Request, res: Respons
   }
 });
 
-router.post('/translations', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.post('/translations', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { entityType, entityId, fieldKey, langCode, value } = req.body;
     const user = (req as any).user;
@@ -174,7 +174,7 @@ router.post('/translations', authenticateToken, requireRole(['Admin']), async (r
   }
 });
 
-router.post('/translations/bulk', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.post('/translations/bulk', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { translations } = req.body;
     const user = (req as any).user;
@@ -208,7 +208,7 @@ router.post('/translations/bulk', authenticateToken, requireRole(['Admin']), asy
   }
 });
 
-router.delete('/translations/:id', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.delete('/translations/:id', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     await prisma.translationEntry.delete({ where: { id } });
@@ -379,7 +379,7 @@ router.get('/exchange-rates/convert', authenticateToken, async (req: Request, re
   }
 });
 
-router.post('/exchange-rates', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.post('/exchange-rates', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { date, fromCurrency, rate, source } = req.body;
     const user = (req as any).user;
@@ -423,7 +423,7 @@ router.post('/exchange-rates', authenticateToken, requireRole(['Admin']), async 
   }
 });
 
-router.post('/exchange-rates/bulk', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.post('/exchange-rates/bulk', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { rates } = req.body;
     const user = (req as any).user;
@@ -466,7 +466,7 @@ router.post('/exchange-rates/bulk', authenticateToken, requireRole(['Admin']), a
   }
 });
 
-router.delete('/exchange-rates/:id', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.delete('/exchange-rates/:id', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     await prisma.exchangeRate.delete({ where: { id } });
@@ -494,7 +494,7 @@ router.get('/settings', authenticateToken, async (req: Request, res: Response): 
   }
 });
 
-router.put('/settings', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.put('/settings', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const {
       defaultLanguageCode,
@@ -625,7 +625,7 @@ router.get('/localized/:entityType/:entityId/:fieldKey', authenticateToken, asyn
 
 // ==================== SEED DEFAULT LANGUAGES ====================
 
-router.post('/seed-languages', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.post('/seed-languages', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const defaultLanguages = [
       { code: 'en', name: 'English', nativeName: 'English', direction: 'ltr', isDefault: true, sortOrder: 1 },

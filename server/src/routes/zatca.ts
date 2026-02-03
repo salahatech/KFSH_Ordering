@@ -6,7 +6,7 @@ import crypto from 'crypto';
 const router = express.Router();
 const prisma = new PrismaClient();
 
-router.get('/config', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.get('/config', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     let config = await prisma.zatcaConfig.findFirst();
     if (!config) {
@@ -27,7 +27,7 @@ router.get('/config', authenticateToken, requireRole(['Admin']), async (req: Req
   }
 });
 
-router.put('/config', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.put('/config', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const {
       environment,
@@ -161,7 +161,7 @@ router.get('/status', authenticateToken, async (req: Request, res: Response): Pr
   }
 });
 
-router.get('/credentials', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.get('/credentials', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const credentials = await prisma.zatcaCredential.findMany({
       orderBy: { createdAt: 'desc' },
@@ -173,7 +173,7 @@ router.get('/credentials', authenticateToken, requireRole(['Admin']), async (req
   }
 });
 
-router.post('/credentials', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.post('/credentials', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { deviceName, environment } = req.body;
 
@@ -197,7 +197,7 @@ router.post('/credentials', authenticateToken, requireRole(['Admin']), async (re
   }
 });
 
-router.post('/credentials/:id/generate-csr', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.post('/credentials/:id/generate-csr', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { organizationName, vatNumber, serialNumber } = req.body;
@@ -244,7 +244,7 @@ Serial: ${serialNumber || crypto.randomUUID()}
   }
 });
 
-router.post('/credentials/:id/request-ccsid', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.post('/credentials/:id/request-ccsid', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { otp } = req.body;
@@ -298,7 +298,7 @@ router.post('/credentials/:id/request-ccsid', authenticateToken, requireRole(['A
   }
 });
 
-router.post('/credentials/:id/run-compliance', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.post('/credentials/:id/run-compliance', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -341,7 +341,7 @@ router.post('/credentials/:id/run-compliance', authenticateToken, requireRole(['
   }
 });
 
-router.post('/credentials/:id/request-pcsid', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.post('/credentials/:id/request-pcsid', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -389,7 +389,7 @@ router.post('/credentials/:id/request-pcsid', authenticateToken, requireRole(['A
   }
 });
 
-router.delete('/credentials/:id', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.delete('/credentials/:id', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     await prisma.zatcaCredential.delete({ where: { id } });
@@ -464,7 +464,7 @@ router.get('/submissions/:id', authenticateToken, async (req: Request, res: Resp
   }
 });
 
-router.post('/submissions/:id/retry', authenticateToken, requireRole(['Admin', 'Finance']), async (req: Request, res: Response): Promise<void> => {
+router.post('/submissions/:id/retry', authenticateToken, requireRole('Admin', 'Finance'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -490,7 +490,7 @@ router.post('/submissions/:id/retry', authenticateToken, requireRole(['Admin', '
   }
 });
 
-router.post('/invoices/:invoiceId/submit', authenticateToken, requireRole(['Admin', 'Finance']), async (req: Request, res: Response): Promise<void> => {
+router.post('/invoices/:invoiceId/submit', authenticateToken, requireRole('Admin', 'Finance'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { invoiceId } = req.params;
 
@@ -550,7 +550,7 @@ router.post('/invoices/:invoiceId/submit', authenticateToken, requireRole(['Admi
   }
 });
 
-router.get('/logs', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.get('/logs', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const { action, invoiceId, page = '1', pageSize = '50' } = req.query;
 
@@ -584,7 +584,7 @@ router.get('/logs', authenticateToken, requireRole(['Admin']), async (req: Reque
   }
 });
 
-router.post('/test-connection', authenticateToken, requireRole(['Admin']), async (req: Request, res: Response): Promise<void> => {
+router.post('/test-connection', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const config = await prisma.zatcaConfig.findFirst();
     const credential = await prisma.zatcaCredential.findFirst({
