@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { format } from 'date-fns';
+import { formatCurrency } from '../../lib/format';
 import { CreditCard, Check, X, Eye, Clock, AlertCircle, CheckCircle, XCircle, FileText, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -203,7 +204,7 @@ export default function PaymentApprovals() {
             </div>
             <div>
               <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>
-                SAR {(stats?.totalPendingAmount || 0).toLocaleString()}
+                {formatCurrency(stats?.totalPendingAmount || 0)}
               </div>
               <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Pending Amount</div>
             </div>
@@ -240,7 +241,7 @@ export default function PaymentApprovals() {
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{req.invoice?.customer?.code}</div>
                   </td>
                   <td style={{ fontFamily: 'monospace' }}>{req.invoice?.invoiceNumber}</td>
-                  <td style={{ fontWeight: 500 }}>SAR {req.amount.toLocaleString()}</td>
+                  <td style={{ fontWeight: 500 }}>{formatCurrency(req.amount)}</td>
                   <td>{req.paymentMethod?.replace('_', ' ')}</td>
                   <td>{format(new Date(req.submittedAt), 'MMM d, HH:mm')}</td>
                   <td>{getStatusBadge(req.status)}</td>
@@ -298,7 +299,7 @@ export default function PaymentApprovals() {
             }}>
               <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Payment Amount</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>
-                SAR {selectedRequest.amount.toLocaleString()}
+                {formatCurrency(selectedRequest.amount)}
               </div>
             </div>
 
@@ -370,16 +371,16 @@ export default function PaymentApprovals() {
                 <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Total Amount</span>
-                    <span>SAR {requestDetail.invoice.totalAmount?.toLocaleString()}</span>
+                    <span>{formatCurrency(requestDetail.invoice.totalAmount)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Already Paid</span>
-                    <span style={{ color: 'var(--success)' }}>SAR {requestDetail.invoice.paidAmount?.toLocaleString()}</span>
+                    <span style={{ color: 'var(--success)' }}>{formatCurrency(requestDetail.invoice.paidAmount)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: '0.5rem' }}>
                     <span style={{ fontWeight: 500 }}>Balance After This Payment</span>
                     <span style={{ fontWeight: 500 }}>
-                      SAR {Math.max(0, requestDetail.invoice.totalAmount - requestDetail.invoice.paidAmount - selectedRequest.amount).toLocaleString()}
+                      {formatCurrency(Math.max(0, requestDetail.invoice.totalAmount - requestDetail.invoice.paidAmount - selectedRequest.amount))}
                     </span>
                   </div>
                 </div>

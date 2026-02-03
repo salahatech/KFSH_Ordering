@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
+import api from '../lib/api';
+import { format } from 'date-fns';
 import {
   LayoutDashboard,
   Users,
@@ -26,7 +29,19 @@ import {
   Receipt,
   Settings,
   CreditCard,
+  Check,
 } from 'lucide-react';
+
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  relatedId?: string;
+  relatedType?: string;
+}
 
 const menuItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -53,14 +68,57 @@ const menuItems = [
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, logout } = useAuthStore();
+
+  const { data: notificationData } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: async () => {
+      const { data } = await api.get('/notifications?limit=10');
+      return data as { notifications: Notification[]; unreadCount: number };
+    },
+    refetchInterval: 30000,
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await api.patch(`/notifications/${id}/read`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      await api.patch('/notifications/read-all');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setNotificationOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
+
+  const unreadCount = notificationData?.unreadCount || 0;
+  const notifications = notificationData?.notifications || [];
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -187,16 +245,159 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <button
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: '0.5rem',
-                position: 'relative',
-              }}
-            >
-              <Bell size={20} />
-            </button>
+            <div ref={notificationRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setNotificationOpen(!notificationOpen)}
+                style={{
+                  background: notificationOpen ? 'var(--bg-secondary)' : 'none',
+                  border: 'none',
+                  padding: '0.5rem',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  position: 'relative',
+                }}
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '2px',
+                    right: '2px',
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '50%',
+                    background: '#ef4444',
+                    color: 'white',
+                    fontSize: '0.65rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              
+              {notificationOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '0.5rem',
+                  width: '360px',
+                  maxHeight: '480px',
+                  background: 'var(--bg-primary)',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                  border: '1px solid var(--border)',
+                  overflow: 'hidden',
+                  zIndex: 100,
+                }}>
+                  <div style={{
+                    padding: '1rem',
+                    borderBottom: '1px solid var(--border)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}>
+                    <h4 style={{ margin: 0, fontWeight: 600 }}>Notifications</h4>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={() => markAllReadMutation.mutate()}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--primary)',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                        }}
+                      >
+                        <Check size={12} />
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div style={{ maxHeight: '360px', overflow: 'auto' }}>
+                    {notifications.length === 0 ? (
+                      <div style={{
+                        padding: '2rem',
+                        textAlign: 'center',
+                        color: 'var(--text-muted)',
+                      }}>
+                        <Bell size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
+                        <div>No notifications</div>
+                      </div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          onClick={() => {
+                            if (!notification.isRead) {
+                              markReadMutation.mutate(notification.id);
+                            }
+                          }}
+                          style={{
+                            padding: '0.875rem 1rem',
+                            borderBottom: '1px solid var(--border)',
+                            background: notification.isRead ? 'transparent' : 'rgba(59, 130, 246, 0.05)',
+                            cursor: notification.isRead ? 'default' : 'pointer',
+                          }}
+                        >
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '0.75rem',
+                          }}>
+                            {!notification.isRead && (
+                              <div style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                background: 'var(--primary)',
+                                marginTop: '6px',
+                                flexShrink: 0,
+                              }} />
+                            )}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{
+                                fontWeight: notification.isRead ? 400 : 600,
+                                fontSize: '0.875rem',
+                                marginBottom: '0.25rem',
+                              }}>
+                                {notification.title}
+                              </div>
+                              <div style={{
+                                fontSize: '0.8rem',
+                                color: 'var(--text-muted)',
+                                lineHeight: 1.4,
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                              }}>
+                                {notification.message}
+                              </div>
+                              <div style={{
+                                fontSize: '0.7rem',
+                                color: 'var(--text-muted)',
+                                marginTop: '0.375rem',
+                              }}>
+                                {format(new Date(notification.createdAt), 'MMM dd, HH:mm')}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <div
               style={{
                 display: 'flex',
