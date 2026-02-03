@@ -85,7 +85,7 @@ async function getJourneyCounts() {
   });
 
   const orderMap = Object.fromEntries(orderStatusCounts.map(s => [s.status, s._count]));
-  const batchMap = Object.fromEntries(shipmentStatusCounts.map(s => [s.status, s._count]));
+  const batchMap = Object.fromEntries(batchStatusCounts.map(s => [s.status, s._count]));
   const shipmentMap = Object.fromEntries(shipmentStatusCounts.map(s => [s.status, s._count]));
 
   return [
