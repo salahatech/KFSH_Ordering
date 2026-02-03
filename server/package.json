@@ -11,6 +11,9 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
     "prisma:seed": "tsx prisma/seed.ts",
+    "seed:demo": "tsx prisma/demoSeed.ts",
+    "seed:demo:live": "DEMO_MODE=LIVE_DEMO tsx prisma/demoSeed.ts",
+    "seed:demo:complete": "DEMO_MODE=FULLY_COMPLETED tsx prisma/demoSeed.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

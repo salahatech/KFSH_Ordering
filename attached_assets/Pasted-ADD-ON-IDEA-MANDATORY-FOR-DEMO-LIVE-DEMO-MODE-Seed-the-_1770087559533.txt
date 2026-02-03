@@ -1,0 +1,65 @@
+ADD-ON IDEA (MANDATORY FOR DEMO): “LIVE DEMO MODE” – Seed the main journey as In-Progress (In Transit) so you can complete it during the demo
+
+Enhance the demo seed so it supports TWO modes:
+- MODE_A: FULLY_COMPLETED (default) → the whole journey ends at Delivered + Paid + Closed
+- MODE_B: LIVE_DEMO (recommended) → the main journey is created up to “IN_TRANSIT” with invoice already Issued, then you complete Delivery + Payment during the live demo
+
+Implementation:
+1) Add an environment flag or seed arg:
+- DEMO_MODE=FULLY_COMPLETED | LIVE_DEMO
+OR a CLI arg: `npm run seed -- --mode=LIVE_DEMO`
+
+2) In LIVE_DEMO:
+- Create the same linked entities (Customer → Order → Batch → DoseUnits → Shipment → Driver → Invoice)
+but stop at these statuses:
+A) Order:
+  - status = DISPATCHED (not DELIVERED yet)
+B) Shipment:
+  - status = IN_TRANSIT
+  - include 1–2 checkpoint ShipmentEvents (“Picked up”, “Leaving facility”, “On the way”)
+C) Proof of Delivery:
+  - DO NOT create POD yet (so driver can deliver it during demo)
+D) Invoice:
+  - status = ISSUED_POSTED
+  - paidAmount = 0
+  - remainingAmount = total
+E) Payment:
+  - Do NOT confirm payments yet
+  - Optionally create 1 PaymentRequest as “DRAFT” or do not create any, so customer submits it during demo
+
+3) Provide a “Demo Actions” Panel (Admin-only) to complete the flow quickly:
+Create /admin/demo/actions with buttons:
+- “Mark shipment ARRIVED”
+- “Mark shipment DELIVERED + create POD”
+- “Generate PaymentRequest (partial)”
+- “Confirm PaymentRequest”
+- “Generate second PaymentRequest (remaining)”
+- “Confirm final payment and close invoice”
+Each action must:
+- update statuses using existing transition APIs (don’t bypass logic)
+- create events in timelines
+- trigger notifications to customer/logistics/driver/finance
+
+4) Driver Portal Demo Support
+In LIVE_DEMO mode, ensure the driver user:
+- sees the shipment assigned and in transit
+- can open it and complete:
+  - ARRIVED → DELIVERED with POD capture (signature/photo + GPS)
+This will update:
+- shipment journey
+- order journey
+- customer portal tracking
+- notifications
+
+5) README Demo Script
+Add a “Live Demo Walkthrough” section:
+Step 1: Login as customer portal → view order tracking (in transit)
+Step 2: Login as driver → deliver with POD
+Step 3: Customer portal → see Delivered + download invoice PDF
+Step 4: Customer submits partial payment request
+Step 5: Finance confirms → receipt voucher generated
+Step 6: Customer pays remaining → finance confirms → invoice paid/closed
+
+Acceptance Criteria:
+- LIVE_DEMO mode starts with at least 1 order in progress and visible on dashboards/queues.
+- You can complete delivery + payment during the demo, and all linked pages update correctly with logs and notifications.

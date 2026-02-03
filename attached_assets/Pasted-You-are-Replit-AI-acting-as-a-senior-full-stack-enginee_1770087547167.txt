@@ -1,0 +1,209 @@
+You are Replit AI acting as a senior full-stack engineer.
+
+Goal:
+Create realistic DEMO DATA (seed + optional “Generate Demo” button) that covers the FULL process from:
+Customer Portal Order → Validation → Scheduling → Batch → QC → QP Release → Dispensing → Shipment/Driver → Delivery with POD
+…and also generates Invoice → Customer Payment Request → Finance Confirmation → Receipt Voucher.
+Base currency SAR, with cost centers enabled.
+
+Tech:
+- PostgreSQL + Prisma
+- Node.js (NestJS/Express)
+- React app already exists
+- Provide idempotent seed script (can be re-run safely)
+
+========================================================
+1) DEMO SCENARIO REQUIREMENTS (MANDATORY)
+Create ONE main end-to-end journey (happy path) plus a few side examples.
+The data must be linked properly:
+Customer → Customer Users → Orders → Batch → DoseUnits → Shipment → Driver → POD → Invoice → PaymentRequest → ReceiptVoucher
+Also create the related events/timelines so the “Journey” UI pages show meaningful logs.
+
+========================================================
+2) MASTER DATA TO SEED (MANDATORY)
+
+2.1 Company / Seller Info (for invoice + ZATCA QR)
+- sellerName = "RadioPharma Demo Co."
+- sellerVatNo = "310000000000003"   (demo-like 15 digits)
+- sellerCrNo  = "1010123456"
+- sellerAddress = "Riyadh, Saudi Arabia"
+
+2.2 Cost Centers (SAR)
+- CC100 Production
+- CC110 QC Lab
+- CC120 Logistics
+- CC200 Sales
+- CC300 Admin
+
+2.3 Users + Roles
+Create users with passwords (document in README):
+- admin@demo.com (ADMIN)
+- orderdesk@demo.com (ORDER_DESK / VALIDATOR)
+- planner@demo.com (PLANNER)
+- qc@demo.com (QC_ANALYST)
+- qp@demo.com (QP)
+- logistics@demo.com (LOGISTICS)
+- finance@demo.com (FINANCE_ADMIN)
+
+Driver user:
+- driver1@demo.com (DRIVER) linked to Driver record
+
+Customer portal users (linked to a customer):
+- portal1@hospitaldemo.com (CUSTOMER) linked to Customer A
+- portal2@hospitaldemo.com (CUSTOMER_BILLING optional) linked to Customer A
+
+2.4 Customer (with Arabic name + docs)
+Customer A:
+- nameEn: "Al Noor Hospital"
+- nameAr: "مستشفى النور"
+- fullAddress: "King Fahd Rd, Riyadh, Saudi Arabia"
+- city: "Riyadh"
+- country: "Saudi Arabia"
+- mobile: +9665xxxxxxxx (valid)
+- email: billing@hospitaldemo.com
+- crNumber, taxNumber (valid-looking)
+- GPS lat/lng (Riyadh approx)
+- LogoUrl placeholder
+- Documents (max 5MB metadata only): CR, TAX_CERT, LICENSE
+
+2.5 Products (sellable + producible)
+Create at least 3 products with half-life fields and QC templates:
+- FDG (PET) sellable+producible, method CYCLOTRON
+- Tc-99m MDP (SPECT) sellable+producible, method GENERATOR or KIT_PREP
+- I-131 (Therapy) sellable+producible, method THERAPEUTIC_LABELING
+Each product must have:
+- Selling tab config: SKU, sellingUOM, revenueAccount (or stub), default cost center, VAT rate
+- Production recipe (BOM) v1 active with 3–6 materials and qty/uom/cost per unit
+
+2.6 Price List (SAR)
+Create price list “Default SAR 2026” with items:
+- FDG: per dose or per activity (pick one and be consistent)
+- Tc-99m MDP
+- Delivery fee item (optional)
+
+2.7 Capacity Windows (if minutes-based)
+For next 7 days create DeliveryWindows for DISPENSING_BOTTLENECK:
+- 08:00–12:00 (240 minutes)
+- 13:00–17:00 (240 minutes)
+Add TimeStandard minutesRequired per product per dose.
+
+========================================================
+3) END-TO-END HAPPY PATH DATA (MANDATORY)
+Create a single “golden journey”:
+
+3.1 Reservation (optional if capacity enabled)
+- Reservation HELD then CONFIRMED for Customer A:
+  product FDG, quantity = 4 doses
+  reservedMinutes = minutesRequired * 4
+  window = tomorrow morning
+
+3.2 Order (Customer portal created)
+- Order O-10001:
+  customerId = Customer A (from portal user link)
+  product = FDG
+  delivery date/time = tomorrow 10:30
+  injection time = tomorrow 11:00
+  requested activity
+  status journey:
+    DRAFT → SUBMITTED → VALIDATED → SCHEDULED → IN_PRODUCTION → QC_PENDING → RELEASED → DISPATCHED → DELIVERED
+- Create OrderStatusEvents with realistic timestamps spaced by minutes/hours.
+
+3.3 Batch
+- Batch B-20001 linked to O-10001
+  status journey:
+    PLANNED → IN_PRODUCTION → PRODUCTION_COMPLETE → QC_PENDING → QC_PASSED → RELEASED
+- Add BatchEvents and material consumption snapshot from product recipe.
+
+3.4 QC Results
+- Create Sample + TestResults for required tests (pass)
+- QC events:
+  “Sample taken”, “Results entered”, “QC passed”
+
+3.5 QP Release
+- Create e-signature record for batch RELEASED
+- Enforce SoD (QP user differs from QC user)
+
+3.6 Dose Units
+- Create 4 DoseUnits for order:
+  statuses: PLANNED → DISPENSED → PACKED → SHIPPED
+- Generate labelData JSON minimal
+
+3.7 Shipment + Driver + Schedule
+- Shipment S-30001:
+  scheduledPickupAt tomorrow 09:45
+  scheduledDeliveryAt tomorrow 10:30
+  linked to DoseUnits and Order
+  assigned to Driver 1
+  status journey:
+    PACKED → ASSIGNED_TO_DRIVER → ACCEPTED_BY_DRIVER → PICKED_UP → IN_TRANSIT → ARRIVED → DELIVERED
+- Add ShipmentEvents with timestamps
+- Create ProofOfDelivery:
+  receiverName + deliveredAt + gps + signature/photo placeholders
+
+3.8 Invoice + Payment + Receipt Voucher
+- Invoice INV-40001 generated by trigger ON_DELIVERED (or configured trigger):
+  statuses:
+    DRAFT → PENDING_APPROVAL → ISSUED_POSTED → PARTIALLY_PAID → PAID → CLOSED_ARCHIVED
+- Create Payment Agreement allowing partial payment.
+
+Customer actions:
+- PaymentRequest PR-50001 (partial): amount = 50% of invoice, status PENDING_CONFIRMATION
+Finance confirms → ReceiptVoucher RV-60001 created → invoice becomes PARTIALLY_PAID
+
+- PaymentRequest PR-50002 (remaining): status PENDING_CONFIRMATION
+Finance confirms → ReceiptVoucher RV-60002 created → invoice becomes PAID and CLOSED_ARCHIVED
+
+Ensure invoice list shows:
+- total, paid, remaining
+
+========================================================
+4) ADDITIONAL MINI DEMO CASES (RECOMMENDED)
+Create a few extra records to demonstrate filters/exceptions:
+- Order O-10002: QC failed → FAILED_QC (no shipment)
+- Shipment S-30002: delayed → DELAYED (not yet delivered)
+- Invoice INV-40002: overdue unpaid
+- Batch B-20002: ON_HOLD
+
+========================================================
+5) NOTIFICATIONS + EVENTS (MANDATORY)
+For the happy path generate notifications for:
+- Order submitted/validated/scheduled
+- Batch QC passed
+- Batch released
+- Shipment assigned to driver, dispatched, delivered
+- Invoice issued
+- Payment submitted, payment confirmed, invoice fully paid
+Store them so top bar + notification center show items for:
+- Customer portal user
+- logistics user
+- driver user
+- finance user
+
+========================================================
+6) IMPLEMENTATION DETAILS (MANDATORY)
+- Create a seed script: prisma/seed.ts
+- Seed must be idempotent:
+  - upsert by unique keys (email, codes, invoiceNo, orderNo, batchNo, shipmentNo, etc.)
+- Use realistic timestamps:
+  - today and tomorrow in Asia/Riyadh timezone, store UTC in DB
+- After seeding, print in console:
+  - portal user credentials
+  - internal user credentials
+  - the main order number and links to key pages
+
+Optional:
+- Add Admin button “Generate Demo Data” that calls POST /admin/demo/seed
+  - Protected to ADMIN only
+
+========================================================
+7) README DEMO FLOW (MANDATORY)
+Add a README section:
+- Login as portal customer → create/view order O-10001 journey + shipment tracking + invoice + receipts
+- Login as logistics → view shipment S-30001, driver assignment
+- Login as driver → accept/pickup/deliver (already completed in seed, but can show history)
+- Login as finance → see invoice INV-40001 and payment confirmations and receipts
+
+Acceptance Criteria:
+- A user can follow ONE complete journey from customer order to delivery and payment proof without missing links.
+- All journey/timeline pages show events and status progression.
+- Lists and dashboards have meaningful data for filters and widgets.
