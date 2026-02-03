@@ -1,0 +1,258 @@
+You are Replit AI acting as a Senior Product Manager + Solution Architect.
+
+Context:
+We already completed Phase 1 of a RadioPharma OMS (Orders → Batch → QC → QP Release → Dispensing → Shipment → Delivery → Invoicing → Payments → Notifications).
+Now organize and implement the remaining features in clear PHASES with TASKS, respecting priorities, dependencies, and GMP-style controls.
+
+====================================================
+PHASE 2 – MEDIUM PRIORITY (Operational & GMP Core)
+====================================================
+
+----------------------------------------------------
+EPIC 2.1: Procurement & Supply Chain
+----------------------------------------------------
+Goal:
+Enable controlled purchasing, supplier lifecycle, and financial matching.
+
+Tasks:
+2.1.1 Supplier Management
+- Supplier master (profile, contacts, tax/VAT, bank info)
+- Supplier documents (contracts, licenses)
+- Supplier status (Active / On Hold / Blocked)
+
+2.1.2 RFQ (Request for Quotation)
+- Create RFQ from material demand (manual or recipe-based)
+- Invite multiple suppliers
+- Capture quotes (price, lead time, validity)
+- Compare quotes side-by-side
+- Approve selected supplier
+
+2.1.3 Purchase Orders
+- Create PO from approved RFQ
+- PO approval workflow (threshold-based)
+- PO statuses: Draft → Approved → Sent → Partially Received → Closed → Cancelled
+
+2.1.4 Receiving (GRN)
+- Receive against PO
+- Partial receipts
+- Capture lot/batch numbers and expiry
+- Auto-create inventory lots
+
+2.1.5 3-Way Match
+- Match PO ↔ GRN ↔ Supplier Invoice
+- Block invoice posting if mismatch
+- Approval override with audit trail
+
+Definition of Done:
+- End-to-end PO lifecycle working
+- Supplier invoice cannot be posted without match (unless approved)
+- Full audit trail
+
+----------------------------------------------------
+EPIC 2.2: Inventory & Warehouse Management
+----------------------------------------------------
+Goal:
+Full control of radioactive and non-radioactive materials.
+
+Tasks:
+2.2.1 Inventory Status Control
+- Inventory states: Quarantine / Released / Expired / Blocked
+- Prevent use of non-released materials
+
+2.2.2 Bin & Location Control
+- Warehouse → Zone → Bin hierarchy
+- Assign inventory to bins
+- Track bin-level quantities
+
+2.2.3 Lot & Expiry Tracking
+- Lot-based inventory
+- Expiry monitoring
+- Auto-flag near-expiry and expired items
+
+2.2.4 Cycle Counts
+- Cycle count plans
+- Count entry & variance detection
+- Approval and adjustment posting
+
+Definition of Done:
+- Every material has status, lot, expiry, and bin
+- Production can only consume released inventory
+
+----------------------------------------------------
+EPIC 2.3: Batch Manufacturing Execution (eBR)
+----------------------------------------------------
+Goal:
+Electronic Batch Record with step-by-step execution.
+
+Tasks:
+2.3.1 eBR Template
+- Define manufacturing steps per product
+- Define expected parameters per step
+
+2.3.2 Execution UI
+- Operator executes steps sequentially
+- Capture actual parameters (time, temp, pressure, activity, etc.)
+- Enforce step order
+
+2.3.3 Yield Capture
+- Planned vs actual yield
+- Yield variance calculation
+
+2.3.4 Deviations
+- Raise deviation from any step
+- Require reason, classification, approval
+
+Definition of Done:
+- Batches cannot proceed without completing required steps
+- Deviations are logged and traceable
+
+----------------------------------------------------
+EPIC 2.4: Master Data Management (MDM)
+----------------------------------------------------
+Goal:
+Central, governed master data with versioning.
+
+Tasks:
+2.4.1 Recipes / BOM
+- Versioned recipes
+- Effective dates
+- Material quantities per unit
+
+2.4.2 Routes
+- Production routes (sequence of operations)
+- Link to equipment and steps
+
+2.4.3 Equipment Registry
+- Equipment master
+- Qualification status
+- Maintenance dates
+
+2.4.4 Price Lists
+- Versioned selling price lists
+- Customer-specific pricing
+
+Definition of Done:
+- Version control enforced
+- Old versions retained for history
+
+----------------------------------------------------
+EPIC 2.5: E-Signatures (GMP)
+----------------------------------------------------
+Goal:
+Regulatory-compliant electronic approvals.
+
+Tasks:
+2.5.1 Signature Framework
+- Username + password re-auth
+- Timestamp + meaning of signature
+- Reason for change
+
+2.5.2 Signature Use Cases
+- Batch release
+- Recipe activation
+- QC approval
+- Deviation closure
+- Financial approvals
+
+Definition of Done:
+- Signatures are immutable
+- Signature required for all critical actions
+
+----------------------------------------------------
+EPIC 2.6: OOS / OOT Handling (QC)
+----------------------------------------------------
+Goal:
+Formal investigation workflows for QC anomalies.
+
+Tasks:
+2.6.1 OOS Detection
+- Auto-detect test values outside spec
+- Block batch progression
+
+2.6.2 OOT Detection
+- Trend analysis vs historical results
+- Flag potential issues
+
+2.6.3 Investigation Workflow
+- Investigation record
+- Root cause analysis
+- Corrective actions (CAPA)
+- Approval & closure
+
+Definition of Done:
+- OOS blocks batch
+- Investigation mandatory before release
+
+====================================================
+PHASE 3 – LOWER PRIORITY (Advanced & Compliance Enhancements)
+====================================================
+
+----------------------------------------------------
+EPIC 3.1: Radiation Safety & Waste Management
+----------------------------------------------------
+Tasks:
+- Waste generation records
+- Decay-in-storage tracking
+- Disposal logs
+- Radiation survey records
+- Regulatory reporting
+
+----------------------------------------------------
+EPIC 3.2: Batch Costing
+----------------------------------------------------
+Tasks:
+- WIP valuation
+- Actual vs standard cost
+- Batch-level cost rollup
+- Variance analysis (material, yield, labor)
+
+----------------------------------------------------
+EPIC 3.3: Chain of Custody
+----------------------------------------------------
+Tasks:
+- Detailed custody events
+- Returns handling
+- Incident logging
+- Tamper or loss reporting
+
+----------------------------------------------------
+EPIC 3.4: Advanced Analytics
+----------------------------------------------------
+Tasks:
+- Capacity utilization KPIs
+- OTIF (On-Time-In-Full)
+- Bottleneck analysis
+- Trend dashboards across production & logistics
+
+----------------------------------------------------
+EPIC 3.5: SMS Notifications
+----------------------------------------------------
+Tasks:
+- SMS channel enablement
+- Provider abstraction
+- Event-based SMS templates
+- Opt-in / opt-out management
+
+----------------------------------------------------
+EPIC 3.6: Instrument Integration
+----------------------------------------------------
+Tasks:
+- Instrument data import (CSV/API)
+- Auto-populate QC test results
+- Validation & audit trail
+
+====================================================
+DELIVERY RULES (MANDATORY)
+====================================================
+- Implement features epic by epic
+- Each epic must be independently deployable
+- Preserve backward compatibility with Phase 1
+- All critical actions must log events + notifications
+- Use feature flags where needed
+
+Output Required:
+- Folder structure
+- DB schema updates
+- APIs per epic
+- UI screens per epic
+- Seed/demo data for each epic
