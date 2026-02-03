@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import {
   Plus, Search, Edit2, Eye, X, Check, Send,
-  Clipboard, Truck, Trash2, FileText, DollarSign
+  Clipboard, Truck, Trash2, FileText, DollarSign, Filter
 } from 'lucide-react';
 import { useToast } from '../components/ui/Toast';
 import ESignatureModal from '../components/ESignatureModal';
@@ -354,21 +354,28 @@ export default function PurchaseOrders() {
         />
       </div>
 
-      <div className="card">
-        <div className="filter-bar">
-          <div className="search-box">
-            <Search className="search-icon" />
+      <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Filter size={18} style={{ color: 'var(--text-muted)' }} />
+            <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}>Filters:</span>
+          </div>
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '300px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
-              placeholder="Search PO number or supplier..."
+              className="form-input"
+              placeholder="Search by name, code, or city..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              style={{ paddingLeft: '2.25rem' }}
             />
           </div>
           <select
+            className="form-select"
+            style={{ width: 'auto', minWidth: '150px' }}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="filter-select"
           >
             <option value="">All Statuses</option>
             {STATUSES.map(s => (
@@ -376,16 +383,32 @@ export default function PurchaseOrders() {
             ))}
           </select>
           <select
+            className="form-select"
+            style={{ width: 'auto', minWidth: '150px' }}
             value={supplierFilter}
             onChange={(e) => setSupplierFilter(e.target.value)}
-            className="filter-select"
           >
             <option value="">All Suppliers</option>
             {suppliers.map(s => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
+          {(search || statusFilter || supplierFilter) && (
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => {
+                setSearch('');
+                setStatusFilter('');
+                setSupplierFilter('');
+              }}
+            >
+              <X size={14} /> Clear
+            </button>
+          )}
         </div>
+      </div>
+
+      <div className="card">
 
         {isLoading ? (
           <div className="loading-spinner">Loading...</div>
