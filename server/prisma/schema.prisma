@@ -45,6 +45,10 @@ model User {
   testResults              TestResult[]     @relation("TestAnalyst")
   oosOpened                OOSCase[]        @relation("OOSOpener")
   oosClosed                OOSCase[]        @relation("OOSCloser")
+  oosPhase1Investigations  OOSCase[]        @relation("OOSPhase1Investigator")
+  oosPhase2Lead            OOSCase[]        @relation("OOSPhase2Lead")
+  oosCAPAProposed          OOSCase[]        @relation("OOSCAPAProposer")
+  oosCAPAApproved          OOSCase[]        @relation("OOSCAPAApprover")
   preference               UserPreference?
   attachments              Attachment[]
   recipesCreated           Recipe[]         @relation("RecipeCreatedBy")
@@ -983,6 +987,8 @@ model ESignature {
   batchRecords          BatchRecord[]
   batchRecordSteps      BatchRecordStep[]
   batchDeviations       BatchDeviation[]
+  oosCAPAApprovals      OOSCase[]        @relation("OOSCAPAApprovalSignature")
+  oosClosures           OOSCase[]        @relation("OOSClosureSignature")
 
   @@index([entityType, entityId])
   @@index([signedById])
@@ -1055,26 +1061,146 @@ model TestResult {
   @@index([testSpecId])
 }
 
+enum OOSCaseType {
+  OOS              // Out of Specification
+  OOT              // Out of Trend
+  OOE              // Out of Expectation
+}
+
+enum OOSCaseStatus {
+  OPEN
+  PHASE_1_LAB_INVESTIGATION
+  PHASE_1_COMPLETE
+  PHASE_2_FULL_INVESTIGATION
+  PHASE_2_COMPLETE
+  CAPA_PROPOSED
+  CAPA_APPROVED
+  CAPA_IMPLEMENTING
+  CLOSED_CONFIRMED
+  CLOSED_INVALIDATED
+  CLOSED_INCONCLUSIVE
+}
+
+enum OOSCasePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 model OOSCase {
-  id          String   @id @default(uuid())
-  caseNumber  String   @unique
-  batchId     String
-  batch       Batch    @relation(fields: [batchId], references: [id])
-  openedAt    DateTime @default(now())
-  openedById  String
-  openedBy    User     @relation("OOSOpener", fields: [openedById], references: [id])
-  reason      String
-  investigation String?
-  conclusion  String?
-  status      String   @default("OPEN")
-  closedAt    DateTime?
-  closedById  String?
-  closedBy    User?    @relation("OOSCloser", fields: [closedById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String          @id @default(uuid())
+  caseNumber      String          @unique
+  caseType        OOSCaseType     @default(OOS)
+  priority        OOSCasePriority @default(MEDIUM)
+  status          OOSCaseStatus   @default(OPEN)
+  
+  batchId         String
+  batch           Batch           @relation(fields: [batchId], references: [id])
+  
+  testResultId    String?
+  testName        String
+  testMethod      String?
+  specMin         Float?
+  specMax         Float?
+  actualValue     Float?
+  unit            String?
+  deviationPercent Float?
+  
+  openedAt        DateTime        @default(now())
+  openedById      String
+  openedBy        User            @relation("OOSOpener", fields: [openedById], references: [id])
+  
+  initialDescription     String
+  
+  phase1StartedAt       DateTime?
+  phase1InvestigatorId  String?
+  phase1Investigator    User?     @relation("OOSPhase1Investigator", fields: [phase1InvestigatorId], references: [id])
+  phase1LabChecks       Json?
+  phase1Retesting       Json?
+  phase1Findings        String?
+  phase1CompletedAt     DateTime?
+  phase1Conclusion      String?
+  
+  phase2StartedAt       DateTime?
+  phase2LeadId          String?
+  phase2Lead            User?     @relation("OOSPhase2Lead", fields: [phase2LeadId], references: [id])
+  phase2RootCauseAnalysis String?
+  phase2ImpactAssessment  String?
+  phase2AffectedBatches   Json?
+  phase2Findings        String?
+  phase2CompletedAt     DateTime?
+  phase2Conclusion      String?
+  
+  rootCause             String?
+  correctiveAction      String?
+  preventiveAction      String?
+  capaProposedAt        DateTime?
+  capaProposedById      String?
+  capaProposedBy        User?     @relation("OOSCAPAProposer", fields: [capaProposedById], references: [id])
+  
+  capaApprovedAt        DateTime?
+  capaApprovedById      String?
+  capaApprovedBy        User?     @relation("OOSCAPAApprover", fields: [capaApprovedById], references: [id])
+  capaApprovalSignatureId String?
+  capaApprovalSignature ESignature? @relation("OOSCAPAApprovalSignature", fields: [capaApprovalSignatureId], references: [id])
+  
+  capaImplementationNotes String?
+  capaEffectivenessCheck  String?
+  
+  finalConclusion       String?
+  closureType           String?
+  closedAt              DateTime?
+  closedById            String?
+  closedBy              User?     @relation("OOSCloser", fields: [closedById], references: [id])
+  closureSignatureId    String?
+  closureSignature      ESignature? @relation("OOSClosureSignature", fields: [closureSignatureId], references: [id])
+  
+  dueDate               DateTime?
+  isOverdue             Boolean   @default(false)
+  
+  attachments           OOSAttachment[]
+  timeline              OOSTimeline[]
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   @@index([batchId])
   @@index([status])
+  @@index([caseType])
+  @@index([priority])
+  @@index([openedById])
+}
+
+model OOSAttachment {
+  id          String   @id @default(uuid())
+  oosCaseId   String
+  oosCase     OOSCase  @relation(fields: [oosCaseId], references: [id], onDelete: Cascade)
+  fileName    String
+  fileType    String
+  fileSize    Int
+  storagePath String
+  description String?
+  phase       String?
+  uploadedById String
+  uploadedAt  DateTime @default(now())
+  
+  @@index([oosCaseId])
+}
+
+model OOSTimeline {
+  id          String   @id @default(uuid())
+  oosCaseId   String
+  oosCase     OOSCase  @relation(fields: [oosCaseId], references: [id], onDelete: Cascade)
+  action      String
+  description String
+  oldStatus   String?
+  newStatus   String?
+  userId      String
+  createdAt   DateTime @default(now())
+  
+  @@index([oosCaseId])
+  @@index([createdAt])
 }
 
 // ==================== LOGISTICS ====================
