@@ -72,7 +72,7 @@ export default function SupplierDetail() {
     queryKey: ['supplier-audit', id],
     queryFn: async () => {
       const { data } = await api.get(`/audit?entityType=Supplier&entityId=${id}`);
-      return data;
+      return data.logs || [];
     },
     enabled: !!id,
   });

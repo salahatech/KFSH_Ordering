@@ -77,7 +77,7 @@ export default function MaterialDetail() {
     queryKey: ['material-audit', id],
     queryFn: async () => {
       const { data } = await api.get(`/audit?entityType=Material&entityId=${id}`);
-      return data;
+      return data.logs || [];
     },
     enabled: !!id,
   });

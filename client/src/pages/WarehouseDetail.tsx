@@ -76,7 +76,7 @@ export default function WarehouseDetail() {
     queryKey: ['warehouse-audit', id],
     queryFn: async () => {
       const { data } = await api.get(`/audit?entityType=Warehouse&entityId=${id}`);
-      return data;
+      return data.logs || [];
     },
     enabled: !!id,
   });

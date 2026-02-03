@@ -67,7 +67,7 @@ export default function PurchaseOrderDetail() {
     queryKey: ['po-audit', id],
     queryFn: async () => {
       const { data } = await api.get(`/audit?entityType=PurchaseOrder&entityId=${id}`);
-      return data;
+      return data.logs || [];
     },
     enabled: !!id,
   });
