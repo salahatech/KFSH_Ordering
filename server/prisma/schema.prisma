@@ -1774,16 +1774,20 @@ model Invoice {
   approvedByUserId    String?
   approvedBy          User?         @relation("InvoiceApprover", fields: [approvedByUserId], references: [id])
   notes               String?
+  zatcaStatus         ZatcaSubmissionStatus @default(NOT_SENT)
   items               InvoiceItem[]
   payments            Payment[]
   paymentRequests     PaymentRequest[]
   receiptVouchers     ReceiptVoucher[]
   events              InvoiceEvent[]
+  zatcaSubmissions    ZatcaSubmission[]
+  zatcaQrPayloads     ZatcaQrPayload[]
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
   @@index([customerId])
   @@index([status])
+  @@index([zatcaStatus])
   @@index([dueDate])
   @@index([orderId])
   @@index([shipmentId])
@@ -2843,4 +2847,163 @@ model StockMovement {
   @@index([warehouseId])
   @@index([type])
   @@index([performedAt])
+}
+
+
+// ==================== ZATCA E-INVOICE INTEGRATION ====================
+
+enum ZatcaEnvironment {
+  SIMULATION
+  PRODUCTION
+}
+
+enum ZatcaCredentialStatus {
+  DRAFT
+  COMPLIANCE_READY
+  ACTIVE
+  REVOKED
+}
+
+enum ZatcaSubmissionStatus {
+  NOT_SENT
+  PENDING
+  ACCEPTED
+  CLEARED
+  REPORTED
+  REJECTED
+  FAILED
+}
+
+enum ZatcaApiType {
+  REPORTING
+  CLEARANCE
+}
+
+enum ZatcaDocType {
+  INVOICE
+  CREDIT_NOTE
+  DEBIT_NOTE
+}
+
+enum ZatcaQrVersion {
+  PHASE1_MIN
+  PHASE2_SECURITY
+}
+
+model ZatcaConfig {
+  id                    String            @id @default(uuid())
+  environment           ZatcaEnvironment  @default(SIMULATION)
+  enableZatcaPosting    Boolean           @default(false)
+  modeConfig            Json?
+  sellerName            String?
+  sellerNameAr          String?
+  sellerVatNo           String?
+  sellerCrNo            String?
+  sellerStreet          String?
+  sellerBuilding        String?
+  sellerDistrict        String?
+  sellerCity            String?
+  sellerPostalCode      String?
+  sellerCountry         String            @default("SA")
+  simplifiedMode        ZatcaApiType      @default(REPORTING)
+  standardMode          ZatcaApiType      @default(CLEARANCE)
+  retriesCount          Int               @default(3)
+  backoffSeconds        Int               @default(60)
+  blockUntilAccepted    Boolean           @default(false)
+  notifyOnRejection     Boolean           @default(true)
+  createdById           String?
+  updatedById           String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+}
+
+model ZatcaCredential {
+  id                String                  @id @default(uuid())
+  deviceName        String
+  environment       ZatcaEnvironment        @default(SIMULATION)
+  status            ZatcaCredentialStatus   @default(DRAFT)
+  csrPem            String?
+  keyRef            String?
+  ccsidData         Json?
+  pcsidData         Json?
+  ccsidExpiresAt    DateTime?
+  pcsidExpiresAt    DateTime?
+  compliancePassed  Boolean                 @default(false)
+  complianceErrors  Json?
+  lastUsedAt        DateTime?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  @@index([environment])
+  @@index([status])
+}
+
+model ZatcaSubmission {
+  id                    String                @id @default(uuid())
+  invoiceId             String
+  invoice               Invoice               @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  docType               ZatcaDocType          @default(INVOICE)
+  apiType               ZatcaApiType          @default(REPORTING)
+  requestUuid           String?
+  invoiceHash           String?
+  icv                   Int?
+  pih                   String?
+  signedXml             String?
+  status                ZatcaSubmissionStatus @default(NOT_SENT)
+  zatcaResponseCode     String?
+  zatcaResponseMessage  String?
+  warnings              Json?
+  errors                Json?
+  zatcaRawRequest       String?
+  zatcaRawResponse      String?
+  submittedAt           DateTime?
+  lastTriedAt           DateTime?
+  retryCount            Int                   @default(0)
+  traceId               String?
+  zatcaUuid             String?
+  credentialId          String?
+  qrPayloads            ZatcaQrPayload[]
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  @@index([invoiceId])
+  @@index([status])
+  @@index([submittedAt])
+  @@index([docType])
+}
+
+model ZatcaQrPayload {
+  id                  String            @id @default(uuid())
+  invoiceId           String
+  invoice             Invoice           @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  submissionId        String?
+  submission          ZatcaSubmission?  @relation(fields: [submissionId], references: [id])
+  qrBase64            String
+  qrVersion           ZatcaQrVersion    @default(PHASE1_MIN)
+  generatedAt         DateTime          @default(now())
+
+  @@index([invoiceId])
+  @@index([submissionId])
+}
+
+model ZatcaLog {
+  id                String    @id @default(uuid())
+  action            String
+  environment       String?
+  endpoint          String?
+  requestPayload    String?
+  responsePayload   String?
+  responseCode      Int?
+  errorMessage      String?
+  invoiceId         String?
+  submissionId      String?
+  credentialId      String?
+  userId            String?
+  ipAddress         String?
+  duration          Int?
+  createdAt         DateTime  @default(now())
+
+  @@index([action])
+  @@index([invoiceId])
+  @@index([createdAt])
 }
