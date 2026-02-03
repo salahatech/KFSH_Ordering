@@ -40,6 +40,9 @@ import esignatureRoutes from './routes/esignatures.js';
 import materialRoutes from './routes/materials.js';
 import recipeRoutes from './routes/recipes.js';
 import purchaseOrderRoutes from './routes/purchaseOrders.js';
+import warehouseRoutes from './routes/warehouses.js';
+import grnRoutes from './routes/grn.js';
+import stockRoutes from './routes/stock.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -87,6 +90,9 @@ app.use('/api/esignatures', esignatureRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/purchase-orders', purchaseOrderRoutes);
+app.use('/api/warehouses', warehouseRoutes);
+app.use('/api/grn', grnRoutes);
+app.use('/api/stock', stockRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
