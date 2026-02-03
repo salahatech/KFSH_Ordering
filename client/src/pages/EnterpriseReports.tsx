@@ -9,7 +9,7 @@ import {
   FileSpreadsheet, File, X, Loader2, BarChart3, AlertCircle,
   ArrowLeft, TrendingUp, CheckCircle, Clock, PieChart as PieChartIcon
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
 import { useToast } from '../components/ui/Toast';
 import { PageHeader } from '../components/shared';
 
@@ -189,6 +189,51 @@ export default function EnterpriseReports() {
     queryKey: ['order-turnaround', dateRange],
     queryFn: async () => {
       const { data } = await api.get('/reports/order-turnaround', { params: dateRange });
+      return data;
+    },
+    enabled: viewMode === 'dashboard'
+  });
+
+  const { data: orderStatusDist = [] } = useQuery<{name: string; value: number; status: string}[]>({
+    queryKey: ['quick-insights-order-status', dateRange],
+    queryFn: async () => {
+      const { data } = await api.get('/reports/quick-insights/order-status', { params: dateRange });
+      return data;
+    },
+    enabled: viewMode === 'dashboard'
+  });
+
+  const { data: batchStatusDist = [] } = useQuery<{name: string; value: number; status: string}[]>({
+    queryKey: ['quick-insights-batch-status', dateRange],
+    queryFn: async () => {
+      const { data } = await api.get('/reports/quick-insights/batch-status', { params: dateRange });
+      return data;
+    },
+    enabled: viewMode === 'dashboard'
+  });
+
+  const { data: topProducts = [] } = useQuery<{productId: string; name: string; code: string; orderCount: number; totalQuantity: number}[]>({
+    queryKey: ['quick-insights-top-products', dateRange],
+    queryFn: async () => {
+      const { data } = await api.get('/reports/quick-insights/top-products', { params: { ...dateRange, limit: 5 } });
+      return data;
+    },
+    enabled: viewMode === 'dashboard'
+  });
+
+  const { data: topCustomers = [] } = useQuery<{customerId: string; name: string; code: string; orderCount: number}[]>({
+    queryKey: ['quick-insights-top-customers', dateRange],
+    queryFn: async () => {
+      const { data } = await api.get('/reports/quick-insights/top-customers', { params: { ...dateRange, limit: 5 } });
+      return data;
+    },
+    enabled: viewMode === 'dashboard'
+  });
+
+  const { data: invoiceTrend = [] } = useQuery<{date: string; revenue: number; count: number}[]>({
+    queryKey: ['quick-insights-invoice-trend', dateRange],
+    queryFn: async () => {
+      const { data } = await api.get('/reports/quick-insights/invoice-trend', { params: dateRange });
       return data;
     },
     enabled: viewMode === 'dashboard'
@@ -539,6 +584,169 @@ export default function EnterpriseReports() {
                   No capacity data for this period
                 </div>
               )}
+            </div>
+          </div>
+
+          <div style={{ 
+            marginTop: '1.5rem',
+            padding: '1rem 1.25rem',
+            background: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            marginBottom: '1rem'
+          }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <PieChartIcon size={18} style={{ color: 'var(--primary)' }} />
+              Quick Insights
+            </h3>
+          </div>
+
+          <div className="grid grid-2" style={{ marginBottom: '1.5rem' }}>
+            <div className="card">
+              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+                <h3 style={{ fontWeight: 600, margin: 0, fontSize: '0.9375rem' }}>Order Status Distribution</h3>
+              </div>
+              <div style={{ padding: '1.5rem', height: '280px' }}>
+                {orderStatusDist.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={orderStatusDist}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={90}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, value }: { name: string; value: number }) => `${name}: ${value}`}
+                        labelLine={false}
+                      >
+                        {orderStatusDist.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
+                    No order data for this period
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="card">
+              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+                <h3 style={{ fontWeight: 600, margin: 0, fontSize: '0.9375rem' }}>Batch Status Distribution</h3>
+              </div>
+              <div style={{ padding: '1.5rem', height: '280px' }}>
+                {batchStatusDist.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={batchStatusDist}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={90}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, value }: { name: string; value: number }) => `${name}: ${value}`}
+                        labelLine={false}
+                      >
+                        {batchStatusDist.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
+                    No batch data for this period
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="card" style={{ marginBottom: '1.5rem' }}>
+            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ fontWeight: 600, margin: 0, fontSize: '0.9375rem' }}>Revenue Trend</h3>
+            </div>
+            <div style={{ padding: '1.5rem', height: '280px' }}>
+              {invoiceTrend.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={invoiceTrend}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tickFormatter={(val) => format(new Date(val), 'MMM dd')} />
+                    <YAxis yAxisId="left" tickFormatter={(val) => `${(val / 1000).toFixed(0)}K`} />
+                    <YAxis yAxisId="right" orientation="right" />
+                    <Tooltip 
+                      formatter={(value: number, name: string) => [
+                        name === 'revenue' ? `SAR ${value.toLocaleString()}` : value,
+                        name === 'revenue' ? 'Revenue' : 'Invoices'
+                      ]}
+                      labelFormatter={(label) => format(new Date(label), 'MMM dd, yyyy')}
+                    />
+                    <Legend />
+                    <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} name="Revenue" dot={false} />
+                    <Line yAxisId="right" type="monotone" dataKey="count" stroke="#22c55e" strokeWidth={2} name="Invoices" dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
+                  No invoice data for this period
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-2">
+            <div className="card">
+              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+                <h3 style={{ fontWeight: 600, margin: 0, fontSize: '0.9375rem' }}>Top Products by Orders</h3>
+              </div>
+              <div style={{ padding: '1.5rem', height: '280px' }}>
+                {topProducts.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={topProducts} layout="vertical" margin={{ left: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Bar dataKey="orderCount" fill="#2563eb" name="Orders" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
+                    No product data for this period
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="card">
+              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+                <h3 style={{ fontWeight: 600, margin: 0, fontSize: '0.9375rem' }}>Top Customers by Orders</h3>
+              </div>
+              <div style={{ padding: '1.5rem', height: '280px' }}>
+                {topCustomers.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={topCustomers} layout="vertical" margin={{ left: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Bar dataKey="orderCount" fill="#22c55e" name="Orders" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
+                    No customer data for this period
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

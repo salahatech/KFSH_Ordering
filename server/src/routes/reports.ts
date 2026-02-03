@@ -362,6 +362,233 @@ router.get('/dashboard', authenticateToken, async (req: Request, res: Response):
   }
 });
 
+/**
+ * @swagger
+ * /reports/quick-insights/order-status:
+ *   get:
+ *     summary: Get order status distribution
+ *     tags: [Reports]
+ */
+router.get('/quick-insights/order-status', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { fromDate, toDate } = req.query;
+    const where: any = {};
+    if (fromDate || toDate) {
+      where.createdAt = {};
+      if (fromDate) where.createdAt.gte = new Date(fromDate as string);
+      if (toDate) {
+        const end = new Date(toDate as string);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
+
+    const orders = await prisma.order.groupBy({
+      by: ['status'],
+      _count: { status: true },
+      where,
+    });
+
+    const statusData = orders.map(o => ({
+      name: o.status.replace(/_/g, ' '),
+      value: o._count.status,
+      status: o.status,
+    }));
+
+    res.json(statusData);
+  } catch (error) {
+    console.error('Order status distribution error:', error);
+    res.status(500).json({ error: 'Failed to get order status distribution' });
+  }
+});
+
+/**
+ * @swagger
+ * /reports/quick-insights/batch-status:
+ *   get:
+ *     summary: Get batch status distribution
+ *     tags: [Reports]
+ */
+router.get('/quick-insights/batch-status', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { fromDate, toDate } = req.query;
+    const where: any = {};
+    if (fromDate || toDate) {
+      where.createdAt = {};
+      if (fromDate) where.createdAt.gte = new Date(fromDate as string);
+      if (toDate) {
+        const end = new Date(toDate as string);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
+
+    const batches = await prisma.batch.groupBy({
+      by: ['status'],
+      _count: { status: true },
+      where,
+    });
+
+    const statusData = batches.map(b => ({
+      name: b.status.replace(/_/g, ' '),
+      value: b._count.status,
+      status: b.status,
+    }));
+
+    res.json(statusData);
+  } catch (error) {
+    console.error('Batch status distribution error:', error);
+    res.status(500).json({ error: 'Failed to get batch status distribution' });
+  }
+});
+
+/**
+ * @swagger
+ * /reports/quick-insights/top-products:
+ *   get:
+ *     summary: Get top products by order count
+ *     tags: [Reports]
+ */
+router.get('/quick-insights/top-products', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { fromDate, toDate, limit = '5' } = req.query;
+    const where: any = {};
+    if (fromDate || toDate) {
+      where.createdAt = {};
+      if (fromDate) where.createdAt.gte = new Date(fromDate as string);
+      if (toDate) {
+        const end = new Date(toDate as string);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
+
+    const products = await prisma.order.groupBy({
+      by: ['productId'],
+      _count: { productId: true },
+      _sum: { numberOfDoses: true },
+      where,
+      orderBy: { _count: { productId: 'desc' } },
+      take: parseInt(limit as string),
+    });
+
+    const productIds = products.map(p => p.productId);
+    const productDetails = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, code: true },
+    });
+
+    const productMap = new Map(productDetails.map(p => [p.id, p]));
+    const result = products.map(p => ({
+      productId: p.productId,
+      name: productMap.get(p.productId)?.name || 'Unknown',
+      code: productMap.get(p.productId)?.code || '',
+      orderCount: (p._count as any).productId || 0,
+      totalQuantity: (p._sum as any)?.numberOfDoses || 0,
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error('Top products error:', error);
+    res.status(500).json({ error: 'Failed to get top products' });
+  }
+});
+
+/**
+ * @swagger
+ * /reports/quick-insights/invoice-trend:
+ *   get:
+ *     summary: Get invoice revenue trend
+ *     tags: [Reports]
+ */
+router.get('/quick-insights/invoice-trend', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { fromDate, toDate } = req.query;
+    const startDate = fromDate ? new Date(fromDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const endDate = toDate ? new Date(toDate as string) : new Date();
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 999);
+
+    const invoices = await prisma.invoice.findMany({
+      where: {
+        invoiceDate: { gte: startDate, lte: endDate },
+      },
+      select: {
+        invoiceDate: true,
+        totalAmount: true,
+        status: true,
+      },
+      orderBy: { invoiceDate: 'asc' },
+    });
+
+    const dailyTotals: Record<string, { date: string; revenue: number; count: number; paid: number }> = {};
+    for (const inv of invoices) {
+      const date = inv.invoiceDate.toISOString().split('T')[0];
+      if (!dailyTotals[date]) {
+        dailyTotals[date] = { date, revenue: 0, count: 0, paid: 0 };
+      }
+      dailyTotals[date].revenue += Number(inv.totalAmount) || 0;
+      dailyTotals[date].count++;
+      if (inv.status === 'PAID') dailyTotals[date].paid++;
+    }
+
+    res.json(Object.values(dailyTotals));
+  } catch (error) {
+    console.error('Invoice trend error:', error);
+    res.status(500).json({ error: 'Failed to get invoice trend' });
+  }
+});
+
+/**
+ * @swagger
+ * /reports/quick-insights/top-customers:
+ *   get:
+ *     summary: Get top customers by order count
+ *     tags: [Reports]
+ */
+router.get('/quick-insights/top-customers', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { fromDate, toDate, limit = '5' } = req.query;
+    const where: any = {};
+    if (fromDate || toDate) {
+      where.createdAt = {};
+      if (fromDate) where.createdAt.gte = new Date(fromDate as string);
+      if (toDate) {
+        const end = new Date(toDate as string);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
+
+    const customers = await prisma.order.groupBy({
+      by: ['customerId'],
+      _count: { customerId: true },
+      where,
+      orderBy: { _count: { customerId: 'desc' } },
+      take: parseInt(limit as string),
+    });
+
+    const customerIds = customers.map(c => c.customerId);
+    const customerDetails = await prisma.customer.findMany({
+      where: { id: { in: customerIds } },
+      select: { id: true, name: true, code: true },
+    });
+
+    const customerMap = new Map(customerDetails.map(c => [c.id, c]));
+    const result = customers.map(c => ({
+      customerId: c.customerId,
+      name: customerMap.get(c.customerId)?.name || 'Unknown',
+      code: customerMap.get(c.customerId)?.code || '',
+      orderCount: c._count.customerId,
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error('Top customers error:', error);
+    res.status(500).json({ error: 'Failed to get top customers' });
+  }
+});
+
 router.get('/enterprise/categories', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     res.json(REPORT_CATEGORIES);
