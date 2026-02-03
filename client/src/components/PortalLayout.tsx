@@ -14,6 +14,7 @@ import {
   Building2,
   Calendar,
 } from 'lucide-react';
+import AnnouncementBar from './AnnouncementBar';
 
 const portalMenuItems = [
   { path: '/portal', label: 'Dashboard', icon: LayoutDashboard },
@@ -214,6 +215,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             </div>
           </div>
         </header>
+
+        <AnnouncementBar />
 
         <main style={{ padding: '1.5rem', background: '#f8fafc', minHeight: 'calc(100vh - 73px)' }}>
           {children}

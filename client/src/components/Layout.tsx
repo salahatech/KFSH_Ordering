@@ -43,6 +43,7 @@ import {
   Languages,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import AnnouncementBar from './AnnouncementBar';
 
 interface Notification {
   id: string;
@@ -675,6 +676,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
+
+        <AnnouncementBar />
 
         <main style={{ padding: '1.5rem' }}>{children}</main>
       </div>

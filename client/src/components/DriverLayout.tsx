@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { Home, Truck, LogOut, User } from 'lucide-react';
+import AnnouncementBar from './AnnouncementBar';
 
 export default function DriverLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -106,6 +107,7 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
           </button>
         </div>
       </header>
+      <AnnouncementBar />
       <main style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
         {children}
       </main>

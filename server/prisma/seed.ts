@@ -2430,6 +2430,78 @@ async function main() {
 
   console.log(`Created ${approvalRequests.length} approval requests for Approval Inbox demo.`);
 
+  // ============ Seed Announcements ============
+  console.log('Creating demo announcements...');
+
+  const announcementNow = new Date();
+  const announcementTomorrow = new Date(announcementNow.getTime() + 24 * 60 * 60 * 1000);
+  
+  // Active INFO announcement for all users
+  const welcomeAnnouncement = await prisma.announcement.upsert({
+    where: { id: 'announcement-welcome' },
+    update: {},
+    create: {
+      id: 'announcement-welcome',
+      title: 'Welcome to the New RadioPharma Portal',
+      body: 'We are excited to announce the launch of our updated portal with improved features including real-time order tracking, enhanced reporting capabilities, and a new mobile-friendly interface. Please explore the new features and let us know if you have any feedback.',
+      severity: 'INFO',
+      publishMode: 'IMMEDIATE',
+      status: 'ACTIVE',
+      startAt: announcementNow,
+      isPublished: true,
+      createdById: adminUser.id,
+    },
+  });
+
+  // Scheduled WARNING announcement for tomorrow
+  const maintenanceAnnouncement = await prisma.announcement.upsert({
+    where: { id: 'announcement-maintenance' },
+    update: {},
+    create: {
+      id: 'announcement-maintenance',
+      title: 'Scheduled System Maintenance',
+      body: 'Please be advised that we will be performing scheduled maintenance on the system. During this time, some features may be temporarily unavailable. We apologize for any inconvenience.',
+      severity: 'WARNING',
+      publishMode: 'SCHEDULED',
+      status: 'SCHEDULED',
+      startAt: announcementTomorrow,
+      endAt: new Date(announcementTomorrow.getTime() + 4 * 60 * 60 * 1000),
+      isPublished: true,
+      createdById: adminUser.id,
+    },
+  });
+
+  // CRITICAL announcement for technicians only
+  const techAnnouncement = await prisma.announcement.upsert({
+    where: { id: 'announcement-tech-safety' },
+    update: {},
+    create: {
+      id: 'announcement-tech-safety',
+      title: 'Important: Updated Safety Protocols',
+      body: 'All technicians must review and acknowledge the updated safety protocols for handling radioactive materials. The new guidelines are effective immediately. Please contact your supervisor if you have any questions.',
+      severity: 'CRITICAL',
+      publishMode: 'IMMEDIATE',
+      status: 'ACTIVE',
+      startAt: announcementNow,
+      isPublished: true,
+      createdById: adminUser.id,
+    },
+  });
+
+  // Add audience targeting for tech announcement
+  await prisma.announcementAudience.upsert({
+    where: { id: 'audience-tech-safety' },
+    update: {},
+    create: {
+      id: 'audience-tech-safety',
+      announcementId: techAnnouncement.id,
+      audienceType: 'ROLE',
+      roleCode: 'Technician',
+    },
+  });
+
+  console.log('Created 3 demo announcements.');
+
   console.log('Seed completed successfully!');
   console.log('Admin user: admin@radiopharma.com / admin123');
   console.log(`Created: ${orders.length} orders, ${batches.length} batches, ${releasedBatches.length} releases, ${shippedOrders.length} shipments`);

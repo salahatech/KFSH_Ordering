@@ -53,6 +53,8 @@ import ZatcaOnboarding from './pages/admin/ZatcaOnboarding';
 import NotificationChannels from './pages/admin/NotificationChannels';
 import NotificationDeliveryLogs from './pages/admin/NotificationDeliveryLogs';
 import MyNotificationPreferences from './pages/MyNotificationPreferences';
+import Announcements from './pages/admin/Announcements';
+import AnnouncementForm from './pages/admin/AnnouncementForm';
 import AdminDemo from './pages/AdminDemo';
 import Drivers from './pages/Drivers';
 import ShipmentDetail from './pages/ShipmentDetail';
@@ -286,6 +288,9 @@ export default function App() {
                   <Route path="/admin/zatca/onboarding" element={<ZatcaOnboarding />} />
                   <Route path="/admin/notification-channels" element={<NotificationChannels />} />
                   <Route path="/admin/notification-delivery-logs" element={<NotificationDeliveryLogs />} />
+                  <Route path="/admin/announcements" element={<Announcements />} />
+                  <Route path="/admin/announcements/new" element={<AnnouncementForm />} />
+                  <Route path="/admin/announcements/:id/edit" element={<AnnouncementForm />} />
                   <Route path="/notifications" element={<NotificationCenter />} />
                   <Route path="/me/notification-preferences" element={<MyNotificationPreferences />} />
                   <Route path="/roles" element={<Roles />} />
