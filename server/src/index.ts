@@ -47,6 +47,7 @@ import batchRecordRoutes from './routes/batch-records.js';
 import ebrMaterialRoutes from './routes/ebr-materials.js';
 import ebrEquipmentRoutes from './routes/ebr-equipment.js';
 import ebrDeviationRoutes from './routes/ebr-deviations.js';
+import oosInvestigationRoutes from './routes/oos-investigations.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -101,6 +102,7 @@ app.use('/api/batch-records', batchRecordRoutes);
 app.use('/api/batch-records', ebrMaterialRoutes);
 app.use('/api/batch-records', ebrEquipmentRoutes);
 app.use('/api/deviations', ebrDeviationRoutes);
+app.use('/api/oos-investigations', oosInvestigationRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
