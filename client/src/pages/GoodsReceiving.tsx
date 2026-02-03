@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Plus, Search, Eye, Check, X, Send, FileText, ClipboardCheck, Clock, Calendar } from 'lucide-react';
+import { Package, Plus, Search, Eye, Check, X, Send, FileText, ClipboardCheck, Clock, Calendar, Filter } from 'lucide-react';
 import api from '../lib/api';
 import { KpiCard } from '../components/shared';
 
@@ -318,24 +318,32 @@ export default function GoodsReceiving() {
           value={stats?.total || 0} 
           icon={<Package size={24} />}
           color="primary"
+          onClick={() => setStatusFilter('')}
+          active={statusFilter === ''}
         />
         <KpiCard 
           title="Draft" 
           value={stats?.draft || 0} 
           icon={<FileText size={24} />}
           color="default"
+          onClick={() => setStatusFilter('DRAFT')}
+          active={statusFilter === 'DRAFT'}
         />
         <KpiCard 
           title="Pending QC" 
           value={stats?.pendingQC || 0} 
           icon={<Clock size={24} />}
           color="warning"
+          onClick={() => setStatusFilter('PENDING_QC')}
+          active={statusFilter === 'PENDING_QC'}
         />
         <KpiCard 
           title="Approved" 
           value={stats?.approved || 0} 
           icon={<Check size={24} />}
           color="success"
+          onClick={() => setStatusFilter('APPROVED')}
+          active={statusFilter === 'APPROVED'}
         />
         <KpiCard 
           title="Today" 
@@ -345,31 +353,49 @@ export default function GoodsReceiving() {
         />
       </div>
 
-      <div className="card">
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-            <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+      <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Filter size={18} style={{ color: 'var(--text-muted)' }} />
+            <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}>Filters:</span>
+          </div>
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '300px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
+              className="form-input"
               placeholder="Search GRN or PO number..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="form-input"
-              style={{ paddingLeft: '2.5rem' }}
+              style={{ paddingLeft: '2.25rem' }}
             />
           </div>
           <select
+            className="form-select"
+            style={{ width: 'auto', minWidth: '150px' }}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="form-select"
-            style={{ minWidth: '150px' }}
           >
             <option value="">All Statuses</option>
             {GRN_STATUSES.map(s => (
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
+          {(search || statusFilter) && (
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => {
+                setSearch('');
+                setStatusFilter('');
+              }}
+            >
+              <X size={14} /> Clear
+            </button>
+          )}
         </div>
+      </div>
+
+      <div className="card">
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '3rem' }}>Loading...</div>
