@@ -1,0 +1,264 @@
+You are Replit AI acting as a Senior BI Architect + Full-Stack Engineer.
+
+Context:
+We have a RadioPharma OMS covering Orders, Production, QC, QP Release, Dispensing, Logistics, Finance, Customer Portal, Inventory, Procurement, and Notifications.
+Enhance the Reports module to be a centralized, role-based “Enterprise Reporting Center” that covers ALL application sections with detailed views, drill-down, and export capabilities.
+
+====================================================
+1) REPORTING ARCHITECTURE (MANDATORY)
+====================================================
+Create a dedicated module:
+- Route: /reports
+- Role-based access (Admin, Finance, QC, Ops, Customer-limited)
+- Each report must support:
+  - Filters (date range, status, customer, product, etc.)
+  - Drill-down (click row → underlying records)
+  - Export to Excel (XLSX)
+  - Export to PDF (A4)
+  - Saved views (optional Phase 2)
+
+====================================================
+2) REPORT CATEGORIES (LEFT NAVIGATION)
+====================================================
+Organize reports into clear sections:
+
+1️⃣ Inventory & Warehouse  
+2️⃣ Production & Batches  
+3️⃣ Orders & Reservations  
+4️⃣ Quality & QP Release  
+5️⃣ Dispensing  
+6️⃣ Logistics & Deliveries  
+7️⃣ Finance & Invoicing  
+8️⃣ Customers & Contracts  
+9️⃣ Products & Pricing  
+🔟 Planner & Capacity  
+1️⃣1️⃣ Payments & Approvals  
+1️⃣2️⃣ Users & Security  
+1️⃣3️⃣ Audit & Compliance  
+
+Each category opens a list of reports.
+
+====================================================
+3) DETAILED REPORT DEFINITIONS (MANDATORY)
+====================================================
+
+----------------------------------------------------
+INVENTORY REPORTS
+----------------------------------------------------
+- Inventory Balance Report (by item, lot, bin, status)
+- Inventory Aging & Expiry
+- Quarantine vs Released vs Expired
+- Lot Traceability (forward & backward)
+- Cycle Count Variance Report
+
+Filters: item, lot, expiry range, warehouse, status  
+Drill-down: inventory transactions
+
+----------------------------------------------------
+PRODUCTION & BATCHES REPORTS
+----------------------------------------------------
+- Batch Status Summary
+- Batch Yield (planned vs actual)
+- Batch Cost Summary (if enabled)
+- Batches on Hold / Failed QC
+- Batch Timeline Report (durations per stage)
+
+Filters: product, date, batch status  
+Drill-down: batch journey & eBR
+
+----------------------------------------------------
+ORDERS & RESERVATIONS REPORTS
+----------------------------------------------------
+- Orders by Status
+- Order Lead Time
+- Reservation Utilization (reserved vs committed minutes)
+- Cancelled / Rejected Orders
+- Orders by Customer/Product
+
+Filters: customer, product, date, status  
+Drill-down: order journey
+
+----------------------------------------------------
+QUALITY CONTROL & QP RELEASE REPORTS
+----------------------------------------------------
+- QC Pass / Fail Rate
+- OOS / OOT Report
+- QC Testing Turnaround Time
+- QP Release Lead Time
+- Released vs Held vs Rejected Batches
+
+Filters: product, test type, date  
+Drill-down: QC tests, investigation records
+
+----------------------------------------------------
+DISPENSING REPORTS
+----------------------------------------------------
+- Dose Units Dispensed per Day
+- Blocked Dispensing (Not Released)
+- Dispensing Time per Batch
+- Label Print Log
+
+Filters: batch, product, date  
+Drill-down: dose unit records
+
+----------------------------------------------------
+LOGISTICS & DELIVERY REPORTS
+----------------------------------------------------
+- Shipments Status Report
+- On-Time-In-Full (OTIF)
+- Delayed Deliveries
+- Driver Performance
+- Proof of Delivery Completion
+
+Filters: driver, route, date, status  
+Drill-down: shipment journey & POD
+
+----------------------------------------------------
+FINANCE & INVOICING REPORTS
+----------------------------------------------------
+- AR Aging
+- Invoices by Status
+- Outstanding Balance by Customer
+- Revenue by Product
+- VAT Summary
+- Credit Notes & Adjustments
+
+Filters: customer, date, invoice status  
+Drill-down: invoice detail + payments
+
+----------------------------------------------------
+CUSTOMERS & CONTRACTS REPORTS
+----------------------------------------------------
+- Customer Master List
+- Contract Expiry Report
+- Customer Credit Usage
+- Customer Order Volume
+
+Filters: customer, region, contract status  
+Drill-down: customer profile
+
+----------------------------------------------------
+PRODUCTS & PRICING REPORTS
+----------------------------------------------------
+- Product Catalog
+- Sellable vs Producible Products
+- Active Recipes & Costs
+- Price List Comparison
+
+Filters: product, active status  
+Drill-down: product detail
+
+----------------------------------------------------
+PLANNER & CAPACITY REPORTS
+----------------------------------------------------
+- Capacity Utilization (daily/weekly)
+- Bottleneck Analysis
+- Overbooked Windows
+- Planned vs Actual Production
+
+Filters: date, resource, product  
+Drill-down: planner schedule
+
+----------------------------------------------------
+PAYMENTS & APPROVALS REPORTS
+----------------------------------------------------
+- Payment Requests Pending Approval
+- Confirmed vs Rejected Payments
+- Receipt Voucher Register
+- Partial Payments Summary
+
+Filters: customer, date, status  
+Drill-down: payment request & receipt
+
+----------------------------------------------------
+USERS & SECURITY REPORTS
+----------------------------------------------------
+- User List & Roles
+- Active vs Inactive Users
+- Customer-linked Users
+- Driver Activity Summary
+
+Filters: role, status  
+Drill-down: user profile
+
+----------------------------------------------------
+AUDIT & COMPLIANCE REPORTS
+----------------------------------------------------
+- Full Audit Log
+- Changes by Entity
+- Changes by User
+- Critical Actions with E-Signature
+- Login & Access Log
+
+Filters: entity, user, date, action  
+Drill-down: before/after values
+
+====================================================
+4) REPORT UI/UX REQUIREMENTS (MANDATORY)
+====================================================
+- Each report page must have:
+  - Report description
+  - Filter panel (collapsible)
+  - Result table with pagination
+  - Column chooser (show/hide)
+- Clicking a row opens detail drawer or navigates to entity page
+- Sticky export buttons:
+  - Export Excel (.xlsx)
+  - Export PDF (A4 landscape/portrait as appropriate)
+- Show totals/subtotals where relevant
+- Skeleton loaders & empty states
+
+====================================================
+5) EXPORT REQUIREMENTS (CRITICAL)
+====================================================
+Excel Export:
+- Use proper column headers
+- Numeric values preserved
+- One sheet per report
+
+PDF Export:
+- A4
+- Header: Company name + report name + date range
+- Footer: Page number + generated timestamp
+- Support landscape for wide tables
+
+====================================================
+6) BACKEND IMPLEMENTATION (MANDATORY)
+====================================================
+- Create a generic Reports Engine:
+  - Query builder with filters
+  - Pagination
+  - Sorting
+- Each report has:
+  - reportKey
+  - SQL/ORM query
+  - allowedRoles
+- APIs:
+  - GET /reports/:reportKey/data
+  - GET /reports/:reportKey/export/excel
+  - GET /reports/:reportKey/export/pdf
+
+====================================================
+7) SECURITY & DATA SCOPING
+====================================================
+- Customer users only see:
+  - their own orders, invoices, payments, shipments
+- Internal users see based on role
+- Audit log visible to Admin only
+
+====================================================
+8) SEED & DEMO
+====================================================
+- Seed demo data across all modules
+- Provide README “Reports Walkthrough”:
+  - how to open each report
+  - how to filter, drill-down, export
+
+====================================================
+9) ACCEPTANCE CRITERIA
+====================================================
+- Reports cover ALL modules listed.
+- Every report supports filters and export.
+- Drill-down works and respects RBAC.
+- Excel and PDF exports are readable and accurate.
+- Audit report shows before/after values.

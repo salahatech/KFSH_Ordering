@@ -83,6 +83,7 @@ const menuItems = [
   { path: '/invoices', labelKey: 'nav.invoices', icon: Receipt },
   { path: '/payments', labelKey: 'nav.payments', icon: CreditCard },
   { path: '/reports', labelKey: 'nav.reports', icon: BarChart3 },
+  { path: '/enterprise-reports', labelKey: 'Enterprise Reports', icon: FileText },
   { path: '/users', labelKey: 'nav.users', icon: Users },
   { path: '/roles', labelKey: 'nav.roles', icon: Shield },
   { path: '/settings', labelKey: 'nav.settings', icon: Settings },

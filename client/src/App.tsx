@@ -19,6 +19,7 @@ import Release from './pages/Release';
 import Shipments from './pages/Shipments';
 import Users from './pages/Users';
 import Reports from './pages/Reports';
+import EnterpriseReports from './pages/EnterpriseReports';
 import AuditLog from './pages/AuditLog';
 import Approvals from './pages/Approvals';
 import Dispensing from './pages/Dispensing';
@@ -252,6 +253,7 @@ export default function App() {
                   <Route path="/drivers" element={<Drivers />} />
                   <Route path="/users" element={<Users />} />
                   <Route path="/reports" element={<Reports />} />
+                  <Route path="/enterprise-reports" element={<EnterpriseReports />} />
                   <Route path="/audit" element={<AuditLog />} />
                   <Route path="/approvals" element={<Approvals />} />
                   <Route path="/dispensing" element={<Dispensing />} />
