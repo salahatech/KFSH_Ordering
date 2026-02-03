@@ -38,7 +38,7 @@ async function logAuditEvent(userId: string, entityType: string, entityId: strin
         entityType: 'Attachment',
         entityId,
         action,
-        changes: details
+        newValues: details
       }
     });
   } catch (error) {
