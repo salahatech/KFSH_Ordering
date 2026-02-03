@@ -41,10 +41,10 @@ router.get('/', async (req: Request, res: Response) => {
           select: { id: true, code: true, name: true },
         },
         createdBy: {
-          select: { id: true, name: true },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
         approvedBy: {
-          select: { id: true, name: true },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
         _count: {
           select: { items: true, grns: true },
@@ -143,10 +143,10 @@ router.get('/:id', async (req: Request, res: Response) => {
           orderBy: { invoiceDate: 'desc' },
         },
         createdBy: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
         approvedBy: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, firstName: true, lastName: true, email: true },
         },
       },
     });

@@ -322,11 +322,11 @@ export default function PurchaseOrderDetail() {
               <tbody>
                 <tr>
                   <td style={{ padding: '0.5rem 0', color: 'var(--text-muted)', width: '40%' }}>Created By</td>
-                  <td style={{ padding: '0.5rem 0' }}>{po.createdBy?.name || '-'}</td>
+                  <td style={{ padding: '0.5rem 0' }}>{po.createdBy?.firstName ? `${po.createdBy.firstName} ${po.createdBy.lastName}` : '-'}</td>
                 </tr>
                 <tr>
                   <td style={{ padding: '0.5rem 0', color: 'var(--text-muted)' }}>Approved By</td>
-                  <td style={{ padding: '0.5rem 0' }}>{po.approvedBy?.name || '-'}</td>
+                  <td style={{ padding: '0.5rem 0' }}>{po.approvedBy?.firstName ? `${po.approvedBy.firstName} ${po.approvedBy.lastName}` : '-'}</td>
                 </tr>
                 <tr>
                   <td style={{ padding: '0.5rem 0', color: 'var(--text-muted)' }}>Approved At</td>
