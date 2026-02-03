@@ -337,4 +337,141 @@ router.get('/daily-summary', authenticateToken, async (req: Request, res: Respon
   }
 });
 
+router.get('/capacity', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { date, days = 7 } = req.query;
+    const startDate = date ? new Date(date as string) : new Date();
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + Number(days));
+    endDate.setHours(23, 59, 59, 999);
+
+    const windows = await prisma.deliveryWindow.findMany({
+      where: {
+        date: { gte: startDate, lte: endDate },
+        isActive: true,
+      },
+      include: {
+        reservations: {
+          where: { status: { in: ['TENTATIVE', 'CONFIRMED'] } },
+          select: { id: true, status: true, estimatedMinutes: true, orderId: true },
+        },
+      },
+      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+    });
+
+    const capacityData = windows.map(window => {
+      const reservedMinutes = window.reservations
+        .filter(r => r.status === 'TENTATIVE')
+        .reduce((sum, r) => sum + (r.estimatedMinutes || 0), 0);
+      const committedMinutes = window.reservations
+        .filter(r => r.status === 'CONFIRMED')
+        .reduce((sum, r) => sum + (r.estimatedMinutes || 0), 0);
+      const usedMinutes = window.usedMinutes || 0;
+      const availableMinutes = Math.max(0, window.capacityMinutes - reservedMinutes - committedMinutes - usedMinutes);
+      const utilizationPercent = window.capacityMinutes > 0 
+        ? Math.round(((reservedMinutes + committedMinutes + usedMinutes) / window.capacityMinutes) * 100)
+        : 0;
+
+      return {
+        id: window.id,
+        name: window.name,
+        date: window.date,
+        startTime: window.startTime,
+        endTime: window.endTime,
+        capacityMinutes: window.capacityMinutes,
+        reservedMinutes,
+        committedMinutes,
+        usedMinutes,
+        availableMinutes,
+        utilizationPercent,
+        reservationCount: window.reservations.length,
+        status: utilizationPercent >= 100 ? 'FULL' : utilizationPercent >= 80 ? 'NEAR_FULL' : 'AVAILABLE',
+      };
+    });
+
+    const summary = {
+      totalCapacityMinutes: capacityData.reduce((sum, w) => sum + w.capacityMinutes, 0),
+      totalReservedMinutes: capacityData.reduce((sum, w) => sum + w.reservedMinutes, 0),
+      totalCommittedMinutes: capacityData.reduce((sum, w) => sum + w.committedMinutes, 0),
+      totalUsedMinutes: capacityData.reduce((sum, w) => sum + w.usedMinutes, 0),
+      totalAvailableMinutes: capacityData.reduce((sum, w) => sum + w.availableMinutes, 0),
+      windowCount: capacityData.length,
+      fullWindows: capacityData.filter(w => w.status === 'FULL').length,
+      nearFullWindows: capacityData.filter(w => w.status === 'NEAR_FULL').length,
+    };
+
+    res.json({ windows: capacityData, summary });
+  } catch (error) {
+    console.error('Get capacity error:', error);
+    res.status(500).json({ error: 'Failed to get capacity data' });
+  }
+});
+
+router.get('/time-standards', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { productId } = req.query;
+    const where: any = {};
+    if (productId) where.productId = productId;
+
+    const timeStandards = await prisma.timeStandard.findMany({
+      where,
+      include: {
+        product: { select: { id: true, name: true, code: true } },
+      },
+      orderBy: { product: { name: 'asc' } },
+    });
+
+    res.json(timeStandards);
+  } catch (error) {
+    console.error('Get time standards error:', error);
+    res.status(500).json({ error: 'Failed to get time standards' });
+  }
+});
+
+router.post('/check-capacity', authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { windowId, requestedMinutes } = req.body;
+
+    const window = await prisma.deliveryWindow.findUnique({
+      where: { id: windowId },
+      include: {
+        reservations: {
+          where: { status: { in: ['TENTATIVE', 'CONFIRMED'] } },
+          select: { estimatedMinutes: true, status: true },
+        },
+      },
+    });
+
+    if (!window) {
+      res.status(404).json({ error: 'Delivery window not found' });
+      return;
+    }
+
+    const reservedMinutes = window.reservations.reduce((sum, r) => sum + (r.estimatedMinutes || 0), 0);
+    const usedMinutes = window.usedMinutes || 0;
+    const availableMinutes = window.capacityMinutes - reservedMinutes - usedMinutes;
+
+    const canBook = availableMinutes >= requestedMinutes;
+    const wouldOverbookBy = canBook ? 0 : requestedMinutes - availableMinutes;
+
+    res.json({
+      windowId,
+      capacityMinutes: window.capacityMinutes,
+      reservedMinutes,
+      usedMinutes,
+      availableMinutes,
+      requestedMinutes,
+      canBook,
+      wouldOverbookBy,
+      message: canBook 
+        ? `${availableMinutes} minutes available, ${requestedMinutes} minutes requested` 
+        : `Insufficient capacity: would overbook by ${wouldOverbookBy} minutes`,
+    });
+  } catch (error) {
+    console.error('Check capacity error:', error);
+    res.status(500).json({ error: 'Failed to check capacity' });
+  }
+});
+
 export default router;

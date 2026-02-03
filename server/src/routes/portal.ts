@@ -127,7 +127,7 @@ router.get('/orders/:id', authenticateToken, requireCustomer, async (req: Reques
         shipment: true,
         orderHistory: {
           orderBy: { createdAt: 'desc' },
-          include: { changedByUser: { select: { id: true, username: true } } }
+          include: { changedByUser: { select: { id: true, firstName: true, lastName: true } } }
         },
       },
     });
@@ -275,8 +275,8 @@ router.get('/invoices/:id', authenticateToken, requireCustomer, async (req: Requ
       where: { invoiceId: id },
       orderBy: { submittedAt: 'desc' },
       include: {
-        submittedBy: { select: { id: true, username: true } },
-        reviewedBy: { select: { id: true, username: true } },
+        submittedBy: { select: { id: true, firstName: true, lastName: true } },
+        reviewedBy: { select: { id: true, firstName: true, lastName: true } },
       }
     });
 
@@ -286,7 +286,7 @@ router.get('/invoices/:id', authenticateToken, requireCustomer, async (req: Requ
     });
 
     const isOverdue = invoice.dueDate < new Date() && 
-      ['SENT', 'PARTIALLY_PAID'].includes(invoice.status);
+      ['ISSUED_POSTED', 'PARTIALLY_PAID'].includes(invoice.status);
 
     res.json({
       ...invoice,
@@ -357,14 +357,15 @@ router.post('/invoices/:id/payments', authenticateToken, requireCustomer, (req: 
       const paymentRequest = await prisma.paymentRequest.create({
         data: {
           invoiceId: id,
+          customerId: user.customerId,
           amount: paymentAmount,
           currency: invoice.currency,
           paymentMethod,
-          reference: referenceNumber || null,
+          referenceNumber: referenceNumber || null,
           proofUrl,
           notes: notes || null,
-          status: 'PENDING',
-          submittedById: user.id,
+          status: 'PENDING_CONFIRMATION',
+          submittedByUserId: user.userId,
         },
       });
 
@@ -394,7 +395,7 @@ router.get('/receipts', authenticateToken, requireCustomer, async (req: Request,
       where: { customerId: user.customerId },
       include: {
         invoice: { select: { invoiceNumber: true, orderId: true } },
-        confirmedBy: { select: { id: true, username: true } },
+        confirmedBy: { select: { id: true, firstName: true, lastName: true } },
       },
       orderBy: { confirmedAt: 'desc' },
     });
@@ -416,7 +417,7 @@ router.get('/receipts/:id', authenticateToken, requireCustomer, async (req: Requ
       include: {
         customer: true,
         invoice: true,
-        confirmedBy: { select: { id: true, username: true } },
+        confirmedBy: { select: { id: true, firstName: true, lastName: true } },
       },
     });
 
@@ -468,14 +469,14 @@ router.get('/dashboard', authenticateToken, requireCustomer, async (req: Request
       prisma.invoice.count({
         where: {
           customerId: user.customerId,
-          status: { in: ['SENT', 'PARTIALLY_PAID'] }
+          status: { in: ['ISSUED_POSTED', 'PARTIALLY_PAID'] }
         }
       }),
       prisma.invoice.count({
         where: {
           customerId: user.customerId,
           dueDate: { lt: today },
-          status: { in: ['SENT', 'PARTIALLY_PAID'] }
+          status: { in: ['ISSUED_POSTED', 'PARTIALLY_PAID'] }
         }
       }),
       prisma.order.findMany({
@@ -492,7 +493,7 @@ router.get('/dashboard', authenticateToken, requireCustomer, async (req: Request
     ]);
 
     const totalOutstanding = await prisma.invoice.aggregate({
-      where: { customerId: user.customerId, status: { in: ['SENT', 'PARTIALLY_PAID'] } },
+      where: { customerId: user.customerId, status: { in: ['ISSUED_POSTED', 'PARTIALLY_PAID'] } },
       _sum: { totalAmount: true, paidAmount: true },
     });
 
@@ -514,6 +515,321 @@ router.get('/dashboard', authenticateToken, requireCustomer, async (req: Request
   } catch (error) {
     console.error('Portal dashboard error:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard data' });
+  }
+});
+
+// ==================== CAPACITY BOOKING / RESERVATIONS ====================
+
+router.get('/capacity/calendar', authenticateToken, requireCustomer, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const start = startDate ? new Date(startDate as string) : new Date();
+    const end = endDate ? new Date(endDate as string) : new Date(start.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+    const windows = await prisma.deliveryWindow.findMany({
+      where: {
+        date: { gte: start, lte: end },
+        isActive: true,
+      },
+      include: {
+        slots: true,
+      },
+      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+    });
+
+    const calendarData = windows.map(w => ({
+      id: w.id,
+      date: w.date,
+      name: w.name,
+      startTime: w.startTime,
+      endTime: w.endTime,
+      capacityMinutes: w.capacityMinutes,
+      usedMinutes: w.usedMinutes,
+      availableMinutes: w.capacityMinutes - w.usedMinutes,
+      utilizationPercent: Math.round((w.usedMinutes / w.capacityMinutes) * 100),
+      slots: w.slots.map(s => ({
+        id: s.id,
+        slotTime: s.slotTime,
+        durationMinutes: s.durationMinutes,
+        capacityMinutes: s.capacityMinutes,
+        usedMinutes: s.usedMinutes,
+        availableMinutes: s.capacityMinutes - s.usedMinutes,
+        isAvailable: s.isAvailable && (s.capacityMinutes - s.usedMinutes) > 0,
+      })),
+    }));
+
+    res.json(calendarData);
+  } catch (error) {
+    console.error('Portal capacity calendar error:', error);
+    res.status(500).json({ error: 'Failed to fetch capacity calendar' });
+  }
+});
+
+router.get('/reservations', authenticateToken, requireCustomer, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = (req as any).user;
+    const { status, startDate, endDate } = req.query;
+
+    const where: any = { customerId: user.customerId };
+    if (status) where.status = status;
+    if (startDate || endDate) {
+      where.requestedDate = {};
+      if (startDate) where.requestedDate.gte = new Date(startDate as string);
+      if (endDate) where.requestedDate.lte = new Date(endDate as string);
+    }
+
+    const reservations = await prisma.reservation.findMany({
+      where,
+      include: {
+        product: true,
+        window: true,
+        slot: true,
+      },
+      orderBy: { requestedDate: 'desc' },
+    });
+
+    res.json(reservations);
+  } catch (error) {
+    console.error('Portal reservations error:', error);
+    res.status(500).json({ error: 'Failed to fetch reservations' });
+  }
+});
+
+async function calculateEstimatedMinutesForProduct(productId: string, numberOfDoses: number): Promise<number> {
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    include: { timeStandards: { where: { processType: 'DISPENSING', isActive: true } } },
+  });
+  if (!product) return 15 * numberOfDoses;
+  const standard = product.timeStandards[0];
+  return (standard?.standardMinutes || 15) * numberOfDoses;
+}
+
+router.post('/reservations', authenticateToken, requireCustomer, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = (req as any).user;
+    const {
+      productId,
+      windowId,
+      slotId,
+      requestedDate,
+      requestedActivity,
+      numberOfDoses,
+      hospitalOrderReference,
+      notes,
+    } = req.body;
+
+    const estimatedMinutes = await calculateEstimatedMinutesForProduct(productId, numberOfDoses || 1);
+
+    if (windowId) {
+      const window = await prisma.deliveryWindow.findUnique({ where: { id: windowId } });
+      if (!window) {
+        res.status(404).json({ error: 'Delivery window not found' });
+        return;
+      }
+      const availableMinutes = window.capacityMinutes - window.usedMinutes;
+      if (estimatedMinutes > availableMinutes) {
+        res.status(400).json({ 
+          error: 'INSUFFICIENT_CAPACITY',
+          message: `Not enough capacity available. Required: ${estimatedMinutes} minutes, Available: ${availableMinutes} minutes.`,
+          userMessage: 'This time slot does not have enough capacity for your order. Please select a different window or reduce the number of doses.'
+        });
+        return;
+      }
+
+      await prisma.deliveryWindow.update({
+        where: { id: windowId },
+        data: { usedMinutes: window.usedMinutes + estimatedMinutes },
+      });
+    }
+
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const reservationNumber = `RES-${dateStr}-${random}`;
+
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    const reservation = await prisma.reservation.create({
+      data: {
+        reservationNumber,
+        customerId: user.customerId,
+        productId,
+        windowId: windowId || null,
+        slotId: slotId || null,
+        requestedDate: new Date(requestedDate),
+        requestedActivity,
+        activityUnit: 'mCi',
+        numberOfDoses: numberOfDoses || 1,
+        estimatedMinutes,
+        status: 'TENTATIVE',
+        expiresAt,
+        notes: hospitalOrderReference ? `Ref: ${hospitalOrderReference}. ${notes || ''}`.trim() : notes,
+        createdById: user.userId,
+      },
+      include: { product: true, window: true },
+    });
+
+    res.status(201).json({
+      ...reservation,
+      expiresInSeconds: 15 * 60,
+      userMessage: `Capacity reserved for ${estimatedMinutes} minutes. Please confirm your order within 15 minutes or the reservation will expire.`,
+    });
+  } catch (error) {
+    console.error('Portal create reservation error:', error);
+    res.status(500).json({ error: 'Failed to create reservation' });
+  }
+});
+
+router.post('/reservations/:id/confirm', authenticateToken, requireCustomer, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = (req as any).user;
+    const { id } = req.params;
+    const { hospitalOrderReference, specialNotes, deliveryTimeStart, deliveryTimeEnd } = req.body;
+
+    const reservation = await prisma.reservation.findFirst({
+      where: { id, customerId: user.customerId },
+      include: { product: true, window: true },
+    });
+
+    if (!reservation) {
+      res.status(404).json({ error: 'Reservation not found' });
+      return;
+    }
+
+    if (reservation.status !== 'TENTATIVE') {
+      res.status(400).json({ error: 'Only tentative reservations can be confirmed' });
+      return;
+    }
+
+    if (reservation.expiresAt && reservation.expiresAt < new Date()) {
+      await prisma.reservation.update({ where: { id }, data: { status: 'EXPIRED' } });
+      if (reservation.windowId && reservation.window) {
+        await prisma.deliveryWindow.update({
+          where: { id: reservation.windowId },
+          data: { usedMinutes: Math.max(0, reservation.window.usedMinutes - reservation.estimatedMinutes) },
+        });
+      }
+      res.status(400).json({ error: 'RESERVATION_EXPIRED', userMessage: 'This reservation has expired. Please create a new one.' });
+      return;
+    }
+
+    const orderCount = await prisma.order.count();
+    const orderNumber = `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(orderCount + 1).padStart(4, '0')}`;
+
+    const order = await prisma.order.create({
+      data: {
+        orderNumber,
+        customerId: user.customerId,
+        productId: reservation.productId,
+        deliveryDate: reservation.requestedDate,
+        deliveryTimeStart: deliveryTimeStart ? new Date(deliveryTimeStart) : reservation.requestedDate,
+        deliveryTimeEnd: deliveryTimeEnd ? new Date(deliveryTimeEnd) : new Date(reservation.requestedDate.getTime() + 2 * 60 * 60 * 1000),
+        requestedActivity: reservation.requestedActivity,
+        activityUnit: reservation.activityUnit,
+        numberOfDoses: reservation.numberOfDoses,
+        hospitalOrderReference: hospitalOrderReference || null,
+        committedDispensingMinutes: reservation.estimatedMinutes,
+        specialNotes: specialNotes || reservation.notes,
+        reservationId: reservation.id,
+        status: 'SUBMITTED',
+      },
+      include: { customer: true, product: true },
+    });
+
+    await prisma.reservation.update({
+      where: { id },
+      data: { status: 'CONFIRMED', convertedOrderId: order.id },
+    });
+
+    await prisma.orderHistory.create({
+      data: {
+        orderId: order.id,
+        fromStatus: null,
+        toStatus: 'SUBMITTED',
+        changedBy: user.userId,
+        role: 'Customer',
+        changeNotes: 'Order created from capacity reservation via portal',
+      },
+    });
+
+    res.status(201).json({ reservation: { ...reservation, status: 'CONFIRMED' }, order });
+  } catch (error) {
+    console.error('Portal confirm reservation error:', error);
+    res.status(500).json({ error: 'Failed to confirm reservation and create order' });
+  }
+});
+
+router.put('/reservations/:id/cancel', authenticateToken, requireCustomer, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = (req as any).user;
+    const { id } = req.params;
+
+    const reservation = await prisma.reservation.findFirst({
+      where: { id, customerId: user.customerId },
+      include: { window: true, slot: true },
+    });
+
+    if (!reservation) {
+      res.status(404).json({ error: 'Reservation not found' });
+      return;
+    }
+
+    if (reservation.status === 'CONVERTED' || reservation.status === 'CONFIRMED') {
+      res.status(400).json({ error: 'Cannot cancel a confirmed or converted reservation' });
+      return;
+    }
+
+    if (reservation.windowId && reservation.window) {
+      await prisma.deliveryWindow.update({
+        where: { id: reservation.windowId },
+        data: { usedMinutes: Math.max(0, reservation.window.usedMinutes - reservation.estimatedMinutes) },
+      });
+    }
+
+    const updated = await prisma.reservation.update({
+      where: { id },
+      data: { status: 'CANCELLED' },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Portal cancel reservation error:', error);
+    res.status(500).json({ error: 'Failed to cancel reservation' });
+  }
+});
+
+router.get('/products/available', authenticateToken, requireCustomer, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = (req as any).user;
+
+    const permittedProducts = await prisma.customerProduct.findMany({
+      where: { customerId: user.customerId, isApproved: true },
+      include: {
+        product: {
+          include: {
+            timeStandards: { where: { processType: 'DISPENSING', isActive: true } },
+          },
+        },
+      },
+    });
+
+    const products = permittedProducts.map(pp => ({
+      id: pp.product.id,
+      name: pp.product.name,
+      code: pp.product.code,
+      productType: pp.product.productType,
+      radionuclide: pp.product.radionuclide,
+      halfLifeMinutes: pp.product.halfLifeMinutes,
+      standardDose: pp.product.standardDose,
+      doseUnit: pp.product.doseUnit,
+      dispensingMinutesPerDose: pp.product.timeStandards[0]?.standardMinutes || 15,
+    }));
+
+    res.json(products);
+  } catch (error) {
+    console.error('Portal available products error:', error);
+    res.status(500).json({ error: 'Failed to fetch available products' });
   }
 });
 

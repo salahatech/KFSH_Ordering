@@ -34,6 +34,7 @@ import PortalNewOrder from './pages/portal/PortalNewOrder';
 import PortalInvoices from './pages/portal/PortalInvoices';
 import PortalOrderJourney from './pages/portal/PortalOrderJourney';
 import PortalProfile from './pages/portal/PortalProfile';
+import PortalBookCapacity from './pages/portal/PortalBookCapacity';
 import Settings from './pages/Settings';
 import DashboardQC from './pages/DashboardQC';
 import DashboardQP from './pages/DashboardQP';
@@ -165,6 +166,7 @@ export default function App() {
                   <Route path="/orders" element={<PortalOrders />} />
                   <Route path="/orders/new" element={<PortalNewOrder />} />
                   <Route path="/orders/:id/journey" element={<PortalOrderJourney />} />
+                  <Route path="/book-capacity" element={<PortalBookCapacity />} />
                   <Route path="/invoices" element={<PortalInvoices />} />
                   <Route path="/profile" element={<PortalProfile />} />
                 </Routes>

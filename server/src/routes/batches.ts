@@ -394,11 +394,12 @@ router.post('/:id/materials', authenticateToken, requireRole('Admin', 'Productio
  */
 router.post('/:id/release', authenticateToken, requireRole('Qualified Person', 'Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { electronicSignature, reason, releaseType, coaFilePath } = req.body;
+    const { electronicSignature, reason, releaseType, coaFilePath, disposition, meaning } = req.body;
+    const batchDisposition = disposition || 'RELEASE';
     
     const batch = await prisma.batch.findUnique({
       where: { id: req.params.id },
-      include: { qcResults: true },
+      include: { qcResults: { include: { testedBy: true } } },
     });
 
     if (!batch) {
@@ -406,26 +407,61 @@ router.post('/:id/release', authenticateToken, requireRole('Qualified Person', '
       return;
     }
 
-    if (batch.status !== 'QC_PASSED') {
+    if (batchDisposition === 'RELEASE' && batch.status !== 'QC_PASSED' && batch.status !== 'QP_REVIEW') {
       res.status(400).json({ error: 'Batch must pass QC before release' });
       return;
     }
 
-    await prisma.batchRelease.create({
+    const qcAnalystIds = [...new Set(batch.qcResults.filter(r => r.testedById).map(r => r.testedById))];
+    if (batchDisposition === 'RELEASE' && qcAnalystIds.includes(req.user!.userId)) {
+      res.status(400).json({ 
+        error: 'SEGREGATION_OF_DUTIES_VIOLATION',
+        message: 'The QP cannot be the same user who performed QC testing on this batch.',
+        userMessage: 'Segregation of duties violation: You performed QC tests on this batch and cannot also release it.'
+      });
+      return;
+    }
+
+    const batchReleaseRecord = await prisma.batchRelease.create({
       data: {
         batchId: batch.id,
         releasedById: req.user!.userId,
         releaseType: releaseType || 'FULL',
+        disposition: batchDisposition,
         electronicSignature,
         signatureTimestamp: new Date(),
+        meaning: meaning || `Batch ${batchDisposition.toLowerCase()} by QP`,
         reason,
         coaFilePath,
       },
     });
 
+    await prisma.eSignature.create({
+      data: {
+        scope: 'BATCH_RELEASE',
+        entityType: 'Batch',
+        entityId: batch.id,
+        signedById: req.user!.userId,
+        signedAt: new Date(),
+        meaning: meaning || `${batchDisposition} - ${electronicSignature}`,
+        comment: reason,
+        metadata: { batchNumber: batch.batchNumber, disposition: batchDisposition, releaseId: batchReleaseRecord.id },
+      },
+    });
+
+    let newStatus: any = 'RELEASED';
+    let orderStatus: any = 'RELEASED';
+    if (batchDisposition === 'HOLD') {
+      newStatus = 'ON_HOLD';
+      orderStatus = null;
+    } else if (batchDisposition === 'REJECT') {
+      newStatus = 'REJECTED';
+      orderStatus = 'REJECTED';
+    }
+
     const updatedBatch = await prisma.batch.update({
       where: { id: req.params.id },
-      data: { status: 'RELEASED' },
+      data: { status: newStatus },
       include: {
         product: true,
         orders: true,
@@ -433,16 +469,32 @@ router.post('/:id/release', authenticateToken, requireRole('Qualified Person', '
       },
     });
 
-    await prisma.order.updateMany({
-      where: { batchId: batch.id },
-      data: { status: 'RELEASED' },
+    if (orderStatus) {
+      await prisma.order.updateMany({
+        where: { batchId: batch.id },
+        data: { status: orderStatus },
+      });
+    }
+
+    await prisma.batchEvent.create({
+      data: {
+        batchId: batch.id,
+        eventType: `DISPOSITION_${batchDisposition}`,
+        fromStatus: batch.status,
+        toStatus: newStatus,
+        actorId: req.user!.userId,
+        actorRole: req.user!.roleName || 'User',
+        note: reason || `Batch ${batchDisposition.toLowerCase()}`,
+        metadata: { electronicSignature, meaning },
+      },
     });
 
-    await createAuditLog(req.user?.userId, 'RELEASE', 'Batch', batch.id, null,
-      { electronicSignature, reason, releaseType }, req);
+    await createAuditLog(req.user?.userId, `DISPOSITION_${batchDisposition}`, 'Batch', batch.id, 
+      { status: batch.status }, { status: newStatus, electronicSignature, reason, disposition: batchDisposition }, req);
 
     res.json(updatedBatch);
   } catch (error) {
+    console.error('Batch release error:', error);
     res.status(500).json({ error: 'Failed to release batch' });
   }
 });

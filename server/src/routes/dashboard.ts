@@ -619,4 +619,162 @@ async function getCustomerJourneyCounts(customerId: string) {
   ];
 }
 
+router.get('/kpi-trends', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { days = 30 } = req.query;
+    const numDays = Number(days);
+    const endDate = new Date();
+    const startDate = addDays(endDate, -numDays);
+
+    const [
+      deliveryWindows,
+      batches,
+      shipments,
+      orders,
+    ] = await Promise.all([
+      prisma.deliveryWindow.findMany({
+        where: { date: { gte: startOfDay(startDate), lte: endOfDay(endDate) } },
+        include: { reservations: { where: { status: { in: ['CONFIRMED'] } } } },
+      }),
+      prisma.batch.findMany({
+        where: { createdAt: { gte: startDate } },
+        select: { id: true, status: true, createdAt: true, targetActivity: true, actualActivity: true, batchReleases: { select: { createdAt: true } } },
+      }),
+      prisma.shipment.findMany({
+        where: { createdAt: { gte: startDate } },
+        select: { id: true, status: true, scheduledDeliveryAt: true, actualDeliveryAt: true },
+      }),
+      prisma.order.findMany({
+        where: { createdAt: { gte: startDate } },
+        select: { id: true, status: true, createdAt: true, deliveryDate: true },
+      }),
+    ]);
+
+    const capacityUtilization = deliveryWindows.reduce((acc, w) => {
+      const committed = w.reservations.reduce((sum, r) => sum + (r.estimatedMinutes || 0), 0);
+      const used = w.usedMinutes || 0;
+      return {
+        total: acc.total + w.capacityMinutes,
+        used: acc.used + used + committed,
+      };
+    }, { total: 0, used: 0 });
+    const utilizationPercent = capacityUtilization.total > 0 
+      ? Math.round((capacityUtilization.used / capacityUtilization.total) * 100) 
+      : 0;
+
+    const releasedBatches = batches.filter(b => b.status === 'RELEASED' && b.batchReleases.length > 0);
+    const avgReleaseLeadTimeMinutes = releasedBatches.length > 0
+      ? releasedBatches.reduce((sum, b) => {
+          const releaseTime = b.batchReleases[0]?.createdAt;
+          if (releaseTime && b.createdAt) {
+            return sum + (new Date(releaseTime).getTime() - new Date(b.createdAt).getTime()) / 60000;
+          }
+          return sum;
+        }, 0) / releasedBatches.length
+      : 0;
+
+    const batchesWithYield = batches.filter(b => b.actualActivity && b.targetActivity);
+    const avgYieldPercent = batchesWithYield.length > 0
+      ? Math.round(batchesWithYield.reduce((sum, b) => sum + ((b.actualActivity! / b.targetActivity) * 100), 0) / batchesWithYield.length)
+      : 0;
+
+    const deliveredShipments = shipments.filter(s => s.status === 'DELIVERED');
+    const onTimeDeliveries = deliveredShipments.filter(s => {
+      if (!s.scheduledDeliveryAt || !s.actualDeliveryAt) return true;
+      return new Date(s.actualDeliveryAt) <= new Date(s.scheduledDeliveryAt);
+    });
+    const otifPercent = deliveredShipments.length > 0
+      ? Math.round((onTimeDeliveries.length / deliveredShipments.length) * 100)
+      : 100;
+
+    res.json({
+      period: { startDate, endDate, days: numDays },
+      kpis: {
+        capacityUtilization: {
+          label: 'Capacity Utilization',
+          value: utilizationPercent,
+          unit: '%',
+          target: 80,
+          status: utilizationPercent >= 80 ? 'success' : utilizationPercent >= 60 ? 'warning' : 'danger',
+        },
+        releaseLeadTime: {
+          label: 'Avg Release Lead Time',
+          value: Math.round(avgReleaseLeadTimeMinutes),
+          unit: 'min',
+          target: 180,
+          status: avgReleaseLeadTimeMinutes <= 180 ? 'success' : avgReleaseLeadTimeMinutes <= 240 ? 'warning' : 'danger',
+        },
+        yield: {
+          label: 'Average Yield',
+          value: avgYieldPercent,
+          unit: '%',
+          target: 95,
+          status: avgYieldPercent >= 95 ? 'success' : avgYieldPercent >= 85 ? 'warning' : 'danger',
+        },
+        otif: {
+          label: 'OTIF (On-Time In-Full)',
+          value: otifPercent,
+          unit: '%',
+          target: 98,
+          status: otifPercent >= 98 ? 'success' : otifPercent >= 90 ? 'warning' : 'danger',
+        },
+      },
+      summary: {
+        totalOrders: orders.length,
+        deliveredOrders: orders.filter(o => o.status === 'DELIVERED').length,
+        totalBatches: batches.length,
+        releasedBatches: releasedBatches.length,
+        totalShipments: shipments.length,
+        deliveredShipments: deliveredShipments.length,
+      },
+    });
+  } catch (error) {
+    console.error('KPI trends error:', error);
+    res.status(500).json({ error: 'Failed to get KPI trends' });
+  }
+});
+
+router.get('/audit-logs', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { entityType, entityId, action, userId, startDate, endDate, page = 1, limit = 50 } = req.query;
+
+    const where: any = {};
+    if (entityType) where.entityType = entityType;
+    if (entityId) where.entityId = entityId;
+    if (action) where.action = { contains: action as string };
+    if (userId) where.userId = userId;
+    if (startDate || endDate) {
+      where.timestamp = {};
+      if (startDate) where.timestamp.gte = new Date(startDate as string);
+      if (endDate) where.timestamp.lte = new Date(endDate as string);
+    }
+
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (Number(page) - 1) * Number(limit),
+        take: Number(limit),
+      }),
+      prisma.auditLog.count({ where }),
+    ]);
+
+    res.json({
+      logs,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (error) {
+    console.error('Audit logs error:', error);
+    res.status(500).json({ error: 'Failed to get audit logs' });
+  }
+});
+
 export default router;

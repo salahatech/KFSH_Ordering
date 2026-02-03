@@ -12,10 +12,12 @@ import {
   Bell,
   Plus,
   Building2,
+  Calendar,
 } from 'lucide-react';
 
 const portalMenuItems = [
   { path: '/portal', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/portal/book-capacity', label: 'Book Capacity', icon: Calendar },
   { path: '/portal/orders', label: 'My Orders', icon: ShoppingCart },
   { path: '/portal/orders/new', label: 'Place Order', icon: Plus },
   { path: '/portal/invoices', label: 'Invoices', icon: Receipt },

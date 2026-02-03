@@ -40,6 +40,11 @@ model User {
   confirmedReceipts        ReceiptVoucher[] @relation("ReceiptConfirmer")
   approvedInvoices         Invoice[]        @relation("InvoiceApprover")
   invoiceEvents            InvoiceEvent[]   @relation("InvoiceEventUser")
+  eSignatures              ESignature[]
+  samplesTaken             Sample[]         @relation("SampleTaker")
+  testResults              TestResult[]     @relation("TestAnalyst")
+  oosOpened                OOSCase[]        @relation("OOSOpener")
+  oosClosed                OOSCase[]        @relation("OOSCloser")
   preference               UserPreference?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -244,6 +249,7 @@ model Product {
   contractPriceItems    ContractPriceItem[]
   invoiceItems          InvoiceItem[]
   timeStandards         TimeStandard[]
+  testSpecs             TestSpec[]
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
 }
@@ -299,6 +305,8 @@ model Order {
   injectionTime         DateTime?
   patientCount          Int?
   specialNotes          String?
+  hospitalOrderReference String?
+  committedDispensingMinutes Int?
   calculatedProductionActivity Float?
   calculatedCalibrationTime    DateTime?
   status                OrderStatus @default(DRAFT)
@@ -307,6 +315,8 @@ model Order {
   batch                 Batch?      @relation(fields: [batchId], references: [id])
   shipmentId            String?
   shipment              Shipment?   @relation(fields: [shipmentId], references: [id])
+  reservationId         String?
+  reservation           Reservation? @relation(fields: [reservationId], references: [id])
   orderHistory          OrderHistory[]
   doseUnits             DoseUnit[]
   createdAt             DateTime    @default(now())
@@ -399,6 +409,8 @@ model Batch {
   batchReleases       BatchRelease[]
   doseUnits           DoseUnit[]
   events              BatchEvent[]
+  samples             Sample[]
+  oosCases            OOSCase[]
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 }
@@ -489,17 +501,142 @@ model QCResult {
 }
 
 model BatchRelease {
-  id               String   @id @default(uuid())
+  id               String           @id @default(uuid())
   batchId          String
-  batch            Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  batch            Batch            @relation(fields: [batchId], references: [id], onDelete: Cascade)
   releasedById     String
-  releasedBy       User     @relation(fields: [releasedById], references: [id])
-  releaseType      String   @default("FULL")
+  releasedBy       User             @relation(fields: [releasedById], references: [id])
+  releaseType      String           @default("FULL")
+  disposition      BatchDisposition @default(RELEASE)
   electronicSignature String
   signatureTimestamp DateTime
+  meaning          String?
   reason           String?
   coaFilePath      String?
-  createdAt        DateTime @default(now())
+  createdAt        DateTime         @default(now())
+}
+
+enum BatchDisposition {
+  HOLD
+  RELEASE
+  REJECT
+}
+
+// ==================== E-SIGNATURE ====================
+
+enum ESignatureScope {
+  BATCH_RELEASE
+  DEVIATION_APPROVAL
+  MASTERDATA_CHANGE
+  PO_APPROVAL
+  QC_APPROVAL
+  DISPENSING_APPROVAL
+}
+
+model ESignature {
+  id          String          @id @default(uuid())
+  scope       ESignatureScope
+  entityType  String
+  entityId    String
+  signedById  String
+  signedBy    User            @relation(fields: [signedById], references: [id])
+  signedAt    DateTime        @default(now())
+  meaning     String
+  comment     String?
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+
+  @@index([entityType, entityId])
+  @@index([signedById])
+}
+
+// ==================== QMS - SAMPLE & TEST MANAGEMENT ====================
+
+enum SampleStatus {
+  COLLECTED
+  IN_TESTING
+  TESTED
+  APPROVED
+  REJECTED
+}
+
+model Sample {
+  id          String       @id @default(uuid())
+  sampleNumber String      @unique
+  batchId     String
+  batch       Batch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  sampleType  String
+  takenAt     DateTime     @default(now())
+  takenById   String
+  takenBy     User         @relation("SampleTaker", fields: [takenById], references: [id])
+  status      SampleStatus @default(COLLECTED)
+  notes       String?
+  testResults TestResult[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([batchId])
+}
+
+model TestSpec {
+  id          String       @id @default(uuid())
+  productId   String
+  product     Product      @relation(fields: [productId], references: [id])
+  testName    String
+  testMethod  String?
+  unit        String?
+  minValue    Float?
+  maxValue    Float?
+  required    Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  isActive    Boolean      @default(true)
+  testResults TestResult[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([productId, testName])
+}
+
+model TestResult {
+  id          String   @id @default(uuid())
+  sampleId    String
+  sample      Sample   @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  testSpecId  String
+  testSpec    TestSpec @relation(fields: [testSpecId], references: [id])
+  numericValue Float?
+  textValue   String?
+  passFail    Boolean?
+  measuredAt  DateTime @default(now())
+  analystId   String
+  analyst     User     @relation("TestAnalyst", fields: [analystId], references: [id])
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([sampleId])
+  @@index([testSpecId])
+}
+
+model OOSCase {
+  id          String   @id @default(uuid())
+  caseNumber  String   @unique
+  batchId     String
+  batch       Batch    @relation(fields: [batchId], references: [id])
+  openedAt    DateTime @default(now())
+  openedById  String
+  openedBy    User     @relation("OOSOpener", fields: [openedById], references: [id])
+  reason      String
+  investigation String?
+  conclusion  String?
+  status      String   @default("OPEN")
+  closedAt    DateTime?
+  closedById  String?
+  closedBy    User?    @relation("OOSCloser", fields: [closedById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([batchId])
+  @@index([status])
 }
 
 // ==================== LOGISTICS ====================
@@ -699,11 +836,17 @@ model AuditLog {
   action      String
   entityType  String
   entityId    String?
+  actorRole   String?
+  traceId     String?
   oldValues   Json?
   newValues   Json?
   ipAddress   String?
   userAgent   String?
   createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([traceId])
+  @@index([createdAt])
 }
 
 // ==================== CONFIGURATION ====================
@@ -850,12 +993,14 @@ model DoseUnit {
   volume              Float?
   volumeUnit          String         @default("mL")
   containerType       String?
+  labelData           Json?
   labelPrinted        Boolean        @default(false)
   labelPrintedAt      DateTime?
   dispensedById       String?
   dispensedBy         User?          @relation("DoseDispenser", fields: [dispensedById], references: [id])
   dispensedAt         DateTime?
   status              DoseUnitStatus @default(CREATED)
+  releaseInheritedFromBatch Boolean  @default(true)
   notes               String?
   shipmentId          String?
   shipment            Shipment?      @relation(fields: [shipmentId], references: [id])
@@ -958,6 +1103,7 @@ model Reservation {
   expiresAt         DateTime?
   notes             String?
   createdById       String?
+  orders            Order[]
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
@@ -1230,17 +1376,21 @@ model UserPreference {
 // ==================== TIME STANDARDS ====================
 
 model TimeStandard {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   productId       String
-  product         Product  @relation(fields: [productId], references: [id])
+  product         Product   @relation(fields: [productId], references: [id])
   processType     String
+  doseForm        String?
   standardMinutes Int
   description     String?
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  effectiveFrom   DateTime?
+  effectiveTo     DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@unique([productId, processType])
+  @@index([effectiveFrom, effectiveTo])
 }
 
 // ==================== SYSTEM SETTINGS ====================

@@ -38,6 +38,7 @@ export default function Release() {
   const [selectedBatch, setSelectedBatch] = useState<any>(null);
   const [showReleaseModal, setShowReleaseModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showHoldModal, setShowHoldModal] = useState(false);
   const [viewMode, setViewMode] = useState<'pending' | 'history'>('pending');
   const [filters, setFilters] = useState<Record<string, any>>({});
   const queryClient = useQueryClient();
@@ -77,34 +78,39 @@ export default function Release() {
     enabled: !!selectedBatch,
   });
 
+  const invalidateQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['batches-for-release'] });
+    queryClient.invalidateQueries({ queryKey: ['batch-release-details'] });
+    queryClient.invalidateQueries({ queryKey: ['release-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['release-history'] });
+  };
+
   const releaseMutation = useMutation({
     mutationFn: async (data: any) => {
-      return api.post(`/batches/${selectedBatch.id}/release`, data);
+      return api.post(`/batches/${selectedBatch.id}/release`, { ...data, disposition: 'RELEASE' });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['batches-for-release'] });
-      queryClient.invalidateQueries({ queryKey: ['batch-release-details'] });
-      queryClient.invalidateQueries({ queryKey: ['release-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['release-history'] });
+      invalidateQueries();
       setShowReleaseModal(false);
       setSelectedBatch(null);
       toast.success('Batch Released', 'Batch has been successfully released for dispensing');
     },
     onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to release batch';
-      toast.error('Release Failed', message);
+      const errData = error.response?.data;
+      if (errData?.error === 'SEGREGATION_OF_DUTIES_VIOLATION') {
+        toast.error('Segregation of Duties Violation', errData.userMessage || 'You cannot release a batch you tested');
+      } else {
+        toast.error('Release Failed', errData?.error || 'Failed to release batch');
+      }
     },
   });
 
   const rejectMutation = useMutation({
     mutationFn: async (data: any) => {
-      return api.post(`/batches/${selectedBatch.id}/transition`, { status: 'REJECTED', ...data });
+      return api.post(`/batches/${selectedBatch.id}/release`, { ...data, disposition: 'REJECT' });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['batches-for-release'] });
-      queryClient.invalidateQueries({ queryKey: ['batch-release-details'] });
-      queryClient.invalidateQueries({ queryKey: ['release-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['release-history'] });
+      invalidateQueries();
       setShowRejectModal(false);
       setSelectedBatch(null);
       toast.warning('Batch Rejected', 'Batch has been rejected and removed from release queue');
@@ -115,11 +121,28 @@ export default function Release() {
     },
   });
 
+  const holdMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return api.post(`/batches/${selectedBatch.id}/release`, { ...data, disposition: 'HOLD' });
+    },
+    onSuccess: () => {
+      invalidateQueries();
+      setShowHoldModal(false);
+      setSelectedBatch(null);
+      toast.warning('Batch On Hold', 'Batch has been placed on hold for further investigation');
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.error || 'Failed to hold batch';
+      toast.error('Hold Failed', message);
+    },
+  });
+
   const handleRelease = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     releaseMutation.mutate({
       electronicSignature: formData.get('signature'),
+      meaning: formData.get('meaning') || 'I certify this batch meets all GMP requirements',
       reason: formData.get('reason'),
       releaseType: 'FULL',
     });
@@ -129,7 +152,19 @@ export default function Release() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     rejectMutation.mutate({
-      note: formData.get('reason'),
+      electronicSignature: formData.get('signature'),
+      meaning: 'REJECT - Batch does not meet release criteria',
+      reason: formData.get('reason'),
+    });
+  };
+
+  const handleHold = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    holdMutation.mutate({
+      electronicSignature: formData.get('signature'),
+      meaning: 'HOLD - Pending investigation or additional review',
+      reason: formData.get('reason'),
     });
   };
 
@@ -446,18 +481,26 @@ export default function Release() {
                 )}
 
                 {viewMode === 'pending' && batchDetails.status === 'QC_PASSED' && (
-                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                     <button
                       className="btn btn-danger"
-                      style={{ flex: 1 }}
+                      style={{ flex: '1 1 auto', minWidth: '80px' }}
                       onClick={() => setShowRejectModal(true)}
                     >
                       <XCircle size={18} />
                       Reject
                     </button>
                     <button
+                      className="btn btn-warning"
+                      style={{ flex: '1 1 auto', minWidth: '80px' }}
+                      onClick={() => setShowHoldModal(true)}
+                    >
+                      <AlertTriangle size={18} />
+                      Hold
+                    </button>
+                    <button
                       className="btn btn-success"
-                      style={{ flex: 2 }}
+                      style={{ flex: '2 1 auto', minWidth: '120px' }}
                       onClick={() => setShowReleaseModal(true)}
                     >
                       <Shield size={18} />
@@ -583,6 +626,17 @@ export default function Release() {
                 </div>
 
                 <div className="form-group">
+                  <label className="form-label">Electronic Signature (Type your full name) *</label>
+                  <input
+                    name="signature"
+                    className="form-input"
+                    required
+                    placeholder="Enter your full name"
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="form-group">
                   <label className="form-label">Rejection Reason *</label>
                   <textarea
                     name="reason"
@@ -600,6 +654,80 @@ export default function Release() {
                 <button type="submit" className="btn btn-danger" disabled={rejectMutation.isPending}>
                   <XCircle size={18} />
                   {rejectMutation.isPending ? 'Rejecting...' : 'Confirm Rejection'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showHoldModal && (
+        <div className="modal-overlay" onClick={() => setShowHoldModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 600, margin: 0 }}>Place Batch On Hold</h3>
+              <button onClick={() => setShowHoldModal(false)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
+            </div>
+            <form onSubmit={handleHold}>
+              <div className="modal-body">
+                <div
+                  style={{
+                    padding: '1rem',
+                    background: '#fffbeb',
+                    borderRadius: 'var(--radius)',
+                    marginBottom: '1rem',
+                    fontSize: '0.875rem',
+                    border: '1px solid #fde68a',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <AlertTriangle size={18} color="var(--warning)" />
+                    <strong style={{ color: '#b45309' }}>Hold for Investigation</strong>
+                  </div>
+                  <p style={{ margin: 0, color: '#92400e' }}>
+                    This action will place the batch on hold pending further investigation. 
+                    The batch cannot be dispensed until it is released or rejected.
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Batch Number</label>
+                  <input
+                    className="form-input"
+                    value={batchDetails?.batchNumber || ''}
+                    disabled
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Electronic Signature (Type your full name) *</label>
+                  <input
+                    name="signature"
+                    className="form-input"
+                    required
+                    placeholder="Enter your full name"
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Reason for Hold *</label>
+                  <textarea
+                    name="reason"
+                    className="form-input"
+                    rows={3}
+                    required
+                    placeholder="Enter reason for placing batch on hold"
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowHoldModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-warning" disabled={holdMutation.isPending}>
+                  <AlertTriangle size={18} />
+                  {holdMutation.isPending ? 'Holding...' : 'Confirm Hold'}
                 </button>
               </div>
             </form>

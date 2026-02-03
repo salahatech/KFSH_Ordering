@@ -3,12 +3,54 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { format, addDays } from 'date-fns';
-import { Calendar, Clock, Package, Users, Play, Eye, MoreVertical } from 'lucide-react';
+import { Calendar, Clock, Package, Users, Play, Eye, MoreVertical, Activity, AlertTriangle, TrendingUp } from 'lucide-react';
+
+function CapacityBar({ window }: { window: any }) {
+  const getStatusColor = (status: string) => {
+    if (status === 'FULL') return 'var(--danger)';
+    if (status === 'NEAR_FULL') return 'var(--warning)';
+    return 'var(--success)';
+  };
+  
+  return (
+    <div style={{ marginBottom: '0.75rem', padding: '0.75rem', background: 'var(--bg-primary)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+        <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>{window.name}</span>
+        <span style={{ fontSize: '0.75rem', color: getStatusColor(window.status), fontWeight: 600 }}>
+          {window.utilizationPercent}% used
+        </span>
+      </div>
+      <div style={{ height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
+        <div style={{ 
+          display: 'flex', 
+          height: '100%',
+          transition: 'width 0.3s ease'
+        }}>
+          <div style={{ width: `${Math.min(100, (window.usedMinutes / window.capacityMinutes) * 100)}%`, background: '#3b82f6' }} title={`Used: ${window.usedMinutes} min`} />
+          <div style={{ width: `${Math.min(100 - (window.usedMinutes / window.capacityMinutes) * 100, (window.committedMinutes / window.capacityMinutes) * 100)}%`, background: '#22c55e' }} title={`Committed: ${window.committedMinutes} min`} />
+          <div style={{ width: `${Math.min(100 - ((window.usedMinutes + window.committedMinutes) / window.capacityMinutes) * 100, (window.reservedMinutes / window.capacityMinutes) * 100)}%`, background: '#f59e0b' }} title={`Reserved: ${window.reservedMinutes} min`} />
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+        <span>{format(new Date(window.startTime), 'HH:mm')} - {format(new Date(window.endTime), 'HH:mm')}</span>
+        <span>{window.availableMinutes} min available</span>
+      </div>
+    </div>
+  );
+}
 
 export default function Planner() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  const { data: capacityData } = useQuery({
+    queryKey: ['planner-capacity', selectedDate],
+    queryFn: async () => {
+      const { data } = await api.get('/planner/capacity', { params: { date: selectedDate, days: 1 } });
+      return data;
+    },
+  });
 
   const { data: ordersForPlanning, isLoading: ordersLoading } = useQuery({
     queryKey: ['planner-orders', selectedDate],
@@ -100,6 +142,55 @@ export default function Planner() {
           </button>
         </div>
       </div>
+
+      {capacityData?.summary && (
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
+          <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+            <h3 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Activity size={20} />
+              Dispensing Capacity Overview
+            </h3>
+          </div>
+          <div style={{ padding: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+              <div style={{ textAlign: 'center', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--primary)' }}>{capacityData.summary.totalCapacityMinutes}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Total Capacity (min)</div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#22c55e' }}>{capacityData.summary.totalCommittedMinutes}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Committed (min)</div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f59e0b' }}>{capacityData.summary.totalReservedMinutes}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Reserved (min)</div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--success)' }}>{capacityData.summary.totalAvailableMinutes}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Available (min)</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', fontSize: '0.75rem' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <span style={{ width: '12px', height: '12px', background: '#3b82f6', borderRadius: '2px' }} /> Used
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <span style={{ width: '12px', height: '12px', background: '#22c55e', borderRadius: '2px' }} /> Committed
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <span style={{ width: '12px', height: '12px', background: '#f59e0b', borderRadius: '2px' }} /> Reserved (Tentative)
+              </span>
+            </div>
+            {capacityData?.windows?.length > 0 && (
+              <div style={{ marginTop: '1rem' }}>
+                {capacityData.windows.map((w: any) => (
+                  <CapacityBar key={w.id} window={w} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="loading-overlay">
