@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Package, Plus, Search, Eye, Check, X, Send, FileText, ClipboardCheck, Clock, Calendar, Filter } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Package, Plus, Eye, Check, X, Send, FileText, Clock, Calendar, ClipboardCheck } from 'lucide-react';
 import api from '../lib/api';
-import { KpiCard } from '../components/shared';
+import { KpiCard, StatusBadge, FilterBar, type FilterWidget } from '../components/shared';
 
 interface POItem {
   id: string;
@@ -87,8 +87,7 @@ export default function GoodsReceiving() {
   const [pendingPOs, setPendingPOs] = useState<PurchaseOrder[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [filters, setFilters] = useState<Record<string, any>>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showQCModal, setShowQCModal] = useState(false);
@@ -112,14 +111,14 @@ export default function GoodsReceiving() {
   useEffect(() => {
     fetchData();
     fetchWarehouses();
-  }, [statusFilter, search]);
+  }, [filters]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (statusFilter) params.append('status', statusFilter);
-      if (search) params.append('search', search);
+      if (filters.status) params.append('status', filters.status);
+      if (filters.search) params.append('search', filters.search);
       
       const [grnRes, statsRes, poRes] = await Promise.all([
         api.get(`/grn?${params}`),
@@ -298,158 +297,155 @@ export default function GoodsReceiving() {
     return colors[status] || { bg: '#f1f5f9', color: '#475569' };
   };
 
+  const filterWidgets: FilterWidget[] = [
+    { key: 'search', label: 'Search', type: 'search', placeholder: 'Search GRN or PO number...' },
+    { 
+      key: 'status', 
+      label: 'Status', 
+      type: 'select', 
+      options: [
+        { value: '', label: 'All Statuses' },
+        ...GRN_STATUSES.map(s => ({ value: s.value, label: s.label })),
+      ]
+    },
+  ];
+
   return (
-    <div className="page-container">
-      <div className="page-header">
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
-          <h1>Goods Receiving</h1>
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Receive goods from purchase orders
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Goods Receiving</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+            Receive goods from purchase orders and manage QC
           </p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-          <Plus size={18} /> Receive Goods
+          <Plus size={16} /> Receive Goods
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
         <KpiCard 
-          title="Total GRNs" 
+          title="Total" 
           value={stats?.total || 0} 
-          icon={<Package size={24} />}
+          icon={<Package size={20} />}
           color="primary"
-          onClick={() => setStatusFilter('')}
-          active={statusFilter === ''}
+          onClick={() => setFilters({})}
+          selected={!filters.status}
         />
         <KpiCard 
           title="Draft" 
           value={stats?.draft || 0} 
-          icon={<FileText size={24} />}
-          color="default"
-          onClick={() => setStatusFilter('DRAFT')}
-          active={statusFilter === 'DRAFT'}
+          icon={<FileText size={20} />}
+          onClick={() => setFilters({ status: 'DRAFT' })}
+          selected={filters.status === 'DRAFT'}
         />
         <KpiCard 
           title="Pending QC" 
           value={stats?.pendingQC || 0} 
-          icon={<Clock size={24} />}
+          icon={<Clock size={20} />}
           color="warning"
-          onClick={() => setStatusFilter('PENDING_QC')}
-          active={statusFilter === 'PENDING_QC'}
+          onClick={() => setFilters({ status: 'PENDING_QC' })}
+          selected={filters.status === 'PENDING_QC'}
         />
         <KpiCard 
           title="Approved" 
           value={stats?.approved || 0} 
-          icon={<Check size={24} />}
+          icon={<Check size={20} />}
           color="success"
-          onClick={() => setStatusFilter('APPROVED')}
-          active={statusFilter === 'APPROVED'}
+          onClick={() => setFilters({ status: 'APPROVED' })}
+          selected={filters.status === 'APPROVED'}
         />
         <KpiCard 
           title="Today" 
           value={stats?.receivedToday || 0} 
-          icon={<Calendar size={24} />}
+          icon={<Calendar size={20} />}
           color="info"
         />
       </div>
 
-      <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Filter size={18} style={{ color: 'var(--text-muted)' }} />
-            <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}>Filters:</span>
-          </div>
-          <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '300px' }}>
-            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Search GRN or PO number..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ paddingLeft: '2.25rem' }}
-            />
-          </div>
-          <select
-            className="form-select"
-            style={{ width: 'auto', minWidth: '150px' }}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All Statuses</option>
-            {GRN_STATUSES.map(s => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
-          {(search || statusFilter) && (
-            <button
-              className="btn btn-sm btn-secondary"
-              onClick={() => {
-                setSearch('');
-                setStatusFilter('');
-              }}
-            >
-              <X size={14} /> Clear
-            </button>
-          )}
-        </div>
+      <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
+        <FilterBar 
+          widgets={filterWidgets}
+          values={filters}
+          onChange={(key, value) => setFilters(prev => ({ ...prev, [key]: value }))}
+          onReset={() => setFilters({})}
+        />
       </div>
 
       <div className="card">
-
+        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 style={{ fontWeight: 600, fontSize: '1rem', margin: 0 }}>
+            GRN List ({grns?.length || 0})
+          </h3>
+        </div>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '3rem' }}>Loading...</div>
         ) : grns.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
             <Package size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-            <p>No goods receiving notes found</p>
+            <h3 style={{ marginBottom: '0.5rem' }}>No goods receiving notes found</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Create your first GRN</p>
+            <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
+              <Plus size={16} /> Receive Goods
+            </button>
           </div>
         ) : (
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>GRN #</th>
-                  <th>PO #</th>
-                  <th>Supplier</th>
-                  <th>Received Date</th>
-                  <th>Delivery Note</th>
-                  <th>Items</th>
-                  <th>Status</th>
-                  <th style={{ width: '100px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {grns.map((grn) => (
-                  <tr key={grn.id}>
-                    <td><strong>{grn.grnNumber}</strong></td>
-                    <td>{grn.purchaseOrder?.poNumber || '-'}</td>
-                    <td>{grn.supplier?.name || '-'}</td>
-                    <td>{new Date(grn.receivedDate).toLocaleDateString()}</td>
-                    <td>{grn.deliveryNoteNumber || '-'}</td>
-                    <td>{grn._count?.items || 0}</td>
-                    <td>
-                      <span className="badge" style={getStatusStyle(grn.status)}>
-                        {GRN_STATUSES.find(s => s.value === grn.status)?.label}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.25rem' }}>
-                        <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/grn/${grn.id}`)} title="View">
-                          <Eye size={16} />
+          <table className="table" style={{ marginBottom: 0 }}>
+            <thead>
+              <tr>
+                <th>GRN #</th>
+                <th>PO #</th>
+                <th>Supplier</th>
+                <th>Received Date</th>
+                <th>Delivery Note</th>
+                <th>Items</th>
+                <th>Status</th>
+                <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {grns.map((grn) => (
+                <tr key={grn.id}>
+                  <td>
+                    <Link to={`/grn/${grn.id}`} style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '0.8125rem', color: 'var(--primary)' }}>
+                      {grn.grnNumber}
+                    </Link>
+                  </td>
+                  <td>
+                    {grn.purchaseOrder?.poNumber ? (
+                      <Link to={`/purchase-orders/${grn.poId}`} style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                        {grn.purchaseOrder.poNumber}
+                      </Link>
+                    ) : '-'}
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 500 }}>{grn.supplier?.name || '-'}</div>
+                  </td>
+                  <td>{new Date(grn.receivedDate).toLocaleDateString()}</td>
+                  <td>{grn.deliveryNoteNumber || '-'}</td>
+                  <td>
+                    <span className="badge badge-default">{grn._count?.items || 0} items</span>
+                  </td>
+                  <td>
+                    <StatusBadge status={grn.status} size="sm" />
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <Link to={`/grn/${grn.id}`} className="btn btn-sm btn-outline" title="View Details">
+                        <Eye size={14} />
+                      </Link>
+                      {grn.status === 'DRAFT' && (
+                        <button className="btn btn-sm btn-outline" onClick={(e) => { e.stopPropagation(); handleSubmitForQC(grn); }} title="Submit for QC">
+                          <Send size={14} />
                         </button>
-                        {grn.status === 'DRAFT' && (
-                          <button className="btn btn-ghost btn-sm" onClick={() => handleSubmitForQC(grn)} title="Submit for QC">
-                            <Send size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 
