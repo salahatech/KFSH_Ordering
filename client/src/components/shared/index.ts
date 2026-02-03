@@ -1,4 +1,5 @@
 export { KpiCard } from './KpiCard';
+export type { KpiCardProps } from './KpiCard';
 export { StatusBadge } from './StatusBadge';
 export { Stepper } from './Stepper';
 export type { StepperStep } from './Stepper';
@@ -15,3 +16,9 @@ export { EntityDetailLayout } from './EntityDetailLayout';
 export type { EntityKpi, EntityTab, EntityAction, EntityMetadata } from './EntityDetailLayout';
 export { EntityTabs } from './EntityTabs';
 export type { Tab } from './EntityTabs';
+export { PageHeader } from './PageHeader';
+export { Card, CardHeader, CardSection } from './Card';
+export { Button } from './Button';
+export { Input, Select, Textarea } from './Input';
+export { DataTable } from './DataTable';
+export type { Column } from './DataTable';

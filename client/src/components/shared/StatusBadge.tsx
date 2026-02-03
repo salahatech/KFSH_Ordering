@@ -1,91 +1,51 @@
 import React from 'react';
+import { getStatusColor } from '../../theme/statusColors';
 
 interface StatusBadgeProps {
   status: string;
   size?: 'sm' | 'md' | 'lg';
   showDot?: boolean;
+  label?: string;
 }
 
-const statusColorMap: Record<string, string> = {
-  // Order statuses
-  DRAFT: 'default',
-  SUBMITTED: 'info',
-  VALIDATED: 'info',
-  SCHEDULED: 'secondary',
-  IN_PRODUCTION: 'info',
-  QC_PENDING: 'warning',
-  QC_IN_PROGRESS: 'warning',
-  QC_PASSED: 'qc-passed',
-  QP_REVIEW: 'qp-passed',
-  RELEASED: 'released',
-  DISPATCHED: 'info',
-  DELIVERED: 'success',
-  CANCELLED: 'danger',
-  REJECTED: 'danger',
-  FAILED_QC: 'danger',
-  REWORK: 'warning',
-  // Batch statuses
-  PLANNED: 'default',
-  PRODUCTION_COMPLETE: 'info',
-  DISPENSING_IN_PROGRESS: 'teal',
-  DISPENSED: 'teal',
-  PACKED: 'info',
-  CLOSED: 'closed',
-  ON_HOLD: 'warning',
-  DEVIATION_OPEN: 'warning',
-  // Shipment statuses
-  PENDING: 'default',
-  READY_TO_PACK: 'info',
-  PACKING: 'warning',
-  READY_TO_DISPATCH: 'info',
-  IN_TRANSIT: 'purple',
-  DELAYED: 'danger',
-  RETURNED: 'danger',
-  DAMAGED: 'danger',
-  // Dose statuses
-  CREATED: 'default',
-  ASSIGNED: 'info',
-  SHIPPED: 'purple',
-  ADMINISTERED: 'success',
-  WASTED: 'danger',
-  // Generic
-  ACTIVE: 'success',
-  INACTIVE: 'default',
-  EXPIRED: 'danger',
-  APPROVED: 'success',
-  PENDING_APPROVAL: 'warning',
-};
-
 const sizeStyles = {
-  sm: { padding: '0.125rem 0.5rem', fontSize: '0.625rem' },
-  md: { padding: '0.25rem 0.75rem', fontSize: '0.75rem' },
-  lg: { padding: '0.375rem 1rem', fontSize: '0.875rem' },
+  sm: { padding: '0.125rem 0.5rem', fontSize: '0.625rem', gap: '0.25rem' },
+  md: { padding: '0.25rem 0.75rem', fontSize: '0.75rem', gap: '0.375rem' },
+  lg: { padding: '0.375rem 1rem', fontSize: '0.875rem', gap: '0.5rem' },
 };
 
-export function StatusBadge({ status, size = 'md', showDot = false }: StatusBadgeProps) {
-  const colorClass = statusColorMap[status] || 'default';
-  const displayStatus = status.replace(/_/g, ' ');
+export function StatusBadge({ status, size = 'md', showDot = false, label }: StatusBadgeProps) {
+  const colors = getStatusColor(status);
+  const displayLabel = label || status.replace(/_/g, ' ');
   const sizeStyle = sizeStyles[size];
 
   return (
     <span 
-      className={`badge badge-${colorClass}`}
       style={{ 
-        ...sizeStyle,
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '0.375rem',
+        gap: sizeStyle.gap,
+        padding: sizeStyle.padding,
+        fontSize: sizeStyle.fontSize,
+        fontWeight: 500,
+        borderRadius: '9999px',
+        backgroundColor: colors.bg,
+        color: colors.text,
+        border: colors.border ? `1px solid ${colors.border}` : undefined,
+        whiteSpace: 'nowrap',
+        textTransform: 'capitalize',
       }}
     >
       {showDot && (
         <span style={{
-          width: '6px',
-          height: '6px',
+          width: size === 'sm' ? '5px' : size === 'md' ? '6px' : '7px',
+          height: size === 'sm' ? '5px' : size === 'md' ? '6px' : '7px',
           borderRadius: '50%',
-          backgroundColor: 'currentColor',
+          backgroundColor: colors.text,
+          flexShrink: 0,
         }} />
       )}
-      {displayStatus}
+      {displayLabel}
     </span>
   );
 }
