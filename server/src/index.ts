@@ -37,6 +37,8 @@ import adminDemoRoutes from './routes/adminDemo.js';
 import attachmentRoutes from './routes/attachments.js';
 import supplierRoutes from './routes/suppliers.js';
 import esignatureRoutes from './routes/esignatures.js';
+import materialRoutes from './routes/materials.js';
+import recipeRoutes from './routes/recipes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -81,6 +83,8 @@ app.use('/api/admin/demo', adminDemoRoutes);
 app.use('/api/attachments', attachmentRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/esignatures', esignatureRoutes);
+app.use('/api/materials', materialRoutes);
+app.use('/api/recipes', recipeRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

@@ -47,6 +47,8 @@ model User {
   oosClosed                OOSCase[]        @relation("OOSCloser")
   preference               UserPreference?
   attachments              Attachment[]
+  recipesCreated           Recipe[]         @relation("RecipeCreatedBy")
+  recipesActivated         Recipe[]         @relation("RecipeActivatedBy")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -251,6 +253,7 @@ model Product {
   invoiceItems          InvoiceItem[]
   timeStandards         TimeStandard[]
   testSpecs             TestSpec[]
+  recipes               Recipe[]
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
 }
@@ -403,6 +406,8 @@ model Batch {
   hotCell             Equipment?    @relation("HotCell", fields: [hotCellId], references: [id])
   status              BatchStatus   @default(PLANNED)
   notes               String?
+  recipeId            String?
+  recipe              Recipe?       @relation("BatchRecipe", fields: [recipeId], references: [id])
   orders              Order[]
   operators           BatchOperator[]
   materialLots        BatchMaterialLot[]
@@ -472,6 +477,151 @@ model BatchMaterialLot {
   createdAt     DateTime    @default(now())
 
   @@unique([batchId, materialLotId])
+}
+
+// ==================== MATERIAL MASTER DATA ====================
+
+enum MaterialCategory {
+  RAW_MATERIAL
+  CONSUMABLE
+  REAGENT
+  PACKAGING
+  RADIOISOTOPE
+  TARGET_MATERIAL
+  SOLVENT
+  BUFFER
+  FILTER
+  CONTAINER
+}
+
+enum MaterialStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+  PENDING_APPROVAL
+}
+
+model Material {
+  id                    String           @id @default(uuid())
+  code                  String           @unique
+  name                  String
+  nameAr                String?
+  description           String?
+  category              MaterialCategory
+  unit                  String
+  minStockLevel         Float            @default(0)
+  reorderPoint          Float            @default(0)
+  reorderQuantity       Float            @default(0)
+  leadTimeDays          Int              @default(7)
+  shelfLifeDays         Int?
+  storageConditions     String?
+  handlingInstructions  String?
+  hazardClass           String?
+  casNumber             String?
+  supplierId            String?
+  supplier              Supplier?        @relation(fields: [supplierId], references: [id])
+  preferredSupplierId   String?
+  unitCost              Float?
+  currency              String           @default("SAR")
+  status                MaterialStatus   @default(ACTIVE)
+  requiresQC            Boolean          @default(false)
+  isRadioactive         Boolean          @default(false)
+  halfLifeMinutes       Float?
+  recipeComponents      RecipeComponent[]
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+}
+
+// ==================== RECIPE/BOM MANAGEMENT ====================
+
+enum RecipeStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ACTIVE
+  SUPERSEDED
+  OBSOLETE
+}
+
+model Recipe {
+  id                    String           @id @default(uuid())
+  code                  String
+  name                  String
+  productId             String
+  product               Product          @relation(fields: [productId], references: [id])
+  version               Int              @default(1)
+  status                RecipeStatus     @default(DRAFT)
+  effectiveDate         DateTime?
+  expiryDate            DateTime?
+  description           String?
+  yieldQuantity         Float
+  yieldUnit             String
+  yieldTolerance        Float            @default(5)
+  synthesisTimeMinutes  Int?
+  totalTimeMinutes      Int?
+  specialInstructions   String?
+  safetyPrecautions     String?
+  equipmentRequirements String?
+  qualityNotes          String?
+  activatedById         String?
+  activatedBy           User?            @relation("RecipeActivatedBy", fields: [activatedById], references: [id])
+  activatedAt           DateTime?
+  activationSignatureId String?
+  supersededById        String?
+  supersededBy          Recipe?          @relation("RecipeSupersession", fields: [supersededById], references: [id])
+  supersedes            Recipe[]         @relation("RecipeSupersession")
+  components            RecipeComponent[]
+  steps                 RecipeStep[]
+  batches               Batch[]          @relation("BatchRecipe")
+  createdById           String?
+  createdBy             User?            @relation("RecipeCreatedBy", fields: [createdById], references: [id])
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@unique([code, version])
+  @@index([productId])
+  @@index([status])
+}
+
+model RecipeComponent {
+  id                String   @id @default(uuid())
+  recipeId          String
+  recipe            Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  materialId        String
+  material          Material @relation(fields: [materialId], references: [id])
+  sequence          Int      @default(1)
+  quantity          Float
+  unit              String
+  tolerancePercent  Float    @default(5)
+  isOptional        Boolean  @default(false)
+  isCritical        Boolean  @default(false)
+  additionNotes     String?
+  processingNotes   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([recipeId, materialId])
+  @@index([recipeId])
+}
+
+model RecipeStep {
+  id                String   @id @default(uuid())
+  recipeId          String
+  recipe            Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  stepNumber        Int
+  title             String
+  description       String
+  durationMinutes   Int?
+  temperature       String?
+  pressure          String?
+  equipmentRequired String?
+  safetyNotes       String?
+  qualityCheckpoint Boolean  @default(false)
+  checkpointCriteria String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([recipeId, stepNumber])
+  @@index([recipeId])
 }
 
 // ==================== QC MODULE ====================
@@ -1617,6 +1767,7 @@ model Supplier {
   purchaseOrders  PurchaseOrder[]
   grns            GoodsReceivedNote[]
   invoices        SupplierInvoice[]
+  materials       Material[]
   
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
