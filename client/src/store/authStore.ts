@@ -8,6 +8,7 @@ interface User {
   lastName: string;
   role: string;
   permissions: string[];
+  phone?: string;
   customerId?: string;
   customerName?: string;
 }
@@ -20,6 +21,7 @@ interface AuthState {
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
+  setUser: (user: User) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -70,5 +72,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!user) return false;
     if (user.role === 'Admin') return true;
     return user.permissions.includes(permission);
+  },
+
+  setUser: (user: User) => {
+    set({ user });
   },
 }));

@@ -501,6 +501,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               )}
             </div>
             <div
+              onClick={() => {
+                const isAdmin = user?.role === 'Admin' || user?.role === 'ADMIN' || user?.role?.toLowerCase() === 'admin';
+                navigate(isAdmin ? '/settings' : '/profile');
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -508,7 +512,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 padding: '0.5rem 1rem',
                 background: 'var(--bg-secondary)',
                 borderRadius: '9999px',
+                cursor: 'pointer',
+                transition: 'background 0.15s ease',
               }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--border)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+              title={user?.role === 'Admin' || user?.role === 'ADMIN' ? 'Go to Settings' : 'Go to Profile'}
             >
               <div
                 style={{

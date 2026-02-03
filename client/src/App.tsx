@@ -47,6 +47,7 @@ import Drivers from './pages/Drivers';
 import ShipmentDetail from './pages/ShipmentDetail';
 import NotificationCenter from './pages/NotificationCenter';
 import Roles from './pages/Roles';
+import Profile from './pages/Profile';
 import DriverDashboard from './pages/driver/DriverDashboard';
 import DriverShipments from './pages/driver/DriverShipments';
 import DriverShipmentDetail from './pages/driver/DriverShipmentDetail';
@@ -259,6 +260,7 @@ export default function App() {
                   <Route path="/contracts" element={<Contracts />} />
                   <Route path="/invoices" element={<Invoices />} />
                   <Route path="/payments" element={<PaymentApprovals />} />
+                  <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/settings/attachments" element={<AttachmentSettings />} />
                   <Route path="/settings/notifications" element={<NotificationSettings />} />
