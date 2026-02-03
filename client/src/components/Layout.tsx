@@ -333,7 +333,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         <div>No notifications</div>
                       </div>
                     ) : (
-                      notifications.map((notification) => (
+                      notifications.slice(0, 5).map((notification) => (
                         <div
                           key={notification.id}
                           onClick={() => {
@@ -394,6 +394,25 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         </div>
                       ))
                     )}
+                  </div>
+                  
+                  <div style={{
+                    padding: '0.75rem 1rem',
+                    borderTop: '1px solid var(--border)',
+                    textAlign: 'center',
+                  }}>
+                    <Link
+                      to="/notifications"
+                      onClick={() => setNotificationOpen(false)}
+                      style={{
+                        color: 'var(--primary)',
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      View All Notifications
+                    </Link>
                   </div>
                 </div>
               )}

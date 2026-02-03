@@ -17,24 +17,38 @@ const prisma = new PrismaClient();
  */
 router.get('/', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { unreadOnly, limit } = req.query;
+    const { unreadOnly, limit, page } = req.query;
     
     const where: any = { userId: req.user?.userId };
     if (unreadOnly === 'true') {
       where.isRead = false;
     }
 
-    const notifications = await prisma.notification.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: limit ? parseInt(limit as string) : 50,
-    });
+    const pageNum = page ? parseInt(page as string) : 1;
+    const pageSize = limit ? parseInt(limit as string) : 20;
+    const skip = (pageNum - 1) * pageSize;
 
-    const unreadCount = await prisma.notification.count({
-      where: { userId: req.user?.userId, isRead: false },
-    });
+    const [notifications, totalCount, unreadCount] = await Promise.all([
+      prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: pageSize,
+        skip,
+      }),
+      prisma.notification.count({ where }),
+      prisma.notification.count({
+        where: { userId: req.user?.userId, isRead: false },
+      }),
+    ]);
 
-    res.json({ notifications, unreadCount });
+    res.json({ 
+      notifications, 
+      unreadCount,
+      totalCount,
+      page: pageNum,
+      pageSize,
+      totalPages: Math.ceil(totalCount / pageSize),
+    });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch notifications' });
   }

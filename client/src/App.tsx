@@ -45,6 +45,7 @@ import AttachmentSettings from './pages/admin/AttachmentSettings';
 import AdminDemo from './pages/AdminDemo';
 import Drivers from './pages/Drivers';
 import ShipmentDetail from './pages/ShipmentDetail';
+import NotificationCenter from './pages/NotificationCenter';
 import DriverDashboard from './pages/driver/DriverDashboard';
 import DriverShipments from './pages/driver/DriverShipments';
 import DriverShipmentDetail from './pages/driver/DriverShipmentDetail';
@@ -231,6 +232,7 @@ export default function App() {
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/settings/attachments" element={<AttachmentSettings />} />
                   <Route path="/admin/demo" element={<AdminDemo />} />
+                  <Route path="/notifications" element={<NotificationCenter />} />
                 </Routes>
               </Layout>
             </InternalRoute>
