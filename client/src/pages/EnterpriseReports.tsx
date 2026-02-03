@@ -5,9 +5,10 @@ import {
   FileText, Boxes, Factory, ShoppingCart, ClipboardCheck, 
   Truck, Receipt, Building2, Package, Calendar, CreditCard, 
   Users, Filter, ChevronDown, ChevronRight, Search,
-  FileSpreadsheet, File, X, Loader2
+  FileSpreadsheet, File, X, Loader2, BarChart3, AlertCircle
 } from 'lucide-react';
 import { useToast } from '../components/ui/Toast';
+import { PageHeader, KpiCard, FilterBar, type FilterWidget } from '../components/shared';
 
 interface ReportCategory {
   id: string;
@@ -69,6 +70,22 @@ const CATEGORY_ICONS: Record<string, any> = {
   audit: FileText,
 };
 
+const CATEGORY_COLORS: Record<string, 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
+  inventory: 'primary',
+  production: 'warning',
+  orders: 'info',
+  quality: 'success',
+  dispensing: 'primary',
+  logistics: 'info',
+  finance: 'success',
+  customers: 'primary',
+  products: 'default',
+  planner: 'warning',
+  payments: 'success',
+  users: 'info',
+  audit: 'default',
+};
+
 export default function EnterpriseReports() {
   const toast = useToast();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -103,7 +120,7 @@ export default function EnterpriseReports() {
       const { data } = await api.get(`/reports/enterprise/${selectedReport}/definition`);
       return data;
     },
-    enabled: !!selectedReport,
+    enabled: !!selectedReport
   });
 
   const { data: reportData, isLoading: loadingData, refetch } = useQuery<ReportResult>({
@@ -112,12 +129,27 @@ export default function EnterpriseReports() {
       const { data } = await api.post(`/reports/enterprise/${selectedReport}/data`, {
         filters,
         page,
-        pageSize: 50,
+        pageSize: 25
       });
       return data;
     },
-    enabled: !!selectedReport,
+    enabled: !!selectedReport
   });
+
+  const groupedReports = reports.reduce((acc, report) => {
+    if (!acc[report.category]) acc[report.category] = [];
+    acc[report.category].push(report);
+    return acc;
+  }, {} as Record<string, ReportDefinition[]>);
+
+  const handleFilterChange = (key: string, value: any) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const clearFilters = () => {
+    setFilters({});
+    setPage(1);
+  };
 
   const handleExport = async (format: 'excel' | 'pdf') => {
     if (!selectedReport) return;
@@ -128,558 +160,429 @@ export default function EnterpriseReports() {
         { filters },
         { responseType: 'blob' }
       );
-      const blob = new Blob([response.data]);
+      
+      const blob = new Blob([response.data], {
+        type: format === 'excel' 
+          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          : 'application/pdf'
+      });
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${selectedReport}-${new Date().toISOString().slice(0, 10)}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
       document.body.appendChild(a);
       a.click();
-      a.remove();
       window.URL.revokeObjectURL(url);
-      toast.success('Export Complete', `Report exported to ${format.toUpperCase()} successfully`);
+      document.body.removeChild(a);
+      
+      toast.success('Export Complete', `Report exported to ${format.toUpperCase()}`);
     } catch (error) {
-      toast.error('Export Failed', 'Failed to export report');
+      toast.error('Export Failed', `Failed to export report to ${format.toUpperCase()}`);
     } finally {
       setExporting(null);
     }
   };
 
-  const handleFilterChange = (key: string, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setPage(1);
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-    setPage(1);
-  };
-
-  const formatValue = (value: any, column: ColumnDefinition) => {
+  const formatCellValue = (value: any, type: string): string => {
     if (value === null || value === undefined) return '-';
     
-    switch (column.type) {
+    switch (type) {
       case 'date':
         return new Date(value).toLocaleDateString();
       case 'datetime':
         return new Date(value).toLocaleString();
       case 'currency':
-        return `$${Number(value).toFixed(2)}`;
+        return `SAR ${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+      case 'number':
+        return Number(value).toLocaleString();
       case 'percent':
         return `${value}%`;
-      case 'badge':
-        const badgeClass = column.badgeMap?.[value] || 'default';
-        const badgeClasses: Record<string, string> = {
-          success: 'status-badge-released',
-          warning: 'status-badge-pending',
-          danger: 'status-badge-cancelled',
-          info: 'status-badge-in-progress',
-          default: 'status-badge',
-        };
-        return <span className={badgeClasses[badgeClass] || 'status-badge'}>{value}</span>;
+      case 'boolean':
+        return value ? 'Yes' : 'No';
       default:
         return String(value);
     }
   };
 
-  const groupedReports = reports.reduce((acc, report) => {
-    if (!acc[report.category]) acc[report.category] = [];
-    acc[report.category].push(report);
-    return acc;
-  }, {} as Record<string, ReportDefinition[]>);
+  const getStatusColor = (status: string, badgeMap?: Record<string, string>): string => {
+    if (badgeMap && badgeMap[status]) return badgeMap[status];
+    const defaultColors: Record<string, string> = {
+      ACTIVE: 'success', APPROVED: 'success', COMPLETED: 'success', DELIVERED: 'success',
+      PENDING: 'warning', IN_PROGRESS: 'warning', DRAFT: 'default',
+      CANCELLED: 'danger', REJECTED: 'danger', FAILED: 'danger', EXPIRED: 'danger',
+    };
+    return defaultColors[status] || 'default';
+  };
+
+  const reportCount = reports.length;
+  const categoryCount = categories.length;
 
   return (
-    <div className="reports-layout">
-      <div className="reports-sidebar">
-        <div className="sidebar-header">
-          <FileText size={20} />
-          <h2>Enterprise Reports</h2>
+    <div>
+      <PageHeader
+        title="Enterprise Reporting Center"
+        subtitle="Generate and export comprehensive reports across all business areas"
+        actions={
+          selectedReport && (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <Filter size={16} />
+                Filters
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => handleExport('excel')}
+                disabled={exporting !== null}
+              >
+                {exporting === 'excel' ? <Loader2 size={16} className="animate-spin" /> : <FileSpreadsheet size={16} />}
+                Excel
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => handleExport('pdf')}
+                disabled={exporting !== null}
+              >
+                {exporting === 'pdf' ? <Loader2 size={16} className="animate-spin" /> : <File size={16} />}
+                PDF
+              </button>
+            </div>
+          )
+        }
+      />
+
+      {!selectedReport && (
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+          <KpiCard
+            title="Report Categories"
+            value={categoryCount}
+            icon={<BarChart3 size={20} />}
+            color="primary"
+          />
+          <KpiCard
+            title="Available Reports"
+            value={reportCount}
+            icon={<FileText size={20} />}
+            color="info"
+          />
+          <KpiCard
+            title="Selected Category"
+            value={selectedCategory ? categories.find(c => c.id === selectedCategory)?.name || '-' : 'All'}
+            icon={<Boxes size={20} />}
+            color="default"
+          />
+          <KpiCard
+            title="Quick Actions"
+            value="Export"
+            subtext="Select a report to export"
+            icon={<FileSpreadsheet size={20} />}
+            color="success"
+          />
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: '1.5rem' }}>
+        <div className="card" style={{ width: '280px', flexShrink: 0, padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <BarChart3 size={16} />
+              Report Categories
+            </h3>
+          </div>
+          <div style={{ maxHeight: 'calc(100vh - 320px)', overflowY: 'auto', padding: '0.5rem' }}>
+            {categories.map(category => {
+              const Icon = CATEGORY_ICONS[category.id] || FileText;
+              const isExpanded = selectedCategory === category.id;
+              const categoryReports = groupedReports[category.id] || [];
+
+              return (
+                <div key={category.id} style={{ marginBottom: '0.25rem' }}>
+                  <button
+                    onClick={() => setSelectedCategory(isExpanded ? null : category.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      width: '100%',
+                      padding: '0.625rem 0.75rem',
+                      border: 'none',
+                      background: isExpanded ? 'var(--primary-light, #eff6ff)' : 'transparent',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      borderRadius: '6px',
+                      color: isExpanded ? 'var(--primary)' : 'var(--text-primary)',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      transition: 'background 0.2s',
+                    }}
+                  >
+                    <Icon size={16} />
+                    <span style={{ flex: 1 }}>{category.name}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginRight: '0.25rem' }}>
+                      {categoryReports.length}
+                    </span>
+                    {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  </button>
+
+                  {isExpanded && categoryReports.length > 0 && (
+                    <div style={{ paddingLeft: '1.25rem', marginTop: '0.25rem' }}>
+                      {categoryReports.map(report => (
+                        <button
+                          key={report.key}
+                          onClick={() => {
+                            setSelectedReport(report.key);
+                            setFilters({});
+                            setPage(1);
+                          }}
+                          style={{
+                            display: 'block',
+                            width: '100%',
+                            padding: '0.5rem 0.75rem',
+                            border: 'none',
+                            background: selectedReport === report.key ? 'var(--primary)' : 'transparent',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            borderRadius: '4px',
+                            color: selectedReport === report.key ? 'white' : 'var(--text-secondary)',
+                            fontSize: '0.8125rem',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          {report.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="sidebar-content">
-          {categories.map(category => {
-            const Icon = CATEGORY_ICONS[category.id] || FileText;
-            const isExpanded = selectedCategory === category.id;
-            const categoryReports = groupedReports[category.id] || [];
-
-            return (
-              <div key={category.id} className="category-section">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {!selectedReport ? (
+            <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
+              <BarChart3 size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+                Select a Report
+              </h2>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
+                Choose a category from the sidebar to view available reports
+              </p>
+              
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
+                gap: '1rem',
+                maxWidth: '800px',
+                margin: '0 auto'
+              }}>
+                {categories.slice(0, 8).map(category => {
+                  const Icon = CATEGORY_ICONS[category.id] || FileText;
+                  const color = CATEGORY_COLORS[category.id] || 'default';
+                  const reportCountInCat = groupedReports[category.id]?.length || 0;
+                  
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => setSelectedCategory(category.id)}
+                      className="card"
+                      style={{
+                        padding: '1.25rem',
+                        border: selectedCategory === category.id ? '2px solid var(--primary)' : '1px solid var(--border)',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <Icon size={24} style={{ color: `var(--${color === 'default' ? 'text-muted' : color})`, marginBottom: '0.5rem' }} />
+                      <div style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{category.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{reportCountInCat} reports</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'flex-start', 
+                marginBottom: '1rem' 
+              }}>
+                <div>
+                  <h2 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>
+                    {reportDefinition?.name || 'Loading...'}
+                  </h2>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0.25rem 0 0 0' }}>
+                    {reportDefinition?.description}
+                  </p>
+                </div>
                 <button
-                  className={`category-header ${isExpanded ? 'expanded' : ''}`}
-                  onClick={() => setSelectedCategory(isExpanded ? null : category.id)}
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setSelectedReport(null);
+                    setFilters({});
+                  }}
+                  style={{ fontSize: '0.8125rem' }}
                 >
-                  <Icon size={16} />
-                  <span>{category.name}</span>
-                  {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  <X size={14} />
+                  Close
                 </button>
+              </div>
 
-                {isExpanded && categoryReports.length > 0 && (
-                  <div className="category-reports">
-                    {categoryReports.map(report => (
-                      <button
-                        key={report.key}
-                        className={`report-item ${selectedReport === report.key ? 'active' : ''}`}
-                        onClick={() => {
-                          setSelectedReport(report.key);
-                          setFilters({});
-                          setPage(1);
-                        }}
-                      >
-                        {report.name}
-                      </button>
+              {showFilters && reportDefinition?.filters && reportDefinition.filters.length > 0 && (
+                <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+                    gap: '1rem',
+                    marginBottom: '1rem'
+                  }}>
+                    {reportDefinition.filters.map(filter => (
+                      <div key={filter.key} className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.75rem' }}>{filter.label}</label>
+                        {filter.type === 'text' && (
+                          <input
+                            type="text"
+                            className="form-input"
+                            value={filters[filter.key] || ''}
+                            onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+                            placeholder={`Enter ${filter.label.toLowerCase()}`}
+                          />
+                        )}
+                        {filter.type === 'date' && (
+                          <input
+                            type="date"
+                            className="form-input"
+                            value={filters[filter.key] || ''}
+                            onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+                          />
+                        )}
+                        {filter.type === 'number' && (
+                          <input
+                            type="number"
+                            className="form-input"
+                            value={filters[filter.key] || filter.defaultValue || ''}
+                            onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+                          />
+                        )}
+                        {filter.type === 'select' && filter.options && (
+                          <select
+                            className="form-select"
+                            value={filters[filter.key] || ''}
+                            onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+                          >
+                            <option value="">All</option>
+                            {filter.options.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
                     ))}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="reports-main">
-        {!selectedReport ? (
-          <div className="reports-welcome">
-            <FileText size={48} className="welcome-icon" />
-            <h2>Enterprise Reporting Center</h2>
-            <p>Select a report category from the sidebar to get started</p>
-            <div className="category-grid">
-              {categories.slice(0, 6).map(category => {
-                const Icon = CATEGORY_ICONS[category.id] || FileText;
-                return (
-                  <button
-                    key={category.id}
-                    className="category-card"
-                    onClick={() => setSelectedCategory(category.id)}
-                  >
-                    <Icon size={24} />
-                    <span>{category.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="report-header">
-              <div className="report-title">
-                <h1>{reportDefinition?.name || 'Loading...'}</h1>
-                <p>{reportDefinition?.description}</p>
-              </div>
-              <div className="report-actions">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  <Filter size={16} />
-                  Filters
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => handleExport('excel')}
-                  disabled={exporting !== null}
-                >
-                  {exporting === 'excel' ? <Loader2 size={16} className="animate-spin" /> : <FileSpreadsheet size={16} />}
-                  Excel
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => handleExport('pdf')}
-                  disabled={exporting !== null}
-                >
-                  {exporting === 'pdf' ? <Loader2 size={16} className="animate-spin" /> : <File size={16} />}
-                  PDF
-                </button>
-              </div>
-            </div>
-
-            {showFilters && reportDefinition?.filters && reportDefinition.filters.length > 0 && (
-              <div className="report-filters card">
-                <div className="filters-grid">
-                  {reportDefinition.filters.map(filter => (
-                    <div key={filter.key} className="filter-field">
-                      <label>{filter.label}</label>
-                      {filter.type === 'text' && (
-                        <input
-                          type="text"
-                          className="form-input"
-                          value={filters[filter.key] || ''}
-                          onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                          placeholder={`Enter ${filter.label.toLowerCase()}`}
-                        />
-                      )}
-                      {filter.type === 'date' && (
-                        <input
-                          type="date"
-                          className="form-input"
-                          value={filters[filter.key] || ''}
-                          onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                        />
-                      )}
-                      {filter.type === 'number' && (
-                        <input
-                          type="number"
-                          className="form-input"
-                          value={filters[filter.key] || filter.defaultValue || ''}
-                          onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                        />
-                      )}
-                      {filter.type === 'select' && filter.options && (
-                        <select
-                          className="form-select"
-                          value={filters[filter.key] || ''}
-                          onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                        >
-                          <option value="">All</option>
-                          {filter.options.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="filter-actions">
-                  <button className="btn btn-primary" onClick={() => refetch()}>
-                    <Search size={16} />
-                    Apply Filters
-                  </button>
-                  <button className="btn btn-secondary" onClick={clearFilters}>
-                    <X size={16} />
-                    Clear
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="report-results card">
-              {loadingData ? (
-                <div className="loading-state">
-                  <Loader2 size={32} className="animate-spin" />
-                  <p>Loading report data...</p>
-                </div>
-              ) : reportData && reportData.data.length > 0 ? (
-                <>
-                  <div className="table-container">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          {reportDefinition?.columns.map(col => (
-                            <th key={col.key}>{col.label}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {reportData.data.map((row, idx) => (
-                          <tr key={row.id || idx}>
-                            {reportDefinition?.columns.map(col => (
-                              <td key={col.key}>{formatValue(row[col.key], col)}</td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+                    <button className="btn btn-primary" onClick={() => refetch()}>
+                      <Search size={16} />
+                      Apply Filters
+                    </button>
+                    <button className="btn btn-secondary" onClick={clearFilters}>
+                      <X size={16} />
+                      Clear
+                    </button>
                   </div>
-                  <div className="report-pagination">
-                    <span>
-                      Showing {((page - 1) * 50) + 1} to {Math.min(page * 50, reportData.total)} of {reportData.total} records
-                    </span>
-                    <div className="pagination-buttons">
-                      <button
-                        className="btn btn-secondary"
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                      >
-                        Previous
-                      </button>
-                      <span className="page-number">Page {page} of {reportData.totalPages}</span>
-                      <button
-                        className="btn btn-secondary"
-                        onClick={() => setPage(p => Math.min(reportData.totalPages, p + 1))}
-                        disabled={page >= reportData.totalPages}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="empty-state">
-                  <FileText size={48} />
-                  <h3>No Data Found</h3>
-                  <p>Try adjusting your filters or select a different date range</p>
                 </div>
               )}
-            </div>
-          </>
-        )}
+
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                {loadingData ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem' }}>
+                    <Loader2 size={32} className="animate-spin" style={{ color: 'var(--primary)' }} />
+                    <p style={{ marginTop: '0.5rem', color: 'var(--text-muted)' }}>Loading report data...</p>
+                  </div>
+                ) : !reportData?.data.length ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem' }}>
+                    <AlertCircle size={32} style={{ color: 'var(--text-muted)' }} />
+                    <h3 style={{ margin: '1rem 0 0.5rem 0', color: 'var(--text-primary)' }}>No Data Found</h3>
+                    <p style={{ color: 'var(--text-muted)' }}>Try adjusting your filters or select a different report</p>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            {reportDefinition?.columns.map(col => (
+                              <th key={col.key}>{col.label}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportData.data.map((row, idx) => (
+                            <tr key={row.id || idx}>
+                              {reportDefinition?.columns.map(col => (
+                                <td key={col.key}>
+                                  {col.type === 'badge' ? (
+                                    <span className={`badge badge-${getStatusColor(row[col.key], col.badgeMap)}`}>
+                                      {row[col.key]}
+                                    </span>
+                                  ) : (
+                                    formatCellValue(row[col.key], col.type)
+                                  )}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      padding: '1rem',
+                      borderTop: '1px solid var(--border)',
+                      fontSize: '0.875rem',
+                      color: 'var(--text-muted)'
+                    }}>
+                      <span>
+                        Showing {((page - 1) * 25) + 1} - {Math.min(page * 25, reportData.total)} of {reportData.total} records
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <button
+                          className="btn btn-secondary"
+                          disabled={page <= 1}
+                          onClick={() => setPage(p => p - 1)}
+                          style={{ padding: '0.375rem 0.75rem' }}
+                        >
+                          Previous
+                        </button>
+                        <span>Page {page} of {reportData.totalPages}</span>
+                        <button
+                          className="btn btn-secondary"
+                          disabled={page >= reportData.totalPages}
+                          onClick={() => setPage(p => p + 1)}
+                          style={{ padding: '0.375rem 0.75rem' }}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <style>{`
-        .reports-layout {
-          display: flex;
-          height: calc(100vh - 64px);
-          overflow: hidden;
-        }
-
-        .reports-sidebar {
-          width: 280px;
-          min-width: 280px;
-          background: var(--card-bg);
-          border-right: 1px solid var(--border-color);
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-        }
-
-        .sidebar-header {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 1rem 1.25rem;
-          border-bottom: 1px solid var(--border-color);
-          background: var(--card-bg);
-        }
-
-        .sidebar-header h2 {
-          font-size: 1rem;
-          font-weight: 600;
-          margin: 0;
-        }
-
-        .sidebar-content {
-          flex: 1;
-          overflow-y: auto;
-          padding: 0.5rem;
-        }
-
-        .category-section {
-          margin-bottom: 0.25rem;
-        }
-
-        .category-header {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          width: 100%;
-          padding: 0.625rem 0.75rem;
-          border: none;
-          background: transparent;
-          text-align: left;
-          cursor: pointer;
-          border-radius: 6px;
-          color: var(--text-primary);
-          font-size: 0.875rem;
-          font-weight: 500;
-          transition: background 0.2s;
-        }
-
-        .category-header:hover {
-          background: var(--hover-bg);
-        }
-
-        .category-header.expanded {
-          background: var(--primary-light);
-          color: var(--primary-color);
-        }
-
-        .category-header span {
-          flex: 1;
-        }
-
-        .category-reports {
-          padding-left: 1.25rem;
-          margin-top: 0.25rem;
-        }
-
-        .report-item {
-          display: block;
-          width: 100%;
-          padding: 0.5rem 0.75rem;
-          border: none;
-          background: transparent;
-          text-align: left;
-          cursor: pointer;
-          border-radius: 4px;
-          color: var(--text-secondary);
-          font-size: 0.8125rem;
-          transition: all 0.2s;
-        }
-
-        .report-item:hover {
-          background: var(--hover-bg);
-          color: var(--text-primary);
-        }
-
-        .report-item.active {
-          background: var(--primary-color);
-          color: white;
-        }
-
-        .reports-main {
-          flex: 1;
-          overflow-y: auto;
-          padding: 1.5rem;
-          background: var(--page-bg);
-        }
-
-        .reports-welcome {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 100%;
-          text-align: center;
-          padding: 2rem;
-        }
-
-        .welcome-icon {
-          color: var(--text-muted);
-          margin-bottom: 1rem;
-        }
-
-        .reports-welcome h2 {
-          font-size: 1.5rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .reports-welcome p {
-          color: var(--text-secondary);
-          margin-bottom: 2rem;
-        }
-
-        .category-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
-          max-width: 600px;
-        }
-
-        .category-card {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 1.5rem;
-          background: var(--card-bg);
-          border: 1px solid var(--border-color);
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .category-card:hover {
-          border-color: var(--primary-color);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .category-card span {
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: var(--text-primary);
-        }
-
-        .report-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 1rem;
-        }
-
-        .report-title h1 {
-          font-size: 1.25rem;
-          font-weight: 600;
-          margin: 0 0 0.25rem 0;
-        }
-
-        .report-title p {
-          color: var(--text-secondary);
-          font-size: 0.875rem;
-          margin: 0;
-        }
-
-        .report-actions {
-          display: flex;
-          gap: 0.5rem;
-        }
-
-        .report-filters {
-          margin-bottom: 1rem;
-          padding: 1rem;
-        }
-
-        .filters-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-          gap: 1rem;
-          margin-bottom: 1rem;
-        }
-
-        .filter-field label {
-          display: block;
-          font-size: 0.75rem;
-          font-weight: 500;
-          color: var(--text-secondary);
-          margin-bottom: 0.375rem;
-        }
-
-        .filter-actions {
-          display: flex;
-          gap: 0.5rem;
-          padding-top: 1rem;
-          border-top: 1px solid var(--border-color);
-        }
-
-        .report-results {
-          padding: 0;
-          overflow: hidden;
-        }
-
-        .table-container {
-          overflow-x: auto;
-        }
-
-        .loading-state,
-        .empty-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 3rem;
-          color: var(--text-muted);
-        }
-
-        .loading-state p,
-        .empty-state p {
-          margin-top: 0.5rem;
-          color: var(--text-secondary);
-        }
-
-        .empty-state h3 {
-          margin: 1rem 0 0.5rem 0;
-          color: var(--text-primary);
-        }
-
-        .report-pagination {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1rem;
-          border-top: 1px solid var(--border-color);
-          font-size: 0.875rem;
-          color: var(--text-secondary);
-        }
-
-        .pagination-buttons {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .page-number {
-          padding: 0 0.5rem;
-        }
-
         .animate-spin {
           animation: spin 1s linear infinite;
         }
