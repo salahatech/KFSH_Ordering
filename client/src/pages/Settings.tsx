@@ -24,6 +24,7 @@ import {
   Languages,
   Clock,
   FileCheck,
+  Mail,
 } from 'lucide-react';
 
 const tabs = [
@@ -38,7 +39,8 @@ const tabs = [
   { id: 'production-methods', label: 'Production Methods', icon: Factory },
   { id: 'currencies', label: 'Currencies', icon: DollarSign },
   { id: 'attachments', label: 'Attachment Types', icon: Paperclip },
-  { id: 'notifications', label: 'Notifications', icon: Bell, link: '/settings/notifications' },
+  { id: 'notifications', label: 'Notification Routing', icon: Bell, link: '/settings/notifications' },
+  { id: 'channels', label: 'Notification Channels', icon: Mail, link: '/admin/notification-channels' },
   { id: 'languages', label: 'Languages', icon: Languages, link: '/admin/languages' },
   { id: 'exchange-rates', label: 'Exchange Rates', icon: DollarSign, link: '/admin/exchange-rates' },
   { id: 'localization', label: 'Localization', icon: Clock, link: '/admin/localization' },

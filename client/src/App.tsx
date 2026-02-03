@@ -50,6 +50,9 @@ import Translations from './pages/admin/Translations';
 import ZatcaOverview from './pages/admin/ZatcaOverview';
 import ZatcaConfig from './pages/admin/ZatcaConfig';
 import ZatcaOnboarding from './pages/admin/ZatcaOnboarding';
+import NotificationChannels from './pages/admin/NotificationChannels';
+import NotificationDeliveryLogs from './pages/admin/NotificationDeliveryLogs';
+import MyNotificationPreferences from './pages/MyNotificationPreferences';
 import AdminDemo from './pages/AdminDemo';
 import Drivers from './pages/Drivers';
 import ShipmentDetail from './pages/ShipmentDetail';
@@ -281,7 +284,10 @@ export default function App() {
                   <Route path="/admin/zatca" element={<ZatcaOverview />} />
                   <Route path="/admin/zatca/config" element={<ZatcaConfig />} />
                   <Route path="/admin/zatca/onboarding" element={<ZatcaOnboarding />} />
+                  <Route path="/admin/notification-channels" element={<NotificationChannels />} />
+                  <Route path="/admin/notification-delivery-logs" element={<NotificationDeliveryLogs />} />
                   <Route path="/notifications" element={<NotificationCenter />} />
+                  <Route path="/me/notification-preferences" element={<MyNotificationPreferences />} />
                   <Route path="/roles" element={<Roles />} />
                 </Routes>
               </Layout>
