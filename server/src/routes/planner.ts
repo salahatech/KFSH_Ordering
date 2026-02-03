@@ -147,8 +147,16 @@ router.get('/batches', authenticateToken, async (req: Request, res: Response): P
     const where: any = {};
     if (fromDate || toDate) {
       where.plannedStartTime = {};
-      if (fromDate) where.plannedStartTime.gte = new Date(fromDate as string);
-      if (toDate) where.plannedStartTime.lte = new Date(toDate as string);
+      if (fromDate) {
+        const startDate = new Date(fromDate as string);
+        startDate.setHours(0, 0, 0, 0);
+        where.plannedStartTime.gte = startDate;
+      }
+      if (toDate) {
+        const endDate = new Date(toDate as string);
+        endDate.setHours(23, 59, 59, 999);
+        where.plannedStartTime.lte = endDate;
+      }
     }
 
     const batches = await prisma.batch.findMany({
