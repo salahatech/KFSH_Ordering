@@ -4,10 +4,10 @@ import { Link } from 'react-router-dom';
 import api from '../../lib/api';
 import { 
   ArrowLeft, Mail, Phone, MessageSquare, Bell,
-  CheckCircle, XCircle, Clock, Ban, Download, Filter,
-  ChevronLeft, ChevronRight
+  CheckCircle, XCircle, Clock, Ban, Download, Filter
 } from 'lucide-react';
 import { useLocalization } from '../../hooks/useLocalization';
+import { Pagination } from '../../components/shared';
 
 interface DeliveryAttempt {
   id: string;
@@ -286,29 +286,14 @@ export default function NotificationDeliveryLogs() {
             </table>
           </div>
 
-          {data?.pagination && data.pagination.totalPages > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem' }}>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-                Showing {((page - 1) * limit) + 1} - {Math.min(page * limit, data.pagination.total)} of {data.pagination.total}
-              </p>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                  className="btn btn-outline btn-sm"
-                  disabled={page === 1}
-                  onClick={() => setPage(page - 1)}
-                >
-                  <ChevronLeft size={16} />
-                  Previous
-                </button>
-                <button
-                  className="btn btn-outline btn-sm"
-                  disabled={page >= data.pagination.totalPages}
-                  onClick={() => setPage(page + 1)}
-                >
-                  Next
-                  <ChevronRight size={16} />
-                </button>
-              </div>
+          {data?.pagination && data.pagination.total > 0 && (
+            <div style={{ marginTop: '1rem', borderRadius: '8px', overflow: 'hidden' }}>
+              <Pagination
+                page={page}
+                pageSize={limit}
+                totalCount={data.pagination.total}
+                onPageChange={setPage}
+              />
             </div>
           )}
         </>

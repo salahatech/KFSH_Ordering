@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import React from 'react';
+import { ChevronUp, ChevronDown } from 'lucide-react';
+import { Pagination } from './Pagination';
 
 export interface Column<T> {
   key: string;
@@ -50,8 +51,6 @@ export function DataTable<T>({
     const newDirection = sortKey === key && sortDirection === 'asc' ? 'desc' : 'asc';
     onSort(key, newDirection);
   };
-
-  const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : 1;
 
   if (loading) {
     return (
@@ -122,41 +121,13 @@ export function DataTable<T>({
         </table>
       </div>
 
-      {totalCount && totalCount > pageSize && onPageChange && (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '1rem',
-            borderTop: '1px solid var(--border)',
-            fontSize: '0.875rem',
-            color: 'var(--text-muted)',
-          }}
-        >
-          <span>
-            Showing {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, totalCount)} of {totalCount}
-          </span>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => onPageChange(page - 1)}
-              disabled={page <= 1}
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <span style={{ padding: '0.25rem 0.75rem', display: 'flex', alignItems: 'center' }}>
-              Page {page} of {totalPages}
-            </span>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => onPageChange(page + 1)}
-              disabled={page >= totalPages}
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
+      {totalCount !== undefined && onPageChange && (
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          onPageChange={onPageChange}
+        />
       )}
     </div>
   );

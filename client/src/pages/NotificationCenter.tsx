@@ -15,10 +15,9 @@ import {
   AlertCircle,
   Info,
   ExternalLink,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 import api from '../lib/api';
+import { Pagination } from '../components/shared';
 
 interface Notification {
   id: string;
@@ -414,71 +413,16 @@ export default function NotificationCenter() {
         )}
       </div>
 
-      {data && data.totalPages > 1 && (
-        <div style={{ 
-          marginTop: '1rem', 
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: '1rem',
-        }}>
-          <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-              padding: '0.5rem 1rem',
-              border: '1px solid var(--border)',
-              borderRadius: '6px',
-              background: page === 1 ? 'var(--bg-secondary)' : 'white',
-              color: page === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
-              cursor: page === 1 ? 'not-allowed' : 'pointer',
-              fontSize: '0.875rem',
-            }}
-          >
-            <ChevronLeft size={16} />
-            Previous
-          </button>
-          
-          <span style={{ 
-            fontSize: '0.875rem',
-            color: 'var(--text-muted)',
-          }}>
-            Page {data.page} of {data.totalPages}
-          </span>
-          
-          <button
-            onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
-            disabled={page === data.totalPages}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-              padding: '0.5rem 1rem',
-              border: '1px solid var(--border)',
-              borderRadius: '6px',
-              background: page === data.totalPages ? 'var(--bg-secondary)' : 'white',
-              color: page === data.totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
-              cursor: page === data.totalPages ? 'not-allowed' : 'pointer',
-              fontSize: '0.875rem',
-            }}
-          >
-            Next
-            <ChevronRight size={16} />
-          </button>
+      {data && data.totalCount > 0 && (
+        <div style={{ marginTop: '1rem', borderRadius: '8px', overflow: 'hidden' }}>
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalCount={data.totalCount}
+            onPageChange={setPage}
+          />
         </div>
       )}
-
-      <div style={{ 
-        marginTop: '1rem', 
-        textAlign: 'center', 
-        color: 'var(--text-muted)',
-        fontSize: '0.875rem',
-      }}>
-        Showing {filteredNotifications.length} of {data?.totalCount || 0} notifications
-      </div>
     </div>
   );
 }

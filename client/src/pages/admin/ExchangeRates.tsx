@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import api from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';
-import { PageHeader } from '../../components/shared';
+import { PageHeader, Pagination } from '../../components/shared';
 import { Plus, Edit2, Trash2, X, DollarSign, TrendingUp, Calendar, RefreshCw, Cloud } from 'lucide-react';
 
 interface ExchangeRate {
@@ -166,7 +166,6 @@ export default function ExchangeRates() {
 
   const rates = data?.data || [];
   const total = data?.total || 0;
-  const totalPages = data?.totalPages || 1;
 
   return (
     <div>
@@ -308,35 +307,12 @@ export default function ExchangeRates() {
               </tbody>
             </table>
 
-            {totalPages > 1 && (
-              <div style={{ 
-                padding: '1rem', 
-                borderTop: '1px solid var(--border)', 
-                display: 'flex', 
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                  Page {page} of {totalPages}
-                </span>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button
-                    className="btn btn-secondary"
-                    disabled={page <= 1}
-                    onClick={() => setPage(p => p - 1)}
-                  >
-                    Previous
-                  </button>
-                  <button
-                    className="btn btn-secondary"
-                    disabled={page >= totalPages}
-                    onClick={() => setPage(p => p + 1)}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
+            <Pagination
+              page={page}
+              pageSize={25}
+              totalCount={total}
+              onPageChange={setPage}
+            />
           </>
         )}
       </div>

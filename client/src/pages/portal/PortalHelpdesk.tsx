@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { format } from 'date-fns';
 import { Ticket, Plus, Search, Filter, MessageCircle, Paperclip, Clock, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
-import { StatusBadge, EmptyState, KpiCard } from '../../components/shared';
+import { StatusBadge, EmptyState, KpiCard, Pagination } from '../../components/shared';
 
 const TICKET_STATUSES = [
   { value: '', label: 'All Statuses' },
@@ -235,26 +235,13 @@ export default function PortalHelpdesk() {
                 ))}
               </tbody>
             </table>
-            {pagination.pages > 1 && (
-              <div style={{ padding: '1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-                <button 
-                  className="btn btn-sm" 
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  Previous
-                </button>
-                <span style={{ padding: '0.5rem 1rem', color: 'var(--text-muted)' }}>
-                  Page {page} of {pagination.pages}
-                </span>
-                <button 
-                  className="btn btn-sm" 
-                  onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
-                  disabled={page === pagination.pages}
-                >
-                  Next
-                </button>
-              </div>
+            {pagination.total > 0 && (
+              <Pagination
+                page={page}
+                pageSize={10}
+                totalCount={pagination.total}
+                onPageChange={setPage}
+              />
             )}
           </>
         )}

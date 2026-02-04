@@ -5,9 +5,10 @@ import { useToast } from '../../components/ui/Toast';
 import { PageHeader } from '../../components/shared';
 import { 
   Search, Edit2, Save, X, Download, Upload, FileText, 
-  Database, Globe, Check, AlertCircle, ChevronDown, ChevronRight,
+  Database, Globe, ChevronDown, ChevronRight,
   Languages, Tag, Box, Users, Building2, MapPin, FolderOpen
 } from 'lucide-react';
+import { Pagination } from '../../components/shared';
 
 interface TranslationEntry {
   id: string;
@@ -159,7 +160,6 @@ export default function Translations() {
 
   const translations = data?.data || [];
   const total = data?.total || 0;
-  const totalPages = data?.totalPages || 1;
 
   const groupedTranslations = useMemo(() => {
     if (entityType !== 'SYSTEM') return null;
@@ -607,35 +607,14 @@ export default function Translations() {
             </div>
           )}
 
-          {totalPages > 1 && (
-            <div style={{ 
-              marginTop: '1.5rem',
-              padding: '1rem', 
-              background: 'var(--bg-secondary)',
-              borderRadius: '8px',
-              display: 'flex', 
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                Page {page} of {totalPages}
-              </span>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                  className="btn btn-secondary"
-                  disabled={page <= 1}
-                  onClick={() => setPage(p => p - 1)}
-                >
-                  Previous
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage(p => p + 1)}
-                >
-                  Next
-                </button>
-              </div>
+          {total > 0 && (
+            <div style={{ marginTop: '1rem', borderRadius: '8px', overflow: 'hidden' }}>
+              <Pagination
+                page={page}
+                pageSize={100}
+                totalCount={total}
+                onPageChange={setPage}
+              />
             </div>
           )}
         </div>
