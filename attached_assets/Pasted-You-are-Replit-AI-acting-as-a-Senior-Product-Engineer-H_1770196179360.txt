@@ -1,0 +1,283 @@
+You are Replit AI acting as a Senior Product Engineer + Helpdesk Systems Architect.
+
+Goal:
+Implement a complete Support Helpdesk module inside the app to manage communication between Users (customers/sellers/technicians/internal) and Admin/Support team, with:
+- Ticket creation, assignment, SLA, statuses, priorities
+- Tasks/subtasks linked to tickets
+- Internal notes + user-visible replies
+- Attachments (max 5MB each)
+- Notifications for every important update via:
+  - In-app (top bar + notification center) ALWAYS
+  - Email/SMS/WhatsApp based on channel enablement + user preferences
+
+Tech:
+- React + TypeScript frontend
+- Node.js + TypeScript backend
+- PostgreSQL + Prisma
+- Existing notification channels configuration (SMTP/SMS/WhatsApp) already implemented
+
+========================================================
+1) MODULE OVERVIEW (MANDATORY)
+========================================================
+Create a “Helpdesk” module with two interfaces:
+A) User Portal (all roles):
+- Create tickets, view their tickets, reply, attach files, see status and history
+B) Admin/Support Console:
+- Manage all tickets, assign, set priority, set SLA, create tasks, update status, internal notes, escalations, reports
+
+========================================================
+2) DATA MODEL (PRISMA) — MUST IMPLEMENT
+========================================================
+
+2.1 SupportTicket
+- id
+- ticketNo (unique, e.g., T-000123)
+- subject (required)
+- description (required)
+- category (enum/string): ACCOUNT, ORDER, DELIVERY, INVOICE, PAYMENT, QC, SYSTEM, OTHER
+- priority (LOW/MEDIUM/HIGH/CRITICAL)
+- status:
+  - NEW
+  - OPEN
+  - IN_PROGRESS
+  - WAITING_FOR_USER
+  - WAITING_FOR_ADMIN
+  - RESOLVED
+  - CLOSED
+  - CANCELLED
+- requesterUserId (who created)
+- requesterRole (CUSTOMER/SELLER/TECHNICIAN/INTERNAL)
+- customerId (nullable)   // if requester is customer-linked
+- relatedEntityType (optional: ORDER/INVOICE/SHIPMENT/BATCH/etc.)
+- relatedEntityId (nullable)
+- assignedTeam (nullable)  // Support, Finance, Logistics, QC, IT
+- assignedToUserId (nullable)
+- slaResponseDueAt (nullable)
+- slaResolveDueAt (nullable)
+- createdAt, updatedAt
+- lastActivityAt
+- closedAt (nullable)
+
+2.2 TicketMessage (conversation)
+- id
+- ticketId
+- messageType: PUBLIC_REPLY | INTERNAL_NOTE | SYSTEM_EVENT
+- body (text, required)
+- createdByUserId
+- createdAt
+- visibility:
+  - PUBLIC (visible to requester)
+  - INTERNAL (admin/support only)
+
+2.3 TicketAttachment
+- id
+- ticketId
+- messageId (nullable)
+- fileUrl
+- fileName
+- fileSizeBytes
+- mimeType
+- uploadedByUserId
+- uploadedAt
+Rules: max 5MB each, allowed file types (PDF/JPG/PNG/DOCX)
+
+2.4 TicketTask
+- id
+- ticketId
+- title
+- description (nullable)
+- status: TODO | IN_PROGRESS | DONE | BLOCKED
+- priority (LOW/MEDIUM/HIGH)
+- assignedToUserId (nullable)
+- dueAt (nullable)
+- createdAt, updatedAt
+
+2.5 TicketEvent (audit timeline)
+- id
+- ticketId
+- eventType: CREATED, ASSIGNED, STATUS_CHANGED, PRIORITY_CHANGED, SLA_SET, TASK_CREATED, TASK_UPDATED, CLOSED, REOPENED
+- oldValueJson (nullable)
+- newValueJson (nullable)
+- actorUserId
+- createdAt
+
+========================================================
+3) USER EXPERIENCE (MANDATORY)
+========================================================
+
+3.1 User Portal
+Routes:
+- /helpdesk (My Tickets list)
+- /helpdesk/new
+- /helpdesk/:id
+
+My Tickets list:
+- columns: Ticket No, Subject, Category, Priority, Status, Last Update, Assigned To (optional)
+- filters: status, category, date, search by ticketNo/subject
+- show unread updates badge
+
+Ticket detail:
+- Header: ticket no + status badge + priority
+- “Related To” links (order/invoice/shipment)
+- Conversation timeline:
+  - show public replies only
+  - attachments preview/download
+- Reply box:
+  - add message + attachments
+  - submit
+- Clear “Next expected action” hint:
+  - e.g., “Waiting for Admin response”
+
+3.2 Admin/Support Console
+Routes:
+- /admin/helpdesk/tickets
+- /admin/helpdesk/tickets/:id
+- /admin/helpdesk/tasks (optional global view)
+
+Ticket list:
+- KPI cards: New, Open, Overdue SLA, Unassigned
+- filters: status, priority, category, assignedTo, team, customer, date range, SLA breach
+- bulk actions: assign, change status, priority
+
+Ticket detail (Admin):
+Tabs:
+- Overview (metadata + related entity links)
+- Conversation (public replies + internal notes)
+- Tasks (task list + assign)
+- Timeline/Events (audit)
+- SLA (set/override)
+
+Admin actions:
+- Assign ticket to user/team
+- Change status/priority
+- Add internal note
+- Reply to requester
+- Create tasks/subtasks
+- Close ticket
+
+========================================================
+4) WORKFLOW RULES (MANDATORY)
+========================================================
+- Ticket created by user starts as NEW.
+- Admin sets:
+  - status -> OPEN/IN_PROGRESS etc.
+  - assigns to support user/team
+- When admin asks for info:
+  - status = WAITING_FOR_USER (requester gets notified)
+- When requester replies:
+  - status can auto-change to WAITING_FOR_ADMIN (configurable)
+- Ticket can be RESOLVED then CLOSED after X days or manual close.
+
+SLA:
+- Optional default SLA by category/priority:
+  - response due hours
+  - resolve due hours
+- SLA breach triggers notifications to support manager.
+
+========================================================
+5) NOTIFICATIONS (MANDATORY) — IN-APP + EMAIL + SMS + WHATSAPP
+========================================================
+For each important event, create in-app notification ALWAYS, plus optional channels:
+
+Notify requester when:
+- Ticket created (confirmation)
+- Admin replied
+- Status changed (e.g., RESOLVED/CLOSED)
+- Request for more info (WAITING_FOR_USER)
+- Task completed that affects them (optional)
+
+Notify assigned support/admin when:
+- Ticket assigned to them
+- New reply from requester
+- SLA breach approaching / breached
+- Ticket escalated / priority changed
+
+Notify task assignee when:
+- Task assigned
+- Task status updated
+- Task due soon / overdue
+
+Event types (examples):
+- TICKET_CREATED
+- TICKET_ASSIGNED
+- TICKET_STATUS_CHANGED
+- TICKET_MESSAGE_RECEIVED
+- TICKET_INTERNAL_NOTE_ADDED (admin-only)
+- TASK_CREATED
+- TASK_ASSIGNED
+- TASK_STATUS_CHANGED
+- SLA_WARNING
+- SLA_BREACHED
+
+Channel rules:
+- In-app always
+- Email/SMS/WhatsApp only if:
+  - channel enabled globally (SMTP/SMS/WhatsApp config)
+  - user preference for that channel enabled
+  - user has email/mobile
+- Use templates per channel (short for SMS/WhatsApp)
+- Include deep links to ticket:
+  /helpdesk/:id (user)
+  /admin/helpdesk/tickets/:id (admin)
+
+========================================================
+6) SETTINGS (MANDATORY)
+========================================================
+Admin settings:
+- enableHelpdeskModule toggle
+- default SLA policies (by category + priority)
+- auto-close resolved tickets after N days
+- notification severity mapping per event type
+
+========================================================
+7) API ENDPOINTS (MANDATORY)
+========================================================
+User:
+- GET /helpdesk/tickets (my tickets)
+- POST /helpdesk/tickets
+- GET /helpdesk/tickets/:id
+- POST /helpdesk/tickets/:id/reply (public message + attachments)
+
+Admin:
+- GET /admin/helpdesk/tickets (all)
+- PATCH /admin/helpdesk/tickets/:id (status/priority/assignment/SLA)
+- POST /admin/helpdesk/tickets/:id/reply (public)
+- POST /admin/helpdesk/tickets/:id/internal-note
+- POST /admin/helpdesk/tickets/:id/tasks
+- PATCH /admin/helpdesk/tasks/:taskId
+
+Attachments:
+- POST /helpdesk/tickets/:id/attachments (multipart)
+- POST /admin/helpdesk/tickets/:id/attachments
+
+========================================================
+8) REPORTS (RECOMMENDED)
+========================================================
+Add reports in Reports Center:
+- Tickets by status/category/priority
+- SLA compliance rate
+- Avg response time, avg resolution time
+- Workload by assignee/team
+Export Excel/PDF
+
+========================================================
+9) SEED & DEMO (MANDATORY)
+========================================================
+Seed demo data:
+- 5 tickets:
+  - 2 customer tickets linked to orders/invoices
+  - 1 logistics issue (delivery delayed)
+  - 1 payment confirmation request
+  - 1 system bug report
+- include messages, internal notes, attachments metadata
+- include 3 tasks assigned to different teams
+
+========================================================
+10) ACCEPTANCE CRITERIA
+========================================================
+- Users can create and track support tickets with attachments.
+- Admin can assign tickets and manage statuses, SLA, and tasks.
+- Ticket updates trigger notifications in-app and optionally via email/SMS/WhatsApp.
+- Task assignments/updates also trigger notifications.
+- Audit trail and timeline exist for every change.
+- RBAC enforced: users only see their own tickets; admins see all; internal notes hidden from users.
