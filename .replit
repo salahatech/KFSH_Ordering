@@ -66,5 +66,5 @@ externalPort = 3002
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["bash", "-c", "npx vite build --root client && cd server && npx tsc -p tsconfig.build.json"]
-run = ["bash", "-c", "cd server && node dist/index.js"]
+build = ["bash", "-c", "npx vite build --root client"]
+run = ["bash", "-c", "cd server && npx tsx src/index.ts"]
