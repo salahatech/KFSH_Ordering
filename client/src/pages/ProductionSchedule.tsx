@@ -92,7 +92,7 @@ export default function ProductionSchedule() {
   };
 
   const handleBatchClick = (batch: any) => {
-    navigate(`/batches/${batch.id}`);
+    navigate(`/batches/${batch.id}/journey`);
   };
 
   return (
