@@ -135,6 +135,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Serve static frontend files in production
+const clientDistPath = path.join(process.cwd(), '..', 'client', 'dist');
+app.use(express.static(clientDistPath));
+
+// SPA fallback - serve index.html for all non-API routes
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
+    return next();
+  }
+  res.sendFile(path.join(clientDistPath, 'index.html'));
+});
+
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Error:', err);
   res.status(err.status || 500).json({
@@ -142,9 +154,12 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-app.listen(PORT, async () => {
-  console.log(`RadioPharma OMS API running on port ${PORT}`);
-  console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
+// Use port 5000 for production (Replit requirement)
+const PROD_PORT = process.env.NODE_ENV === 'production' ? 5000 : PORT;
+
+app.listen(PROD_PORT, async () => {
+  console.log(`RadioPharma OMS API running on port ${PROD_PORT}`);
+  console.log(`Swagger docs available at http://localhost:${PROD_PORT}/api-docs`);
   
   try {
     await initializeScheduler();
