@@ -13,6 +13,7 @@ import Products from './pages/Products';
 import Orders from './pages/Orders';
 import OrderForm from './pages/OrderForm';
 import Planner from './pages/Planner';
+import ProductionSchedule from './pages/ProductionSchedule';
 import Batches from './pages/Batches';
 import QC from './pages/QC';
 import Release from './pages/Release';
@@ -259,6 +260,7 @@ export default function App() {
                   <Route path="/orders/:id" element={<OrderForm />} />
                   <Route path="/orders/:id/journey" element={<OrderJourney />} />
                   <Route path="/planner" element={<Planner />} />
+                  <Route path="/production-schedule" element={<ProductionSchedule />} />
                   <Route path="/batches" element={<Batches />} />
                   <Route path="/batches/:id/journey" element={<BatchJourney />} />
                   <Route path="/qc" element={<QC />} />

@@ -24,6 +24,7 @@ const routeConfig: Record<string, { labelKey: string; fallback: string }> = {
   'availability': { labelKey: 'nav.availability', fallback: 'Availability' },
   'reservations': { labelKey: 'nav.reservations', fallback: 'Reservations' },
   'planner': { labelKey: 'nav.planner', fallback: 'Planner' },
+  'production-schedule': { labelKey: 'nav.productionSchedule', fallback: 'Production Schedule' },
   'batches': { labelKey: 'nav.batches', fallback: 'Batches' },
   'qc': { labelKey: 'nav.qc', fallback: 'Quality Control' },
   'oos-investigations': { labelKey: 'nav.oosInvestigations', fallback: 'OOS Investigations' },

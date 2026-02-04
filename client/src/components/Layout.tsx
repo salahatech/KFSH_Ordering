@@ -46,6 +46,7 @@ import {
   ChevronRight,
   Star,
   StarOff,
+  BarChart3,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import AnnouncementBar from './AnnouncementBar';
@@ -95,6 +96,7 @@ const menuSections: MenuSection[] = [
     icon: Factory,
     items: [
       { path: '/planner', labelKey: 'nav.planner', icon: Calendar },
+      { path: '/production-schedule', labelKey: 'nav.productionSchedule', icon: BarChart3 },
       { path: '/batches', labelKey: 'nav.batches', icon: FlaskConical },
       { path: '/manufacturing', labelKey: 'nav.manufacturing', icon: Factory },
       { path: '/dispensing', labelKey: 'nav.dispensing', icon: Syringe },

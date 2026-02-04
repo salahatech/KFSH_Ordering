@@ -70,6 +70,7 @@
     "products": "Products",
     "orders": "Orders",
     "planner": "Planner",
+    "productionSchedule": "Production Schedule",
     "batches": "Batches",
     "qc": "QC Tests",
     "release": "QP Release",
