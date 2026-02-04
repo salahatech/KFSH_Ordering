@@ -51,7 +51,7 @@ router.get('/orders/:id/journey', authenticateToken, async (req: Request, res: R
               include: { actor: true },
               orderBy: { createdAt: 'asc' },
             },
-            qcTests: true,
+            qcResults: true,
             batchReleases: {
               include: { releasedBy: true },
             },
@@ -64,6 +64,12 @@ router.get('/orders/:id/journey', authenticateToken, async (req: Request, res: R
 
     if (!order) {
       res.status(404).json({ error: 'Order not found' });
+      return;
+    }
+
+    const user = (req as any).user;
+    if (user.customerId && order.customerId !== user.customerId) {
+      res.status(403).json({ error: 'Access denied' });
       return;
     }
 
@@ -228,8 +234,8 @@ router.get('/batches/:id/journey', authenticateToken, async (req: Request, res: 
           },
         },
         doseUnits: true,
-        qcTests: {
-          include: { performedBy: true },
+        qcResults: {
+          include: { testedBy: true },
         },
         batchReleases: {
           include: { releasedBy: true },
@@ -277,18 +283,18 @@ router.get('/batches/:id/journey', authenticateToken, async (req: Request, res: 
       });
     }
 
-    for (const qcTest of batch.qcTests || []) {
+    for (const qcResult of batch.qcResults || []) {
       events.push({
-        id: qcTest.id,
+        id: qcResult.id,
         type: 'QC_TEST_ENTERED',
         entityType: 'qcTest',
-        entityId: qcTest.id,
-        title: `QC test: ${qcTest.testName}`,
-        description: qcTest.passed ? 'Passed' : 'Failed',
-        timestamp: qcTest.testDate.toISOString(),
-        actor: qcTest.performedBy ? `${qcTest.performedBy.firstName} ${qcTest.performedBy.lastName}` : undefined,
+        entityId: qcResult.id,
+        title: `QC test: ${qcResult.testName}`,
+        description: qcResult.passed ? 'Passed' : 'Failed',
+        timestamp: qcResult.testedAt.toISOString(),
+        actor: qcResult.testedBy ? `${qcResult.testedBy.firstName} ${qcResult.testedBy.lastName}` : undefined,
         actorRole: 'QC Analyst',
-        severity: qcTest.passed ? 'success' : 'error',
+        severity: qcResult.passed ? 'success' : 'error',
       });
     }
 
