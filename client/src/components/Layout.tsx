@@ -246,6 +246,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuthStore();
   const { t } = useTranslation();
   const { language, setLanguage } = useLanguageStore();
+  const isRtl = language === 'ar';
   const { formatTimeOnly, formatDateOnly, formatDateTime } = useLocalization();
 
   const { data: systemSettings } = useQuery<SystemSettings>({
@@ -376,7 +377,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           position: 'fixed',
           height: '100vh',
           zIndex: 40,
-          transform: isMobile && !mobileMenuOpen ? 'translateX(-100%)' : 'translateX(0)',
+          left: isRtl ? 'auto' : 0,
+          right: isRtl ? 0 : 'auto',
+          transform: isMobile && !mobileMenuOpen 
+            ? (isRtl ? 'translateX(100%)' : 'translateX(-100%)') 
+            : 'translateX(0)',
         }}
       >
         <div
@@ -611,8 +616,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <div
         style={{
           flex: 1,
-          marginLeft: isMobile ? 0 : (sidebarOpen ? '16rem' : '4rem'),
-          transition: 'margin-left 0.2s ease',
+          marginLeft: isMobile ? 0 : (isRtl ? 0 : (sidebarOpen ? '16rem' : '4rem')),
+          marginRight: isMobile ? 0 : (isRtl ? (sidebarOpen ? '16rem' : '4rem') : 0),
+          transition: 'margin 0.2s ease',
         }}
       >
         <header

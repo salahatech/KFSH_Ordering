@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { useLanguageStore } from '../store/languageStore';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -32,6 +33,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const { language } = useLanguageStore();
+  const isRtl = language === 'ar';
 
   const handleLogout = async () => {
     await logout();
@@ -51,6 +54,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           position: 'fixed',
           height: '100vh',
           zIndex: 40,
+          left: isRtl ? 'auto' : 0,
+          right: isRtl ? 0 : 'auto',
         }}
       >
         <div
@@ -140,8 +145,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       <div
         style={{
           flex: 1,
-          marginLeft: sidebarOpen ? '16rem' : '4rem',
-          transition: 'margin-left 0.2s ease',
+          marginLeft: isRtl ? 0 : (sidebarOpen ? '16rem' : '4rem'),
+          marginRight: isRtl ? (sidebarOpen ? '16rem' : '4rem') : 0,
+          transition: 'margin 0.2s ease',
         }}
       >
         <header
