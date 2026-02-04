@@ -57,7 +57,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
     
     const where: any = {};
     
-    if (user.role === 'Customer') {
+    if (user.roleName === 'Customer') {
       where.customerId = user.customerId;
     } else if (customerId) {
       where.customerId = customerId as string;
@@ -116,7 +116,7 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response): Promi
       return;
     }
 
-    if (user.role === 'Customer' && order.customerId !== user.customerId) {
+    if (user.roleName === 'Customer' && order.customerId !== user.customerId) {
       res.status(404).json({ error: 'Order not found' });
       return;
     }
@@ -210,7 +210,7 @@ router.post('/', authenticateToken, requireRole('Admin', 'Production Manager', '
       return;
     }
 
-    const orderStatus = user.role === 'Customer' ? 'SUBMITTED' : (status || 'DRAFT');
+    const orderStatus = user.roleName === 'Customer' ? 'SUBMITTED' : (status || 'DRAFT');
     
     const order = await prisma.order.create({
       data: {
@@ -451,7 +451,7 @@ router.get('/:id/calculate-activity', authenticateToken, async (req: Request, re
       return;
     }
     
-    if (user.role === 'Customer' && order.customerId !== user.customerId) {
+    if (user.roleName === 'Customer' && order.customerId !== user.customerId) {
       res.status(404).json({ error: 'Order not found' });
       return;
     }

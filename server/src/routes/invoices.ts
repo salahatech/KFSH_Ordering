@@ -33,7 +33,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
 
     const where: any = {};
     
-    if (user.role === 'Customer') {
+    if (user.roleName === 'Customer') {
       where.customerId = user.customerId;
       where.status = { in: ['ISSUED_POSTED', 'PARTIALLY_PAID', 'PAID', 'CLOSED_ARCHIVED', 'OVERDUE'] };
     } else if (customerId) {
@@ -503,7 +503,7 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response): Promi
       return;
     }
 
-    if (user.role === 'Customer') {
+    if (user.roleName === 'Customer') {
       if (invoice.customerId !== user.customerId) {
         res.status(404).json({ error: 'Invoice not found' });
         return;
@@ -545,7 +545,7 @@ router.get('/summary/dashboard', authenticateToken, async (req: Request, res: Re
 
     const where: any = {};
     
-    if (user.role === 'Customer') {
+    if (user.roleName === 'Customer') {
       where.customerId = user.customerId;
     } else if (customerId) {
       where.customerId = customerId;
