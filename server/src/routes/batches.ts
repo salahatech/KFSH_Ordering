@@ -32,7 +32,14 @@ router.get('/', authenticateToken, async (req: Request, res: Response): Promise<
     const { status, productId, fromDate, toDate } = req.query;
     
     const where: any = {};
-    if (status) where.status = status as BatchStatus;
+    if (status) {
+      const statusStr = status as string;
+      if (statusStr.includes(',')) {
+        where.status = { in: statusStr.split(',') as BatchStatus[] };
+      } else {
+        where.status = statusStr as BatchStatus;
+      }
+    }
     if (productId) where.productId = productId as string;
     if (fromDate || toDate) {
       where.plannedStartTime = {};

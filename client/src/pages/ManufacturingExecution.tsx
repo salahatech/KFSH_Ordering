@@ -169,7 +169,7 @@ export default function ManufacturingExecution() {
     queryKey: ['batch-record-form-data'],
     queryFn: async () => {
       const [batchesRes, recipesRes] = await Promise.all([
-        api.get('/batches', { params: { limit: 100 } }),
+        api.get('/batches', { params: { status: 'SCHEDULED,IN_PRODUCTION', limit: 100 } }),
         api.get('/recipes', { params: { status: 'ACTIVE', limit: 100 } })
       ]);
       return {
