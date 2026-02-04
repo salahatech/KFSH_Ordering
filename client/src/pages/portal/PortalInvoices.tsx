@@ -124,7 +124,7 @@ export default function PortalInvoices() {
 
   const remainingAmount = selectedInvoice ? selectedInvoice.totalAmount - selectedInvoice.paidAmount : 0;
   const canSubmitPayment = selectedInvoice && 
-    ['SENT', 'PARTIALLY_PAID'].includes(selectedInvoice.status) && 
+    ['SENT', 'ISSUED_POSTED', 'PARTIALLY_PAID', 'OVERDUE'].includes(selectedInvoice.status) && 
     remainingAmount > 0;
 
   if (isLoading) {
