@@ -123,16 +123,25 @@ export default function AttachmentPanel({ entityType, entityId, title = 'Attachm
     }
   };
 
-  const handleDownload = (attachment: Attachment) => {
-    const token = localStorage.getItem('accessToken');
-    const downloadUrl = `/api/attachments/download/${attachment.id}?token=${encodeURIComponent(token || '')}`;
-    
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.setAttribute('download', attachment.originalName);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+  const handleDownload = async (attachment: Attachment) => {
+    try {
+      const response = await api.get(`/attachments/download/${attachment.id}`, {
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([response.data], { type: attachment.mimeType });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', attachment.originalName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download file');
+    }
   };
 
   return (
