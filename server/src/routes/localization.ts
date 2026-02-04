@@ -792,6 +792,182 @@ router.get('/localized/:entityType/:entityId/:fieldKey', authenticateToken, asyn
 
 // ==================== SEED DEFAULT LANGUAGES ====================
 
+router.post('/seed-system-translations', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const languages = await prisma.language.findMany({ where: { isActive: true } });
+    
+    if (languages.length === 0) {
+      res.status(400).json({ error: 'No active languages found. Please add languages first.' });
+      return;
+    }
+
+    const systemTranslations: { key: string; en: string; ar: string }[] = [
+      // Navigation - Main Sections
+      { key: 'nav.dashboard', en: 'Dashboard', ar: 'لوحة التحكم' },
+      { key: 'nav.orders', en: 'Orders', ar: 'الطلبات' },
+      { key: 'nav.customers', en: 'Customers', ar: 'العملاء' },
+      { key: 'nav.production', en: 'Production', ar: 'الإنتاج' },
+      { key: 'nav.batches', en: 'Batches', ar: 'الدفعات' },
+      { key: 'nav.quality', en: 'Quality', ar: 'الجودة' },
+      { key: 'nav.logistics', en: 'Logistics', ar: 'اللوجستيات' },
+      { key: 'nav.shipments', en: 'Shipments', ar: 'الشحنات' },
+      { key: 'nav.drivers', en: 'Drivers', ar: 'السائقين' },
+      { key: 'nav.inventory', en: 'Inventory', ar: 'المخزون' },
+      { key: 'nav.warehouse', en: 'Warehouse', ar: 'المستودع' },
+      { key: 'nav.stock', en: 'Stock', ar: 'المخزون' },
+      { key: 'nav.materials', en: 'Materials', ar: 'المواد' },
+      { key: 'nav.suppliers', en: 'Suppliers', ar: 'الموردين' },
+      { key: 'nav.finance', en: 'Finance', ar: 'المالية' },
+      { key: 'nav.invoices', en: 'Invoices', ar: 'الفواتير' },
+      { key: 'nav.payments', en: 'Payments', ar: 'المدفوعات' },
+      { key: 'nav.contracts', en: 'Contracts', ar: 'العقود' },
+      { key: 'nav.administration', en: 'Administration', ar: 'الإدارة' },
+      { key: 'nav.users', en: 'Users', ar: 'المستخدمين' },
+      { key: 'nav.roles', en: 'Roles', ar: 'الأدوار' },
+      { key: 'nav.settings', en: 'Settings', ar: 'الإعدادات' },
+      { key: 'nav.products', en: 'Products', ar: 'المنتجات' },
+      { key: 'nav.equipment', en: 'Equipment', ar: 'المعدات' },
+      { key: 'nav.reports', en: 'Reports', ar: 'التقارير' },
+      { key: 'nav.helpdesk', en: 'Support', ar: 'الدعم' },
+      
+      // Common Actions
+      { key: 'action.save', en: 'Save', ar: 'حفظ' },
+      { key: 'action.cancel', en: 'Cancel', ar: 'إلغاء' },
+      { key: 'action.delete', en: 'Delete', ar: 'حذف' },
+      { key: 'action.edit', en: 'Edit', ar: 'تعديل' },
+      { key: 'action.add', en: 'Add', ar: 'إضافة' },
+      { key: 'action.create', en: 'Create', ar: 'إنشاء' },
+      { key: 'action.update', en: 'Update', ar: 'تحديث' },
+      { key: 'action.search', en: 'Search', ar: 'بحث' },
+      { key: 'action.filter', en: 'Filter', ar: 'تصفية' },
+      { key: 'action.export', en: 'Export', ar: 'تصدير' },
+      { key: 'action.import', en: 'Import', ar: 'استيراد' },
+      { key: 'action.download', en: 'Download', ar: 'تحميل' },
+      { key: 'action.upload', en: 'Upload', ar: 'رفع' },
+      { key: 'action.submit', en: 'Submit', ar: 'إرسال' },
+      { key: 'action.approve', en: 'Approve', ar: 'موافقة' },
+      { key: 'action.reject', en: 'Reject', ar: 'رفض' },
+      { key: 'action.confirm', en: 'Confirm', ar: 'تأكيد' },
+      { key: 'action.close', en: 'Close', ar: 'إغلاق' },
+      { key: 'action.view', en: 'View', ar: 'عرض' },
+      { key: 'action.print', en: 'Print', ar: 'طباعة' },
+      { key: 'action.back', en: 'Back', ar: 'رجوع' },
+      { key: 'action.next', en: 'Next', ar: 'التالي' },
+      { key: 'action.previous', en: 'Previous', ar: 'السابق' },
+      
+      // Common Labels
+      { key: 'label.name', en: 'Name', ar: 'الاسم' },
+      { key: 'label.description', en: 'Description', ar: 'الوصف' },
+      { key: 'label.status', en: 'Status', ar: 'الحالة' },
+      { key: 'label.date', en: 'Date', ar: 'التاريخ' },
+      { key: 'label.time', en: 'Time', ar: 'الوقت' },
+      { key: 'label.type', en: 'Type', ar: 'النوع' },
+      { key: 'label.category', en: 'Category', ar: 'الفئة' },
+      { key: 'label.priority', en: 'Priority', ar: 'الأولوية' },
+      { key: 'label.quantity', en: 'Quantity', ar: 'الكمية' },
+      { key: 'label.price', en: 'Price', ar: 'السعر' },
+      { key: 'label.total', en: 'Total', ar: 'الإجمالي' },
+      { key: 'label.amount', en: 'Amount', ar: 'المبلغ' },
+      { key: 'label.email', en: 'Email', ar: 'البريد الإلكتروني' },
+      { key: 'label.phone', en: 'Phone', ar: 'الهاتف' },
+      { key: 'label.address', en: 'Address', ar: 'العنوان' },
+      { key: 'label.city', en: 'City', ar: 'المدينة' },
+      { key: 'label.country', en: 'Country', ar: 'البلد' },
+      { key: 'label.notes', en: 'Notes', ar: 'ملاحظات' },
+      { key: 'label.comments', en: 'Comments', ar: 'تعليقات' },
+      { key: 'label.attachments', en: 'Attachments', ar: 'المرفقات' },
+      { key: 'label.createdAt', en: 'Created At', ar: 'تاريخ الإنشاء' },
+      { key: 'label.updatedAt', en: 'Updated At', ar: 'تاريخ التحديث' },
+      { key: 'label.createdBy', en: 'Created By', ar: 'أنشئ بواسطة' },
+      
+      // Status Values
+      { key: 'status.active', en: 'Active', ar: 'نشط' },
+      { key: 'status.inactive', en: 'Inactive', ar: 'غير نشط' },
+      { key: 'status.pending', en: 'Pending', ar: 'قيد الانتظار' },
+      { key: 'status.approved', en: 'Approved', ar: 'تمت الموافقة' },
+      { key: 'status.rejected', en: 'Rejected', ar: 'مرفوض' },
+      { key: 'status.completed', en: 'Completed', ar: 'مكتمل' },
+      { key: 'status.cancelled', en: 'Cancelled', ar: 'ملغي' },
+      { key: 'status.draft', en: 'Draft', ar: 'مسودة' },
+      { key: 'status.submitted', en: 'Submitted', ar: 'تم الإرسال' },
+      { key: 'status.inProgress', en: 'In Progress', ar: 'قيد التنفيذ' },
+      { key: 'status.onHold', en: 'On Hold', ar: 'معلق' },
+      { key: 'status.delivered', en: 'Delivered', ar: 'تم التسليم' },
+      { key: 'status.shipped', en: 'Shipped', ar: 'تم الشحن' },
+      
+      // Messages
+      { key: 'message.success', en: 'Operation completed successfully', ar: 'تمت العملية بنجاح' },
+      { key: 'message.error', en: 'An error occurred', ar: 'حدث خطأ' },
+      { key: 'message.loading', en: 'Loading...', ar: 'جاري التحميل...' },
+      { key: 'message.noData', en: 'No data available', ar: 'لا توجد بيانات' },
+      { key: 'message.confirmDelete', en: 'Are you sure you want to delete this item?', ar: 'هل أنت متأكد من حذف هذا العنصر؟' },
+      { key: 'message.unsavedChanges', en: 'You have unsaved changes', ar: 'لديك تغييرات غير محفوظة' },
+      { key: 'message.required', en: 'This field is required', ar: 'هذا الحقل مطلوب' },
+      
+      // Page Titles
+      { key: 'page.dashboard', en: 'Dashboard', ar: 'لوحة التحكم' },
+      { key: 'page.orderList', en: 'Order Management', ar: 'إدارة الطلبات' },
+      { key: 'page.customerList', en: 'Customer Management', ar: 'إدارة العملاء' },
+      { key: 'page.productList', en: 'Product Catalog', ar: 'كتالوج المنتجات' },
+      { key: 'page.batchList', en: 'Batch Management', ar: 'إدارة الدفعات' },
+      { key: 'page.invoiceList', en: 'Invoice Management', ar: 'إدارة الفواتير' },
+      { key: 'page.shipmentList', en: 'Shipment Tracking', ar: 'تتبع الشحنات' },
+      { key: 'page.userList', en: 'User Management', ar: 'إدارة المستخدمين' },
+      { key: 'page.settings', en: 'System Settings', ar: 'إعدادات النظام' },
+      { key: 'page.reports', en: 'Reports Center', ar: 'مركز التقارير' },
+      { key: 'page.helpdesk', en: 'Support Tickets', ar: 'تذاكر الدعم' },
+      { key: 'page.profile', en: 'My Profile', ar: 'ملفي الشخصي' },
+      { key: 'page.notifications', en: 'Notifications', ar: 'الإشعارات' },
+    ];
+
+    let created = 0;
+    let skipped = 0;
+
+    for (const translation of systemTranslations) {
+      for (const lang of languages) {
+        const value = lang.code === 'en' ? translation.en : 
+                      lang.code === 'ar' ? translation.ar : 
+                      translation.en;
+
+        const existing = await prisma.translationEntry.findFirst({
+          where: {
+            entityType: 'SYSTEM',
+            entityId: 'UI',
+            fieldKey: translation.key,
+            langCode: lang.code,
+          }
+        });
+
+        if (!existing) {
+          await prisma.translationEntry.create({
+            data: {
+              entityType: 'SYSTEM',
+              entityId: 'UI',
+              fieldKey: translation.key,
+              langCode: lang.code,
+              value,
+            }
+          });
+          created++;
+        } else {
+          skipped++;
+        }
+      }
+    }
+
+    res.json({ 
+      message: 'System translations seeded', 
+      created,
+      skipped,
+      totalKeys: systemTranslations.length,
+      languages: languages.length
+    });
+  } catch (error) {
+    console.error('Seed system translations error:', error);
+    res.status(500).json({ error: 'Failed to seed system translations' });
+  }
+});
+
 router.post('/seed-languages', authenticateToken, requireRole('Admin'), async (req: Request, res: Response): Promise<void> => {
   try {
     const defaultLanguages = [

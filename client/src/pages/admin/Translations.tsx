@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';
 import { PageHeader } from '../../components/shared';
-import { Search, Edit2, Save, X, Download, Upload, FileText, Filter } from 'lucide-react';
+import { Search, Edit2, Save, X, Download, Upload, FileText, Filter, Database } from 'lucide-react';
 
 interface TranslationEntry {
   id: string;
@@ -22,6 +22,7 @@ interface Language {
 }
 
 const ENTITY_TYPES = [
+  { value: 'SYSTEM', label: 'System UI' },
   { value: 'PRODUCT', label: 'Products' },
   { value: 'CUSTOMER', label: 'Customers' },
   { value: 'MATERIAL', label: 'Materials' },
@@ -35,7 +36,7 @@ const ENTITY_TYPES = [
 export default function Translations() {
   const toast = useToast();
   const queryClient = useQueryClient();
-  const [entityType, setEntityType] = useState('PRODUCT');
+  const [entityType, setEntityType] = useState('SYSTEM');
   const [entityId, setEntityId] = useState('');
   const [langCode, setLangCode] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -98,6 +99,20 @@ export default function Translations() {
     },
   });
 
+  const seedMutation = useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post('/localization/seed-system-translations');
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['translations'] });
+      toast.success('System Translations Seeded', `Created ${data.created} translations (${data.skipped} skipped)`);
+    },
+    onError: (error: any) => {
+      toast.error('Seed Failed', error.response?.data?.error || 'Failed to seed system translations');
+    },
+  });
+
   const handleSave = (entry: TranslationEntry) => {
     updateMutation.mutate({
       entityType: entry.entityType,
@@ -153,6 +168,14 @@ export default function Translations() {
         subtitle="Manage multilingual translations for system entities"
         actions={
           <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button 
+              className="btn btn-primary" 
+              onClick={() => seedMutation.mutate()}
+              disabled={seedMutation.isPending}
+            >
+              <Database size={16} />
+              {seedMutation.isPending ? 'Seeding...' : 'Seed System Translations'}
+            </button>
             <button className="btn btn-secondary" onClick={handleExport}>
               <Download size={16} />
               Export
