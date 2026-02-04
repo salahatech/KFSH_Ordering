@@ -19,7 +19,7 @@ RadioPharma OMS is a comprehensive web application for managing radiopharmaceuti
 - **State Management**: Zustand
 - **Data Fetching**: TanStack React Query
 - **Routing**: React Router v7
-- **UI/UX**: Responsive design, consistent modal designs, sidebar navigation. Client portal uses a distinct teal color scheme.
+- **UI/UX**: Responsive design, consistent modal designs, collapsible sidebar navigation with 7 categorized sections (Orders & Customers, Production, Quality, Logistics, Inventory & Supply, Finance, Administration), favorites/pinned pages, breadcrumb navigation, and global search (Cmd+K). Client portal uses a distinct teal color scheme.
 - **Theming**: Light/Dark/System mode support via CSS variables.
 - **Internationalization**: react-i18next with English/Arabic support, RTL layout for Arabic.
 
