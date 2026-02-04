@@ -520,9 +520,147 @@ input, select, textarea {
   grid-template-columns: repeat(4, 1fr);
 }
 
+/* Responsive breakpoints: mobile (<768px), tablet (768-1024px), desktop (>1024px) */
+
+@media (max-width: 1024px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .grid-2, .grid-3, .grid-4 {
     grid-template-columns: 1fr;
+  }
+  
+  /* Page header stacks on mobile */
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .page-header .page-title {
+    font-size: 1.125rem;
+  }
+  
+  /* Cards reduce padding on mobile */
+  .card {
+    border-radius: var(--radius);
+  }
+  
+  /* Stat cards compact on mobile */
+  .stat-card {
+    padding: 1rem;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+  }
+  
+  /* Buttons stack on mobile */
+  .btn-group-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .btn-group-mobile .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* Form inputs full width */
+  .form-row {
+    flex-direction: column;
+  }
+  
+  /* Tables scroll horizontally */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .table-responsive .table {
+    min-width: 600px;
+  }
+  
+  /* Modal full width on mobile */
+  .modal {
+    width: 95%;
+    max-width: none;
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+  }
+  
+  .modal-header, .modal-body, .modal-footer {
+    padding: 1rem;
+  }
+  
+  .modal-footer {
+    flex-direction: column-reverse;
+  }
+  
+  .modal-footer .btn {
+    width: 100%;
+  }
+  
+  /* Container adjustments */
+  .container {
+    padding: 0 0.75rem;
+  }
+  
+  /* Empty state smaller */
+  .empty-state {
+    padding: 2rem 1rem;
+  }
+}
+
+/* Mobile-specific utility classes */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
+  
+  .show-mobile {
+    display: block !important;
+  }
+  
+  .show-mobile-flex {
+    display: flex !important;
+  }
+  
+  .text-center-mobile {
+    text-align: center !important;
+  }
+  
+  .stack-mobile {
+    flex-direction: column !important;
+  }
+  
+  .gap-sm-mobile {
+    gap: 0.5rem !important;
+  }
+  
+  .p-sm-mobile {
+    padding: 0.75rem !important;
+  }
+  
+  .full-width-mobile {
+    width: 100% !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .hide-desktop {
+    display: none !important;
+  }
+  
+  .show-desktop {
+    display: block !important;
+  }
+  
+  .show-desktop-flex {
+    display: flex !important;
   }
 }
 

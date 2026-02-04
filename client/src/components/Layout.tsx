@@ -123,13 +123,33 @@ const LANGUAGE_NAMES: Record<string, string> = {
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const notificationRef = useRef<HTMLDivElement>(null);
   const languageRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) {
+      setMobileMenuOpen(false);
+    }
+  }, [location.pathname]);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, logout } = useAuthStore();
@@ -214,19 +234,35 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const unreadCount = notificationData?.unreadCount || 0;
   const notifications = notificationData?.notifications || [];
 
+  const showSidebar = isMobile ? mobileMenuOpen : true;
+  const sidebarWidth = isMobile ? '16rem' : (sidebarOpen ? '16rem' : '4rem');
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
+      {isMobile && mobileMenuOpen && (
+        <div 
+          onClick={() => setMobileMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 35,
+          }}
+        />
+      )}
+      
       <aside
         style={{
-          width: sidebarOpen ? '16rem' : '4rem',
+          width: sidebarWidth,
           background: 'linear-gradient(180deg, #1e3a5f 0%, #0f172a 100%)',
           color: 'white',
-          transition: 'width 0.2s ease',
+          transition: 'all 0.2s ease',
           display: 'flex',
           flexDirection: 'column',
           position: 'fixed',
           height: '100vh',
           zIndex: 40,
+          transform: isMobile && !mobileMenuOpen ? 'translateX(-100%)' : 'translateX(0)',
         }}
       >
         <div
@@ -238,23 +274,35 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             borderBottom: '1px solid rgba(255,255,255,0.1)',
           }}
         >
-          {sidebarOpen && (
-            <div>
-              <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>RadioPharma</h1>
-              <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>OMS</span>
-            </div>
+          <div>
+            <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>RadioPharma</h1>
+            <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>OMS</span>
+          </div>
+          {isMobile ? (
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'white',
+                padding: '0.5rem',
+              }}
+            >
+              <X size={20} />
+            </button>
+          ) : (
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'white',
+                padding: '0.5rem',
+              }}
+            >
+              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           )}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'white',
-              padding: '0.5rem',
-            }}
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
         </div>
 
         <nav style={{ flex: 1, padding: '0.5rem', overflowY: 'auto' }}>
@@ -265,6 +313,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={() => isMobile && setMobileMenuOpen(false)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -279,7 +328,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 }}
               >
                 <Icon size={20} />
-                {sidebarOpen && <span style={{ fontSize: '0.875rem' }}>{t(item.labelKey)}</span>}
+                {(isMobile || sidebarOpen) && <span style={{ fontSize: '0.875rem' }}>{t(item.labelKey)}</span>}
               </Link>
             );
           })}
@@ -307,7 +356,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             }}
           >
             <LogOut size={20} />
-            {sidebarOpen && <span style={{ fontSize: '0.875rem' }}>Logout</span>}
+            {(isMobile || sidebarOpen) && <span style={{ fontSize: '0.875rem' }}>Logout</span>}
           </button>
         </div>
       </aside>
@@ -315,7 +364,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <div
         style={{
           flex: 1,
-          marginLeft: sidebarOpen ? '16rem' : '4rem',
+          marginLeft: isMobile ? 0 : (sidebarOpen ? '16rem' : '4rem'),
           transition: 'margin-left 0.2s ease',
         }}
       >
@@ -323,55 +372,71 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           style={{
             background: 'var(--bg-primary)',
             borderBottom: '1px solid var(--border)',
-            padding: '0.75rem 1.5rem',
+            padding: isMobile ? '0.75rem 1rem' : '0.75rem 1.5rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             position: 'sticky',
             top: 0,
             zIndex: 30,
+            gap: '0.5rem',
           }}
         >
-          <div>
-            <h2 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>
-              {menuItems.find((m) => m.path === location.pathname)?.label || 'RadioPharma OMS'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {isMobile && (
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: '0.5rem',
+                  cursor: 'pointer',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <Menu size={24} />
+              </button>
+            )}
+            <h2 style={{ fontSize: isMobile ? '1rem' : '1.125rem', fontWeight: 600, margin: 0 }}>
+              {isMobile ? 'RadioPharma' : (t(menuItems.find((m) => m.path === location.pathname)?.labelKey || 'RadioPharma OMS'))}
             </h2>
           </div>
 
-          {/* Context Bar - Date, Time, Language, Currency */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.25rem',
-            background: 'var(--bg-secondary)',
-            borderRadius: '8px',
-            padding: '0.375rem 0.5rem',
-          }}>
+          {/* Context Bar - Date, Time, Language, Currency - Hidden on mobile */}
+          {!isMobile && (
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: '0.375rem',
-              padding: '0.25rem 0.625rem',
-              borderRight: '1px solid var(--border)',
+              gap: '0.25rem',
+              background: 'var(--bg-secondary)',
+              borderRadius: '8px',
+              padding: '0.375rem 0.5rem',
             }}>
-              <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
-              <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
-                {getFormattedDate()}
-              </span>
-            </div>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.375rem',
-              padding: '0.25rem 0.625rem',
-              borderRight: '1px solid var(--border)',
-            }}>
-              <Clock size={14} style={{ color: 'var(--text-muted)' }} />
-              <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
-                {getFormattedTime()}
-              </span>
-              <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>{timezoneAbbr}</span>
-            </div>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.375rem',
+                padding: '0.25rem 0.625rem',
+                borderRight: '1px solid var(--border)',
+              }}>
+                <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
+                <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+                  {getFormattedDate()}
+                </span>
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.375rem',
+                padding: '0.25rem 0.625rem',
+                borderRight: '1px solid var(--border)',
+              }}>
+                <Clock size={14} style={{ color: 'var(--text-muted)' }} />
+                <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+                  {getFormattedTime()}
+                </span>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>{timezoneAbbr}</span>
+              </div>
             <div ref={languageRef} style={{ position: 'relative' }}>
               <button
                 onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
@@ -456,6 +521,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{currencyCode}</span>
             </div>
           </div>
+          )}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <ThemeToggle />
