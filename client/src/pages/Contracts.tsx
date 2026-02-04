@@ -7,7 +7,7 @@ import {
   FileSignature, 
   Check, 
   X, 
-  DollarSign, 
+  Coins, 
   Building2, 
   Calendar,
   CreditCard,
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import AttachmentPanel from '../components/AttachmentPanel';
 import { KpiCard } from '../components/shared';
+import { formatMoney, SYSTEM_CURRENCY } from '../lib/format';
 
 export default function Contracts() {
   const [selectedContract, setSelectedContract] = useState<any>(null);
@@ -271,7 +272,7 @@ export default function Contracts() {
         />
         <KpiCard 
           title="Total Credit" 
-          value={`$${(totalCreditLimit / 1000).toFixed(0)}k`}
+          value={`${SYSTEM_CURRENCY} ${(totalCreditLimit / 1000).toFixed(0)}k`}
           icon={<CreditCard size={20} />}
           color="info"
         />
@@ -371,7 +372,7 @@ export default function Contracts() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                           <CreditCard size={12} style={{ color: 'var(--text-muted)' }} />
                           <span style={{ fontWeight: 500 }}>
-                            {contract.creditLimit ? `$${contract.creditLimit.toLocaleString()}` : 'No limit'}
+                            {contract.creditLimit ? formatMoney(contract.creditLimit) : 'No limit'}
                           </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
@@ -638,7 +639,7 @@ export default function Contracts() {
                         Credit Limit
                       </div>
                       <div style={{ fontWeight: 600, fontSize: '1.125rem' }}>
-                        {selectedContract.creditLimit ? `$${selectedContract.creditLimit.toLocaleString()}` : 'Unlimited'}
+                        {selectedContract.creditLimit ? formatMoney(selectedContract.creditLimit) : 'Unlimited'}
                       </div>
                     </div>
                     <div style={{ 
@@ -725,7 +726,7 @@ export default function Contracts() {
                           </div>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                              ${item.unitPrice.toFixed(2)}
+                              {formatMoney(item.unitPrice)}
                             </div>
                             <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
                               {item.priceUnit}
@@ -763,7 +764,7 @@ export default function Contracts() {
                       background: 'var(--bg-secondary)',
                       borderRadius: 'var(--radius)'
                     }}>
-                      <DollarSign size={32} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
+                      <Coins size={32} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
                       <div style={{ marginBottom: '0.25rem' }}>No custom pricing</div>
                       <div style={{ fontSize: '0.75rem' }}>Using default product rates</div>
                     </div>

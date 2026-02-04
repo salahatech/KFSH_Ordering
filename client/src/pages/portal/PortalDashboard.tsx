@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/authStore';
 import { ShoppingCart, Clock, CheckCircle, Plus, Receipt, Truck, Package, AlertTriangle, Building2 } from 'lucide-react';
 import { KpiCard, StatusBadge } from '../../components/shared';
 import { DashboardHeader, JourneyFunnelStepper, QueueList, type JourneyStage, type QueueItem } from '../../components/dashboard';
+import { formatMoney } from '../../lib/format';
 
 export default function PortalDashboard() {
   const { user } = useAuthStore();
@@ -279,7 +280,7 @@ export default function PortalDashboard() {
                   <td style={{ fontSize: '0.875rem' }}>
                     {format(new Date(invoice.invoiceDate), 'MMM d, yyyy')}
                   </td>
-                  <td style={{ fontWeight: 500 }}>${invoice.totalAmount?.toFixed(2)}</td>
+                  <td style={{ fontWeight: 500 }}>{formatMoney(invoice.totalAmount)}</td>
                   <td>
                     <StatusBadge 
                       status={invoice.status} 
