@@ -30,6 +30,7 @@ import Contracts from './pages/Contracts';
 import Invoices from './pages/Invoices';
 import OrderJourney from './pages/OrderJourney';
 import BatchJourney from './pages/BatchJourney';
+import OrderJourneyDiagram from './pages/OrderJourneyDiagram';
 import PortalDashboard from './pages/portal/PortalDashboard';
 import PortalOrders from './pages/portal/PortalOrders';
 import PortalNewOrder from './pages/portal/PortalNewOrder';
@@ -270,6 +271,7 @@ export default function App() {
                   <Route path="/orders/new" element={<OrderForm />} />
                   <Route path="/orders/:id" element={<OrderForm />} />
                   <Route path="/orders/:id/journey" element={<OrderJourney />} />
+                  <Route path="/order-journey-diagram" element={<OrderJourneyDiagram />} />
                   <Route path="/planner" element={<Planner />} />
                   <Route path="/production-schedule" element={<ProductionSchedule />} />
                   <Route path="/batches" element={<Batches />} />
