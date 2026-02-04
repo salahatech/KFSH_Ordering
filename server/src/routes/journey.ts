@@ -117,6 +117,7 @@ router.get('/orders/:id/journey', authenticateToken, async (req: Request, res: R
       }
 
       for (const release of order.batch.batchReleases || []) {
+        if (!release.releasedAt) continue;
         events.push({
           id: release.id,
           type: release.disposition === 'RELEASED' ? 'RELEASED' : release.disposition === 'REJECTED' ? 'REJECTED' : 'ON_HOLD',
