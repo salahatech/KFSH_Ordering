@@ -201,7 +201,7 @@ async function notifyEvent(event: CriticalEvent) {
       
       await sendNotification({
         userId,
-        type: 'INFO',
+        type: 'SYSTEM',
         title: getEventTitle(event.type),
         message: event.message,
         relatedId: event.entityId,
@@ -258,7 +258,7 @@ export async function triggerBatchReadyNotification(batchId: string) {
   for (const user of qpUsers) {
     await sendNotification({
       userId: user.id,
-      type: 'INFO',
+      type: 'SYSTEM',
       title: 'Batch Ready for QP Release',
       message: `Batch ${batch.batchNumber} (${batch.product.name}) has passed QC and is ready for release`,
       relatedId: batchId,

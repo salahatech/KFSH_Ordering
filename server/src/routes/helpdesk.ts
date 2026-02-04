@@ -189,7 +189,7 @@ router.post('/tickets', authenticateToken, async (req: Request, res: Response) =
     
     await sendNotification({
       userId,
-      type: 'INFO',
+      type: 'SYSTEM',
       title: 'Ticket Created',
       message: `Your support ticket ${ticketNo} has been created. We will respond shortly.`,
       relatedId: ticket.id,
@@ -208,7 +208,7 @@ router.post('/tickets', authenticateToken, async (req: Request, res: Response) =
     for (const supportUser of supportUsers) {
       await sendNotification({
         userId: supportUser.id,
-        type: 'INFO',
+        type: 'SYSTEM',
         title: 'New Support Ticket',
         message: `New ticket ${ticketNo}: ${subject}`,
         relatedId: ticket.id,
@@ -317,7 +317,7 @@ router.post('/tickets/:id/reply', authenticateToken, async (req: Request, res: R
     if (ticket.assignedToUserId) {
       await sendNotification({
         userId: ticket.assignedToUserId,
-        type: 'INFO',
+        type: 'SYSTEM',
         title: 'New Reply on Ticket',
         message: `User replied to ticket ${ticket.ticketNo}`,
         relatedId: ticket.id,
@@ -542,7 +542,7 @@ router.patch('/admin/tickets/:id', authenticateToken, requireRole('Admin', 'Sale
     if (assignedToUserId && assignedToUserId !== ticket.assignedToUserId) {
       await sendNotification({
         userId: assignedToUserId,
-        type: 'INFO',
+        type: 'SYSTEM',
         title: 'Ticket Assigned',
         message: `Ticket ${ticket.ticketNo} has been assigned to you`,
         relatedId: ticket.id,
@@ -554,7 +554,7 @@ router.patch('/admin/tickets/:id', authenticateToken, requireRole('Admin', 'Sale
     if (status && status !== ticket.status) {
       await sendNotification({
         userId: ticket.requesterUserId,
-        type: 'INFO',
+        type: 'SYSTEM',
         title: 'Ticket Status Updated',
         message: `Your ticket ${ticket.ticketNo} status changed to ${status}`,
         relatedId: ticket.id,
@@ -615,7 +615,7 @@ router.post('/admin/tickets/:id/reply', authenticateToken, requireRole('Admin', 
     
     await sendNotification({
       userId: ticket.requesterUserId,
-      type: 'INFO',
+      type: 'SYSTEM',
       title: 'New Reply on Your Ticket',
       message: `Support replied to your ticket ${ticket.ticketNo}`,
       relatedId: ticket.id,
@@ -710,7 +710,7 @@ router.post('/admin/tickets/:id/tasks', authenticateToken, requireRole('Admin', 
     if (assignedToUserId) {
       await sendNotification({
         userId: assignedToUserId,
-        type: 'INFO',
+        type: 'SYSTEM',
         title: 'Task Assigned',
         message: `New task "${title}" assigned to you for ticket ${ticket.ticketNo}`,
         relatedId: ticket.id,
@@ -766,7 +766,7 @@ router.patch('/admin/tasks/:taskId', authenticateToken, requireRole('Admin', 'Sa
     if (assignedToUserId && assignedToUserId !== task.assignedToUserId) {
       await sendNotification({
         userId: assignedToUserId,
-        type: 'INFO',
+        type: 'SYSTEM',
         title: 'Task Assigned',
         message: `Task "${task.title}" has been assigned to you`,
         relatedId: task.ticketId,

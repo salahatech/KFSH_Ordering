@@ -161,7 +161,7 @@ async function sendApprovalReminder(approval: PendingApproval) {
   for (const approver of approvers) {
     await sendNotification({
       userId: approver.id,
-      type: 'INFO',
+      type: 'SYSTEM',
       title,
       message,
       relatedId: approval.id,
