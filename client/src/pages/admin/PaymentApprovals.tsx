@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 
 export default function PaymentApprovals() {
   const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState('PENDING');
+  const [statusFilter, setStatusFilter] = useState('PENDING_CONFIRMATION');
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -78,7 +78,7 @@ export default function PaymentApprovals() {
 
   const getStatusBadge = (status: string) => {
     const config: Record<string, { color: string; icon: any }> = {
-      PENDING: { color: 'warning', icon: Clock },
+      PENDING_CONFIRMATION: { color: 'warning', icon: Clock },
       CONFIRMED: { color: 'success', icon: CheckCircle },
       REJECTED: { color: 'danger', icon: XCircle },
     };
@@ -113,8 +113,8 @@ export default function PaymentApprovals() {
       <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
         <div 
           className="card" 
-          style={{ padding: '1.25rem', cursor: 'pointer', border: statusFilter === 'PENDING' ? '2px solid var(--warning)' : undefined }}
-          onClick={() => setStatusFilter('PENDING')}
+          style={{ padding: '1.25rem', cursor: 'pointer', border: statusFilter === 'PENDING_CONFIRMATION' ? '2px solid var(--warning)' : undefined }}
+          onClick={() => setStatusFilter('PENDING_CONFIRMATION')}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div style={{ 
@@ -400,7 +400,7 @@ export default function PaymentApprovals() {
               </div>
             )}
 
-            {selectedRequest.status === 'PENDING' && (
+            {selectedRequest.status === 'PENDING_CONFIRMATION' && (
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <button 
                   className="btn btn-success" 
