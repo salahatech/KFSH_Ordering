@@ -11,6 +11,7 @@ interface User {
   phone?: string;
   customerId?: string;
   customerName?: string;
+  customerLogoUrl?: string;
 }
 
 interface AuthState {

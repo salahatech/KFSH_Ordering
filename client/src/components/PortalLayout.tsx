@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useLanguageStore } from '../store/languageStore';
+import { useBranding } from '../hooks/useBranding';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -34,6 +35,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const { language } = useLanguageStore();
+  const { siteLogo, siteName } = useBranding();
   const isRtl = language === 'ar';
 
   const handleLogout = async () => {
@@ -68,9 +70,23 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           }}
         >
           {sidebarOpen && (
-            <div>
-              <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>RadioPharma</h1>
-              <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Client Portal</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {siteLogo ? (
+                <img 
+                  src={siteLogo} 
+                  alt={siteName} 
+                  style={{ 
+                    width: '32px', 
+                    height: '32px', 
+                    objectFit: 'contain',
+                    borderRadius: '6px',
+                  }} 
+                />
+              ) : null}
+              <div>
+                <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>{siteName}</h1>
+                <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Client Portal</span>
+              </div>
             </div>
           )}
           <button
@@ -165,7 +181,21 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Building2 size={20} style={{ color: '#0d9488' }} />
+            {user?.customerLogoUrl ? (
+              <img 
+                src={user.customerLogoUrl} 
+                alt={user.customerName || 'Customer'} 
+                style={{ 
+                  width: '40px', 
+                  height: '40px', 
+                  objectFit: 'contain',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                }} 
+              />
+            ) : (
+              <Building2 size={20} style={{ color: '#0d9488' }} />
+            )}
             <div>
               <h2 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>
                 {portalMenuItems.find((m) => m.path === location.pathname)?.label || 'Client Portal'}

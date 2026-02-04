@@ -8,6 +8,7 @@ import { useFavoritesStore } from '../store/favoritesStore';
 import { useCurrencyStore } from '../store/currencyStore';
 import api from '../lib/api';
 import { useLocalization } from '../hooks/useLocalization';
+import { useBranding } from '../hooks/useBranding';
 import {
   LayoutDashboard,
   Users,
@@ -252,6 +253,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { currency: selectedCurrency, setCurrency } = useCurrencyStore();
   const isRtl = language === 'ar';
   const { formatTimeOnly, formatDateOnly, formatDateTime, exchangeRates } = useLocalization();
+  const { siteLogo, siteName } = useBranding();
 
   const { data: systemSettings } = useQuery<SystemSettings>({
     queryKey: ['system-settings'],
@@ -400,9 +402,23 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             borderBottom: '1px solid rgba(255,255,255,0.1)',
           }}
         >
-          <div>
-            <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>RadioPharma</h1>
-            <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>OMS</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {siteLogo ? (
+              <img 
+                src={siteLogo} 
+                alt={siteName} 
+                style={{ 
+                  width: '36px', 
+                  height: '36px', 
+                  objectFit: 'contain',
+                  borderRadius: '6px',
+                }} 
+              />
+            ) : null}
+            <div>
+              <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>{siteName}</h1>
+              <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>OMS</span>
+            </div>
           </div>
           {isMobile ? (
             <button

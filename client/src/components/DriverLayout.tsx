@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { useBranding } from '../hooks/useBranding';
 import { Home, Truck, LogOut, User } from 'lucide-react';
 import AnnouncementBar from './AnnouncementBar';
 import HeaderBar from './shared/HeaderBar';
@@ -8,6 +9,7 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const { siteLogo, siteName } = useBranding();
 
   const handleLogout = () => {
     logout();
@@ -34,21 +36,34 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              backgroundColor: 'var(--primary)',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-            }}>
-              <Truck size={20} />
-            </div>
+            {siteLogo ? (
+              <img 
+                src={siteLogo} 
+                alt={siteName} 
+                style={{ 
+                  width: '36px', 
+                  height: '36px', 
+                  objectFit: 'contain',
+                  borderRadius: '8px',
+                }} 
+              />
+            ) : (
+              <div style={{
+                width: '36px',
+                height: '36px',
+                backgroundColor: 'var(--primary)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+              }}>
+                <Truck size={20} />
+              </div>
+            )}
             <div>
               <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Driver Portal</div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>RadioPharma OMS</div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>{siteName} OMS</div>
             </div>
           </div>
           <nav style={{ display: 'flex', gap: '0.5rem' }}>

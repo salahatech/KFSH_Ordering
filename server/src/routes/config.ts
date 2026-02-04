@@ -8,6 +8,39 @@ const prisma = new PrismaClient();
 
 /**
  * @swagger
+ * /config/branding:
+ *   get:
+ *     summary: Get public branding settings (no auth required)
+ *     tags: [Config]
+ *     responses:
+ *       200:
+ *         description: Public branding settings
+ */
+router.get('/branding', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const brandingKeys = ['SITE_LOGO', 'SITE_NAME', 'COMPANY_NAME', 'COMPANY_NAME_AR'];
+    const configs = await prisma.systemConfig.findMany({
+      where: { key: { in: brandingKeys } },
+    });
+
+    const branding: Record<string, string> = {};
+    configs.forEach((c) => {
+      branding[c.key] = c.value;
+    });
+
+    res.json({
+      siteLogo: branding.SITE_LOGO || null,
+      siteName: branding.SITE_NAME || 'RadioPharma',
+      companyName: branding.COMPANY_NAME || 'RadioPharma',
+      companyNameAr: branding.COMPANY_NAME_AR || 'راديو فارما',
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch branding' });
+  }
+});
+
+/**
+ * @swagger
  * /config:
  *   get:
  *     summary: Get all system config

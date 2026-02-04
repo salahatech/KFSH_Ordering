@@ -239,6 +239,7 @@ router.get('/me', authenticateToken, async (req: Request, res: Response): Promis
       permissions: user.role.permissions.map((p) => p.name),
       customerId: user.customerId,
       customerName: user.customer?.name,
+      customerLogoUrl: user.customer?.logoUrl,
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to get user info' });
