@@ -4,6 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -46,7 +47,7 @@ async function logAuditEvent(userId: string, entityType: string, entityId: strin
   }
 }
 
-router.get('/types', async (req: Request, res: Response) => {
+router.get('/types', authenticateToken, async (req: Request, res: Response) => {
   try {
     const types = await prisma.attachmentType.findMany({
       orderBy: { name: 'asc' }
@@ -58,7 +59,7 @@ router.get('/types', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/types', async (req: Request, res: Response) => {
+router.post('/types', authenticateToken, async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { name, extensions, mimeTypes, maxSizeMB, isActive } = req.body;
@@ -84,7 +85,7 @@ router.post('/types', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/types/:id', async (req: Request, res: Response) => {
+router.put('/types/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { id } = req.params;
@@ -117,7 +118,7 @@ router.put('/types/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/types/:id', async (req: Request, res: Response) => {
+router.delete('/types/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { id } = req.params;
@@ -146,7 +147,7 @@ router.delete('/types/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/allowed-extensions', async (req: Request, res: Response) => {
+router.get('/allowed-extensions', authenticateToken, async (req: Request, res: Response) => {
   try {
     const types = await prisma.attachmentType.findMany({
       where: { isActive: true },
@@ -174,7 +175,7 @@ router.get('/allowed-extensions', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/:entityType/:entityId', async (req: Request, res: Response) => {
+router.get('/:entityType/:entityId', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { entityType, entityId } = req.params;
     const userId = req.user?.userId;
@@ -203,7 +204,7 @@ router.get('/:entityType/:entityId', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/:entityType/:entityId', upload.single('file'), async (req: Request, res: Response) => {
+router.post('/:entityType/:entityId', authenticateToken, upload.single('file'), async (req: Request, res: Response) => {
   try {
     const { entityType, entityId } = req.params;
     const { description, attachmentTypeId } = req.body;
@@ -290,14 +291,10 @@ router.post('/:entityType/:entityId', upload.single('file'), async (req: Request
   }
 });
 
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const userId = req.user?.userId;
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
     
     const attachment = await prisma.attachment.findUnique({
       where: { id }
@@ -326,14 +323,10 @@ router.delete('/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/download/:id', async (req: Request, res: Response) => {
+router.get('/download/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const userId = req.user?.userId;
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
     
     const attachment = await prisma.attachment.findUnique({
       where: { id }
