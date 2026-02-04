@@ -1,19 +1,24 @@
-const DEFAULT_CURRENCY = 'SAR';
+export const SYSTEM_CURRENCY = 'SAR';
+export const SYSTEM_CURRENCY_SYMBOL = '﷼';
 const DEFAULT_LOCALE = 'en-SA';
 
 export function formatCurrency(
   amount: number | null | undefined,
-  currency: string = DEFAULT_CURRENCY,
+  currency: string = SYSTEM_CURRENCY,
   locale: string = DEFAULT_LOCALE
 ): string {
-  if (amount === null || amount === undefined) return `${currency} 0.00`;
+  if (amount === null || amount === undefined) return `${SYSTEM_CURRENCY} 0.00`;
   
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: currency,
+  const formatted = new Intl.NumberFormat(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount);
+  
+  return `${currency} ${formatted}`;
+}
+
+export function formatMoney(amount: number | null | undefined): string {
+  return formatCurrency(amount, SYSTEM_CURRENCY);
 }
 
 export function formatAmount(

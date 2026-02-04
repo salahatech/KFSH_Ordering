@@ -17,7 +17,7 @@ import {
   Download,
   Building2,
   Calendar,
-  DollarSign,
+  Coins,
   CheckCircle,
   Clock,
   Printer,
@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import AttachmentPanel from '../components/AttachmentPanel';
 import { KpiCard } from '../components/shared';
+import { formatMoney, SYSTEM_CURRENCY } from '../lib/format';
 
 function generateZatcaQRData(invoice: any, sellerName: string, vatNumber: string): string {
   const invoiceDate = new Date(invoice.invoiceDate).toISOString();
@@ -306,8 +307,8 @@ export default function Invoices() {
         invoice.items.forEach((item: any) => {
           doc.text(item.description || 'Item', margin + 3, yPos);
           doc.text(item.quantity?.toString() || '1', margin + 95, yPos);
-          doc.text(`$${item.unitPrice?.toFixed(2) || '0.00'}`, margin + 115, yPos);
-          doc.text(`$${item.lineTotal?.toFixed(2) || '0.00'}`, margin + contentWidth - 3, yPos, { align: 'right' });
+          doc.text(`${SYSTEM_CURRENCY} ${item.unitPrice?.toFixed(2) || '0.00'}`, margin + 115, yPos);
+          doc.text(`${SYSTEM_CURRENCY} ${item.lineTotal?.toFixed(2) || '0.00'}`, margin + contentWidth - 3, yPos, { align: 'right' });
           
           doc.setDrawColor(230, 230, 230);
           doc.line(margin, yPos + 3, margin + contentWidth, yPos + 3);
@@ -323,13 +324,13 @@ export default function Invoices() {
       doc.setTextColor(100, 100, 100);
       doc.text('Subtotal:', totalsX, yPos);
       doc.setTextColor(0, 0, 0);
-      doc.text(`$${invoice.subtotal?.toFixed(2) || '0.00'}`, margin + contentWidth - 3, yPos, { align: 'right' });
+      doc.text(`${SYSTEM_CURRENCY} ${invoice.subtotal?.toFixed(2) || '0.00'}`, margin + contentWidth - 3, yPos, { align: 'right' });
       
       yPos += 8;
       doc.setTextColor(100, 100, 100);
       doc.text(`VAT (${invoice.taxRate || 15}%):`, totalsX, yPos);
       doc.setTextColor(0, 0, 0);
-      doc.text(`$${invoice.taxAmount?.toFixed(2) || '0.00'}`, margin + contentWidth - 3, yPos, { align: 'right' });
+      doc.text(`${SYSTEM_CURRENCY} ${invoice.taxAmount?.toFixed(2) || '0.00'}`, margin + contentWidth - 3, yPos, { align: 'right' });
       
       yPos += 10;
       doc.setFillColor(30, 58, 95);
@@ -339,19 +340,19 @@ export default function Invoices() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
       doc.text('TOTAL:', totalsX, yPos + 3);
-      doc.text(`$${invoice.totalAmount?.toFixed(2) || '0.00'}`, margin + contentWidth - 3, yPos + 3, { align: 'right' });
+      doc.text(`${SYSTEM_CURRENCY} ${invoice.totalAmount?.toFixed(2) || '0.00'}`, margin + contentWidth - 3, yPos + 3, { align: 'right' });
       
       if (invoice.paidAmount > 0) {
         yPos += 18;
         doc.setTextColor(34, 197, 94);
         doc.setFontSize(10);
-        doc.text(`Paid: $${invoice.paidAmount?.toFixed(2)}`, totalsX, yPos);
+        doc.text(`Paid: ${SYSTEM_CURRENCY} ${invoice.paidAmount?.toFixed(2)}`, totalsX, yPos);
         
         const balance = invoice.totalAmount - invoice.paidAmount;
         if (balance > 0) {
           yPos += 8;
           doc.setTextColor(239, 68, 68);
-          doc.text(`Balance Due: $${balance.toFixed(2)}`, totalsX, yPos);
+          doc.text(`Balance Due: ${SYSTEM_CURRENCY} ${balance.toFixed(2)}`, totalsX, yPos);
         }
       }
       
@@ -530,12 +531,12 @@ export default function Invoices() {
                       </div>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 600, fontSize: '1rem' }}>
-                        ${invoice.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      <div style={{ fontWeight: 600, fontSize: '1rem', fontFamily: 'var(--font-mono, monospace)' }}>
+                        {formatMoney(invoice.totalAmount)}
                       </div>
                       {invoice.paidAmount > 0 && invoice.paidAmount < invoice.totalAmount && (
                         <div style={{ fontSize: '0.75rem', color: 'var(--success)' }}>
-                          Paid: ${invoice.paidAmount.toFixed(2)}
+                          Paid: {formatMoney(invoice.paidAmount)}
                         </div>
                       )}
                     </td>
@@ -747,11 +748,11 @@ export default function Invoices() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
                         <div style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '0.25rem' }}>Total Amount</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>${selectedInvoice.totalAmount.toFixed(2)}</div>
+                        <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{formatMoney(selectedInvoice.totalAmount)}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '0.25rem' }}>Paid</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>${selectedInvoice.paidAmount.toFixed(2)}</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{formatMoney(selectedInvoice.paidAmount)}</div>
                       </div>
                     </div>
                     {selectedInvoice.totalAmount - selectedInvoice.paidAmount > 0 && (
@@ -763,7 +764,7 @@ export default function Invoices() {
                         justifyContent: 'space-between'
                       }}>
                         <span style={{ fontSize: '0.875rem', opacity: 0.8 }}>Balance Due</span>
-                        <span style={{ fontWeight: 600 }}>${(selectedInvoice.totalAmount - selectedInvoice.paidAmount).toFixed(2)}</span>
+                        <span style={{ fontWeight: 600 }}>{formatMoney(selectedInvoice.totalAmount - selectedInvoice.paidAmount)}</span>
                       </div>
                     )}
                   </div>
@@ -788,11 +789,11 @@ export default function Invoices() {
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 500, marginBottom: '0.125rem' }}>{item.description}</div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                              {item.quantity} x ${item.unitPrice.toFixed(2)}
+                              {item.quantity} x {formatMoney(item.unitPrice)}
                             </div>
                           </div>
                           <div style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                            ${item.lineTotal.toFixed(2)}
+                            {formatMoney(item.lineTotal)}
                           </div>
                         </div>
                       ))}
@@ -806,11 +807,11 @@ export default function Invoices() {
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                       <span style={{ color: 'var(--text-muted)' }}>Subtotal</span>
-                      <span>${selectedInvoice.subtotal.toFixed(2)}</span>
+                      <span>{formatMoney(selectedInvoice.subtotal)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                       <span style={{ color: 'var(--text-muted)' }}>VAT ({selectedInvoice.taxRate || 15}%)</span>
-                      <span>${selectedInvoice.taxAmount.toFixed(2)}</span>
+                      <span>{formatMoney(selectedInvoice.taxAmount)}</span>
                     </div>
                     <div style={{ 
                       display: 'flex', 
@@ -820,7 +821,7 @@ export default function Invoices() {
                       fontWeight: 600
                     }}>
                       <span>Total</span>
-                      <span>${selectedInvoice.totalAmount.toFixed(2)}</span>
+                      <span>{formatMoney(selectedInvoice.totalAmount)}</span>
                     </div>
                   </div>
                 </>
@@ -855,7 +856,7 @@ export default function Invoices() {
                           </div>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 600, color: 'var(--success)', marginBottom: '0.125rem' }}>
-                              ${payment.amount.toFixed(2)}
+                              {formatMoney(payment.amount)}
                             </div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                               {formatDateOnly(payment.paymentDate)} via {payment.paymentMethod.replace('_', ' ')}
@@ -1048,7 +1049,7 @@ export default function Invoices() {
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Outstanding</span>
                   <span style={{ fontWeight: 600, color: 'var(--danger)' }}>
-                    ${(showPaymentModal.totalAmount - showPaymentModal.paidAmount).toFixed(2)}
+                    {formatMoney(showPaymentModal.totalAmount - showPaymentModal.paidAmount)}
                   </span>
                 </div>
               </div>
