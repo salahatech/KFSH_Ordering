@@ -171,6 +171,22 @@ export default function CustomerForm() {
     if (!formData.crNumber.trim()) newErrors.crNumber = 'Commercial Registration number is required';
     if (!formData.taxNumber.trim()) newErrors.taxNumber = 'Tax number is required';
     if (!formData.fullAddress.trim()) newErrors.fullAddress = 'Full address is required';
+    
+    // Saudi National Address validation
+    if (!formData.shortAddress.trim()) {
+      newErrors.shortAddress = 'Short address is required (e.g., ABCD1234)';
+    } else if (!/^[A-Z]{4}\d{4}$/.test(formData.shortAddress.trim())) {
+      newErrors.shortAddress = 'Format: 4 letters + 4 digits (e.g., JERA4240)';
+    }
+    if (!formData.buildingNo.trim()) newErrors.buildingNo = 'Building number is required';
+    if (!formData.street.trim()) newErrors.street = 'Street name is required';
+    if (!formData.secondaryNo.trim()) newErrors.secondaryNo = 'Secondary number is required';
+    if (!formData.district.trim()) newErrors.district = 'District is required';
+    if (!formData.postalCode.trim()) {
+      newErrors.postalCode = 'Postal code is required';
+    } else if (!/^\d{5}$/.test(formData.postalCode.trim())) {
+      newErrors.postalCode = 'Postal code must be 5 digits';
+    }
     if (!formData.cityId) newErrors.cityId = 'City is required';
 
     if (formData.latitude) {
@@ -489,70 +505,85 @@ export default function CustomerForm() {
                 {errors.fullAddress && <span className="form-error">{errors.fullAddress}</span>}
               </div>
 
-              <div style={{ padding: '1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius)', marginBottom: '1rem' }}>
-                <h4 style={{ fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
-                  Saudi National Address (Optional)
-                </h4>
+              <div style={{ padding: '1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius)', marginBottom: '1rem', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <MapPin size={16} style={{ color: 'var(--primary)' }} />
+                  <h4 style={{ fontSize: '0.8125rem', fontWeight: 600, margin: 0, color: 'var(--text-primary)' }}>
+                    Saudi National Address
+                  </h4>
+                </div>
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Short Address</label>
+                    <label className="form-label">Short Address *</label>
                     <input
                       type="text"
-                      className="form-input"
+                      className={`form-input ${errors.shortAddress ? 'error' : ''}`}
                       value={formData.shortAddress}
-                      onChange={(e) => handleChange('shortAddress', e.target.value)}
+                      onChange={(e) => handleChange('shortAddress', e.target.value.toUpperCase())}
                       placeholder="ABCD1234"
                       maxLength={8}
                     />
+                    {errors.shortAddress && <span className="form-error">{errors.shortAddress}</span>}
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Building No.</label>
+                    <label className="form-label">Building No. *</label>
                     <input
                       type="text"
-                      className="form-input"
+                      className={`form-input ${errors.buildingNo ? 'error' : ''}`}
                       value={formData.buildingNo}
                       onChange={(e) => handleChange('buildingNo', e.target.value)}
+                      placeholder="e.g., 4240"
                     />
+                    {errors.buildingNo && <span className="form-error">{errors.buildingNo}</span>}
                   </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Street</label>
+                    <label className="form-label">Street *</label>
                     <input
                       type="text"
-                      className="form-input"
+                      className={`form-input ${errors.street ? 'error' : ''}`}
                       value={formData.street}
                       onChange={(e) => handleChange('street', e.target.value)}
+                      placeholder="e.g., Muhammad Ali Maghrebi"
                     />
+                    {errors.street && <span className="form-error">{errors.street}</span>}
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Secondary No.</label>
+                    <label className="form-label">Secondary No. *</label>
                     <input
                       type="text"
-                      className="form-input"
+                      className={`form-input ${errors.secondaryNo ? 'error' : ''}`}
                       value={formData.secondaryNo}
                       onChange={(e) => handleChange('secondaryNo', e.target.value)}
+                      placeholder="e.g., 9014"
                     />
+                    {errors.secondaryNo && <span className="form-error">{errors.secondaryNo}</span>}
                   </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">District</label>
+                    <label className="form-label">District *</label>
                     <input
                       type="text"
-                      className="form-input"
+                      className={`form-input ${errors.district ? 'error' : ''}`}
                       value={formData.district}
                       onChange={(e) => handleChange('district', e.target.value)}
+                      placeholder="e.g., Ar Rawdah Dist."
                     />
+                    {errors.district && <span className="form-error">{errors.district}</span>}
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Postal Code</label>
+                    <label className="form-label">Postal Code *</label>
                     <input
                       type="text"
-                      className="form-input"
+                      className={`form-input ${errors.postalCode ? 'error' : ''}`}
                       value={formData.postalCode}
                       onChange={(e) => handleChange('postalCode', e.target.value)}
+                      placeholder="e.g., 23434"
+                      maxLength={5}
                     />
+                    {errors.postalCode && <span className="form-error">{errors.postalCode}</span>}
                   </div>
                 </div>
               </div>

@@ -31,11 +31,16 @@ interface Supplier {
   crNumber?: string;
   bankName?: string;
   bankIban?: string;
-  address?: string;
+  fullAddress?: string;
+  shortAddress?: string;
+  buildingNo?: string;
+  street?: string;
+  secondaryNo?: string;
+  district?: string;
+  postalCode?: string;
   city?: string;
   region?: string;
   country?: string;
-  postalCode?: string;
   paymentTermsDays: number;
   status: string;
   contacts?: SupplierContact[];
@@ -95,11 +100,16 @@ export default function Suppliers() {
     bankAccountNumber: '',
     bankIban: '',
     bankSwift: '',
-    address: '',
+    fullAddress: '',
+    shortAddress: '',
+    buildingNo: '',
+    street: '',
+    secondaryNo: '',
+    district: '',
+    postalCode: '',
     city: '',
     region: '',
     country: 'Saudi Arabia',
-    postalCode: '',
     paymentTermsDays: 30,
     status: 'ACTIVE',
   });
@@ -185,11 +195,16 @@ export default function Suppliers() {
       bankAccountNumber: '',
       bankIban: '',
       bankSwift: '',
-      address: '',
+      fullAddress: '',
+      shortAddress: '',
+      buildingNo: '',
+      street: '',
+      secondaryNo: '',
+      district: '',
+      postalCode: '',
       city: '',
       region: '',
       country: 'Saudi Arabia',
-      postalCode: '',
       paymentTermsDays: 30,
       status: 'ACTIVE',
     });
@@ -214,11 +229,16 @@ export default function Suppliers() {
       bankAccountNumber: '',
       bankIban: supplier.bankIban || '',
       bankSwift: '',
-      address: supplier.address || '',
+      fullAddress: supplier.fullAddress || '',
+      shortAddress: supplier.shortAddress || '',
+      buildingNo: supplier.buildingNo || '',
+      street: supplier.street || '',
+      secondaryNo: supplier.secondaryNo || '',
+      district: supplier.district || '',
+      postalCode: supplier.postalCode || '',
       city: supplier.city || '',
       region: supplier.region || '',
       country: supplier.country || 'Saudi Arabia',
-      postalCode: supplier.postalCode || '',
       paymentTermsDays: supplier.paymentTermsDays || 30,
       status: supplier.status,
     });
@@ -505,16 +525,23 @@ export default function Suppliers() {
                 </div>
               </div>
 
-              {(displaySupplier.address || displaySupplier.city) && (
+              {(displaySupplier.fullAddress || displaySupplier.shortAddress || displaySupplier.city) && (
                 <div style={{ marginBottom: '1.25rem' }}>
                   <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
-                    Address
+                    Saudi National Address
                   </div>
                   <div style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                       <MapPin size={16} style={{ color: 'var(--primary)', marginTop: '0.125rem' }} />
                       <div style={{ fontSize: '0.875rem' }}>
-                        {displaySupplier.address && <div>{displaySupplier.address}</div>}
+                        {displaySupplier.shortAddress && (
+                          <div style={{ fontWeight: 600, color: 'var(--primary)', marginBottom: '0.25rem' }}>
+                            {displaySupplier.shortAddress}
+                          </div>
+                        )}
+                        {displaySupplier.buildingNo && <div>Building {displaySupplier.buildingNo}, {displaySupplier.street}</div>}
+                        {displaySupplier.secondaryNo && <div>Secondary No. {displaySupplier.secondaryNo}</div>}
+                        {displaySupplier.district && <div>{displaySupplier.district}</div>}
                         <div>{[displaySupplier.city, displaySupplier.region, displaySupplier.country].filter(Boolean).join(', ')}</div>
                         {displaySupplier.postalCode && <div>Postal Code: {displaySupplier.postalCode}</div>}
                       </div>
@@ -699,8 +726,32 @@ export default function Suppliers() {
                     <input className="form-input" type="number" value={formData.paymentTermsDays} onChange={(e) => setFormData({ ...formData, paymentTermsDays: parseInt(e.target.value) || 30 })} min={0} />
                   </div>
                   <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                    <label className="form-label">Address</label>
-                    <input className="form-input" type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+                    <label className="form-label">Full Address</label>
+                    <input className="form-input" type="text" value={formData.fullAddress} onChange={(e) => setFormData({ ...formData, fullAddress: e.target.value })} placeholder="Complete address with landmarks" />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Short Address</label>
+                    <input className="form-input" type="text" value={formData.shortAddress} onChange={(e) => setFormData({ ...formData, shortAddress: e.target.value.toUpperCase() })} placeholder="ABCD1234" maxLength={8} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Building No.</label>
+                    <input className="form-input" type="text" value={formData.buildingNo} onChange={(e) => setFormData({ ...formData, buildingNo: e.target.value })} placeholder="e.g., 4240" />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Street</label>
+                    <input className="form-input" type="text" value={formData.street} onChange={(e) => setFormData({ ...formData, street: e.target.value })} placeholder="Street name" />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Secondary No.</label>
+                    <input className="form-input" type="text" value={formData.secondaryNo} onChange={(e) => setFormData({ ...formData, secondaryNo: e.target.value })} placeholder="e.g., 9014" />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">District</label>
+                    <input className="form-input" type="text" value={formData.district} onChange={(e) => setFormData({ ...formData, district: e.target.value })} placeholder="e.g., Ar Rawdah" />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Postal Code</label>
+                    <input className="form-input" type="text" value={formData.postalCode} onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })} placeholder="12345" maxLength={5} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">City</label>
@@ -713,10 +764,6 @@ export default function Suppliers() {
                   <div className="form-group">
                     <label className="form-label">Country</label>
                     <input className="form-input" type="text" value={formData.country} onChange={(e) => setFormData({ ...formData, country: e.target.value })} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Postal Code</label>
-                    <input className="form-input" type="text" value={formData.postalCode} onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })} />
                   </div>
                 </div>
               </div>

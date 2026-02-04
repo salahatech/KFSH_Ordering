@@ -2506,12 +2506,17 @@ model Supplier {
   bankIban        String?
   bankSwift       String?
   
-  // Address
-  address         String?
+  // Saudi National Address
+  fullAddress     String?
+  shortAddress    String?
+  buildingNo      String?
+  street          String?
+  secondaryNo     String?
+  district        String?
+  postalCode      String?
   city            String?
   region          String?
   country         String?
-  postalCode      String?
   
   // Terms
   paymentTermsDays Int           @default(30)
