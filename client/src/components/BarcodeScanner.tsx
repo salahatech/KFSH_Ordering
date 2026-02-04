@@ -1,29 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Html5Qrcode, Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { Camera, X, Keyboard, ScanLine, AlertCircle } from 'lucide-react';
 
 interface BarcodeScannerProps {
   onScan: (code: string, format?: string) => void;
   onClose?: () => void;
   placeholder?: string;
-  allowManualEntry?: boolean;
-  formats?: Html5QrcodeSupportedFormats[];
 }
 
 export default function BarcodeScanner({
   onScan,
   onClose,
   placeholder = 'Scan barcode or enter manually...',
-  allowManualEntry = true,
-  formats = [
-    Html5QrcodeSupportedFormats.QR_CODE,
-    Html5QrcodeSupportedFormats.EAN_13,
-    Html5QrcodeSupportedFormats.EAN_8,
-    Html5QrcodeSupportedFormats.CODE_128,
-    Html5QrcodeSupportedFormats.CODE_39,
-    Html5QrcodeSupportedFormats.UPC_A,
-    Html5QrcodeSupportedFormats.UPC_E,
-  ],
 }: BarcodeScannerProps) {
   const [mode, setMode] = useState<'camera' | 'manual'>('manual');
   const [manualInput, setManualInput] = useState('');
@@ -72,7 +60,7 @@ export default function BarcodeScanner({
       setError(err?.message || 'Failed to start camera. Please check permissions.');
       setMode('manual');
     }
-  }, [formats, onScan, onClose, stopScanning]);
+  }, [onScan, onClose, stopScanning]);
 
   useEffect(() => {
     if (mode === 'camera') {

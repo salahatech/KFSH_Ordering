@@ -66,13 +66,24 @@ export default function PrintableLabel({
     }
   }, [data.qrData, config.qrSize]);
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!labelRef.current) return;
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const labelHtml = labelRef.current.innerHTML;
+    let qrDataUrl = '';
+    if (qrCodeRef.current) {
+      qrDataUrl = qrCodeRef.current.toDataURL('image/png');
+    }
+
+    let labelHtml = labelRef.current.innerHTML;
+    if (qrDataUrl && qrCodeRef.current) {
+      labelHtml = labelHtml.replace(
+        /<canvas[^>]*><\/canvas>/i,
+        `<img src="${qrDataUrl}" width="${config.qrSize}" height="${config.qrSize}" />`
+      );
+    }
 
     printWindow.document.write(`
       <!DOCTYPE html>

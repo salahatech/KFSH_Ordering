@@ -3,12 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import { format } from 'date-fns';
-import { Truck, Package, Send, CheckCircle, Plus, Clock, AlertTriangle, Eye, UserPlus, MoreVertical, Calendar, X, MapPin, Phone, Printer, ScanLine } from 'lucide-react';
+import { Truck, Package, Send, CheckCircle, Plus, Clock, AlertTriangle, Eye, UserPlus, MoreVertical, Calendar, X, MapPin, Phone, Printer } from 'lucide-react';
 import { useLocalization } from '../hooks/useLocalization';
 import { useToast } from '../components/ui/Toast';
 import { parseApiError } from '../components/ui/FormErrors';
 import { KpiCard, StatusBadge, FilterBar, EmptyState, type FilterWidget } from '../components/shared';
-import { BarcodeScannerModal } from '../components/BarcodeScanner';
 import { ShipmentLabel } from '../components/PrintableLabel';
 
 export default function Shipments() {
@@ -19,18 +18,11 @@ export default function Shipments() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [filters, setFilters] = useState<Record<string, any>>({});
-  const [showScanner, setShowScanner] = useState(false);
   const [labelShipment, setLabelShipment] = useState<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const toast = useToast();
   const { formatDateOnly, formatTimeOnly, formatDateTime } = useLocalization();
-
-  const handleBarcodeScan = (code: string) => {
-    setShowScanner(false);
-    setFilters({ ...filters, search: code });
-    toast.info('Barcode Scanned', `Searching for: ${code}`);
-  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -826,13 +818,6 @@ export default function Shipments() {
           </div>
         </div>
       )}
-
-      <BarcodeScannerModal
-        isOpen={showScanner}
-        onClose={() => setShowScanner(false)}
-        onScan={handleBarcodeScan}
-        title="Scan Shipment Barcode"
-      />
 
       {labelShipment && (
         <div className="modal-overlay" onClick={() => setLabelShipment(null)}>

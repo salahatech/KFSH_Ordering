@@ -30,7 +30,7 @@ RadioPharma OMS is a comprehensive web application for managing radiopharmaceuti
 - **Regulatory Compliance**: GMP-compliant electronic signature workflows (QP Release, approval workflows), audit trails, and OOS/OOT investigations.
 - **Order & Logistics**: Multi-level approval workflows, availability & capacity management, client ordering portal, shipment tracking, and driver management.
 - **Financials**: Contracts & pricing, invoice generation with ZATCA-compliant QR codes, payment tracking, and a payment submission/approval system.
-- **Data Management**: Master data management for recipes/BOM, materials, suppliers, and system settings.
+- **Data Management**: Master data management for recipes/BOM, materials, suppliers, and system settings. Barcode/QR scanning for material lookup and printable labels for batches, shipments, and materials.
 - **Inventory & Warehouse**: Warehouse control with location hierarchy, Goods Receiving Notes (GRN), stock tracking with movements, and radioactive material handling.
 - **User Interaction**: Dashboards for various roles, notification center (multi-channel), global announcement system, and standardized entity detail pages.
 - **Security**: Status state machines, comprehensive audit logging, and role management with permission assignment.
