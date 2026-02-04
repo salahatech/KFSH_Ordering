@@ -3,8 +3,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import { format, addDays, startOfDay } from 'date-fns';
-import { Calendar, Clock, Package, ChevronLeft, ChevronRight, Check, AlertTriangle, Timer, Building2 } from 'lucide-react';
+import { 
+  Calendar, 
+  Clock, 
+  Package, 
+  ChevronLeft, 
+  ChevronRight, 
+  Check, 
+  AlertTriangle, 
+  Timer, 
+  Building2, 
+  X,
+  Zap,
+  Activity,
+  CalendarCheck
+} from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { KpiCard } from '../../components/shared';
 
 interface DeliveryWindow {
   id: string;
@@ -39,7 +54,7 @@ export default function PortalBookCapacity() {
   const [requestedActivity, setRequestedActivity] = useState<number>(10);
   const [hospitalOrderReference, setHospitalOrderReference] = useState('');
   const [specialNotes, setSpecialNotes] = useState('');
-  const [step, setStep] = useState<'calendar' | 'details' | 'confirm'>('calendar');
+  const [step, setStep] = useState<'calendar' | 'confirm'>('calendar');
   const [pendingReservation, setPendingReservation] = useState<any>(null);
   const [countdown, setCountdown] = useState<number>(0);
 
@@ -108,7 +123,11 @@ export default function PortalBookCapacity() {
   const handleWindowSelect = (window: DeliveryWindow) => {
     if (window.availableMinutes <= 0) return;
     setSelectedWindow(window);
-    setStep('details');
+    setSelectedProduct('');
+    setNumberOfDoses(1);
+    setRequestedActivity(10);
+    setHospitalOrderReference('');
+    setSpecialNotes('');
   };
 
   const handleCreateReservation = () => {
@@ -139,6 +158,12 @@ export default function PortalBookCapacity() {
     return 'var(--success)';
   };
 
+  const getCapacityBg = (utilizationPercent: number) => {
+    if (utilizationPercent >= 90) return 'rgba(239, 68, 68, 0.1)';
+    if (utilizationPercent >= 70) return 'rgba(234, 179, 8, 0.1)';
+    return 'rgba(34, 197, 94, 0.1)';
+  };
+
   const groupedByDate = (calendar || []).reduce((acc: Record<string, DeliveryWindow[]>, window) => {
     const dateKey = format(new Date(window.date), 'yyyy-MM-dd');
     if (!acc[dateKey]) acc[dateKey] = [];
@@ -146,10 +171,22 @@ export default function PortalBookCapacity() {
     return acc;
   }, {});
 
+  const stats = {
+    totalSlots: calendar?.length || 0,
+    availableSlots: calendar?.filter(w => w.availableMinutes > 0).length || 0,
+    totalCapacity: calendar?.reduce((sum, w) => sum + w.capacityMinutes, 0) || 0,
+    availableCapacity: calendar?.reduce((sum, w) => sum + w.availableMinutes, 0) || 0,
+  };
+
   if (calendarLoading || productsLoading) {
     return (
       <div style={{ padding: '1.5rem' }}>
         <div className="card skeleton" style={{ height: '80px', marginBottom: '1rem' }} />
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="card skeleton" style={{ height: '100px' }} />
+          ))}
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem' }}>
           {Array.from({ length: 14 }).map((_, i) => (
             <div key={i} className="card skeleton" style={{ height: '120px' }} />
@@ -160,69 +197,95 @@ export default function PortalBookCapacity() {
   }
 
   return (
-    <div style={{ padding: '1.5rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.25rem' }}>Book Capacity</h1>
-          <p style={{ color: 'var(--text-muted)' }}>
-            {user?.customerName && <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Building2 size={16} /> Ordering as: {user.customerName}
-            </span>}
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Book Capacity</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Building2 size={14} /> {user?.customerName || 'Select a delivery window to reserve capacity'}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button 
-            className="btn btn-outline-secondary" 
-            onClick={() => setWeekOffset(prev => prev - 1)}
-            disabled={weekOffset === 0}
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <button 
-            className="btn btn-outline-secondary"
-            onClick={() => setWeekOffset(0)}
-          >
-            Today
-          </button>
-          <button 
-            className="btn btn-outline-secondary"
-            onClick={() => setWeekOffset(prev => prev + 1)}
-          >
-            <ChevronRight size={18} />
-          </button>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <KpiCard 
+          title="Total Slots" 
+          value={stats.totalSlots} 
+          icon={<Calendar size={20} />}
+          color="primary"
+        />
+        <KpiCard 
+          title="Available Slots" 
+          value={stats.availableSlots} 
+          icon={<CalendarCheck size={20} />}
+          color="success"
+        />
+        <KpiCard 
+          title="Total Capacity" 
+          value={`${Math.round(stats.totalCapacity / 60)}h`} 
+          icon={<Clock size={20} />}
+          color="info"
+        />
+        <KpiCard 
+          title="Available" 
+          value={`${Math.round(stats.availableCapacity / 60)}h`} 
+          icon={<Zap size={20} />}
+          color="warning"
+        />
+      </div>
+
+      <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Calendar size={18} style={{ color: 'var(--primary)' }} />
+            <span style={{ fontWeight: 500 }}>
+              {format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button 
+              className="btn btn-sm btn-outline-secondary" 
+              onClick={() => setWeekOffset(prev => prev - 1)}
+              disabled={weekOffset === 0}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button 
+              className="btn btn-sm btn-outline-secondary"
+              onClick={() => setWeekOffset(0)}
+            >
+              Today
+            </button>
+            <button 
+              className="btn btn-sm btn-outline-secondary"
+              onClick={() => setWeekOffset(prev => prev + 1)}
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem', fontSize: '0.8125rem' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--success)' }} />
+              Available
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--warning)' }} />
+              Limited
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--danger)' }} />
+              Full
+            </span>
+          </div>
         </div>
       </div>
 
       {step === 'calendar' && (
-        <>
-          <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <Calendar size={20} style={{ color: 'var(--primary)' }} />
-              <span style={{ fontWeight: 500 }}>
-                {format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}
-              </span>
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem', fontSize: '0.85rem' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <span style={{ width: 12, height: 12, borderRadius: '50%', background: 'var(--success)' }} />
-                  Available
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <span style={{ width: 12, height: 12, borderRadius: '50%', background: 'var(--warning)' }} />
-                  Limited
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <span style={{ width: 12, height: 12, borderRadius: '50%', background: 'var(--danger)' }} />
-                  Full
-                </span>
-              </div>
-            </div>
-          </div>
-
+        <div className="grid" style={{ gridTemplateColumns: selectedWindow ? '1fr 380px' : '1fr', gap: '1.5rem' }}>
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: 'repeat(7, 1fr)', 
             gap: '0.5rem',
-            marginBottom: '1rem'
           }}>
             {Array.from({ length: 14 }).map((_, i) => {
               const date = addDays(startDate, i);
@@ -238,7 +301,7 @@ export default function PortalBookCapacity() {
                   style={{ 
                     padding: '0.75rem',
                     opacity: isPast ? 0.5 : 1,
-                    border: isToday ? '2px solid var(--primary)' : undefined,
+                    border: isToday ? '2px solid #0d9488' : '1px solid var(--border)',
                   }}
                 >
                   <div style={{ 
@@ -248,7 +311,11 @@ export default function PortalBookCapacity() {
                     textAlign: 'center'
                   }}>
                     {format(date, 'EEE')}
-                    <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <div style={{ 
+                      fontSize: '1rem', 
+                      fontWeight: 600, 
+                      color: isToday ? '#0d9488' : 'var(--text-primary)' 
+                    }}>
                       {format(date, 'd')}
                     </div>
                   </div>
@@ -264,194 +331,205 @@ export default function PortalBookCapacity() {
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {windows.map(w => (
-                        <button
-                          key={w.id}
-                          onClick={() => !isPast && handleWindowSelect(w)}
-                          disabled={isPast || w.availableMinutes <= 0}
-                          style={{
-                            padding: '0.5rem',
-                            borderRadius: '0.25rem',
-                            border: 'none',
-                            background: w.availableMinutes <= 0 ? 'var(--bg-muted)' : 'var(--bg-secondary)',
-                            cursor: isPast || w.availableMinutes <= 0 ? 'not-allowed' : 'pointer',
-                            textAlign: 'left',
-                            fontSize: '0.75rem',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.25rem' }}>
-                            <Clock size={12} />
-                            {format(new Date(w.startTime), 'HH:mm')} - {format(new Date(w.endTime), 'HH:mm')}
-                          </div>
-                          <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'space-between' 
-                          }}>
-                            <span style={{ color: getCapacityColor(w.utilizationPercent) }}>
-                              {w.availableMinutes} min
-                            </span>
-                            <div style={{
-                              width: '30px',
-                              height: '4px',
-                              background: 'var(--bg-muted)',
-                              borderRadius: '2px',
-                              overflow: 'hidden'
-                            }}>
-                              <div style={{
-                                width: `${w.utilizationPercent}%`,
-                                height: '100%',
-                                background: getCapacityColor(w.utilizationPercent),
-                              }} />
+                      {windows.map(w => {
+                        const isSelected = selectedWindow?.id === w.id;
+                        return (
+                          <button
+                            key={w.id}
+                            onClick={() => !isPast && handleWindowSelect(w)}
+                            disabled={isPast || w.availableMinutes <= 0}
+                            style={{
+                              padding: '0.625rem',
+                              borderRadius: '8px',
+                              border: isSelected ? '2px solid #0d9488' : '1px solid var(--border)',
+                              background: isSelected ? 'rgba(13, 148, 136, 0.1)' : getCapacityBg(w.utilizationPercent),
+                              cursor: isPast || w.availableMinutes <= 0 ? 'not-allowed' : 'pointer',
+                              textAlign: 'left',
+                              fontSize: '0.75rem',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.375rem', fontWeight: 500 }}>
+                              <Clock size={12} style={{ color: 'var(--text-muted)' }} />
+                              {format(new Date(w.startTime), 'HH:mm')} - {format(new Date(w.endTime), 'HH:mm')}
                             </div>
-                          </div>
-                        </button>
-                      ))}
+                            <div style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'space-between' 
+                            }}>
+                              <span style={{ color: getCapacityColor(w.utilizationPercent), fontWeight: 600 }}>
+                                {w.availableMinutes} min
+                              </span>
+                              <div style={{
+                                width: '32px',
+                                height: '5px',
+                                background: 'var(--bg-muted)',
+                                borderRadius: '3px',
+                                overflow: 'hidden'
+                              }}>
+                                <div style={{
+                                  width: `${w.utilizationPercent}%`,
+                                  height: '100%',
+                                  background: getCapacityColor(w.utilizationPercent),
+                                }} />
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               );
             })}
           </div>
-        </>
-      )}
 
-      {step === 'details' && selectedWindow && (
-        <div className="card" style={{ padding: '1.5rem', maxWidth: '600px', margin: '0 auto' }}>
-          <button 
-            className="btn btn-ghost" 
-            onClick={() => { setStep('calendar'); setSelectedWindow(null); }}
-            style={{ marginBottom: '1rem' }}
-          >
-            <ChevronLeft size={18} /> Back to Calendar
-          </button>
-          
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>
-            Reserve Capacity
-          </h2>
-
-          <div style={{ 
-            background: 'var(--bg-secondary)', 
-            padding: '1rem', 
-            borderRadius: '0.5rem',
-            marginBottom: '1.5rem'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <Calendar size={18} style={{ color: 'var(--primary)' }} />
-              <strong>{format(new Date(selectedWindow.date), 'EEEE, MMMM d, yyyy')}</strong>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Clock size={18} style={{ color: 'var(--primary)' }} />
-              {format(new Date(selectedWindow.startTime), 'HH:mm')} - {format(new Date(selectedWindow.endTime), 'HH:mm')}
-              <span style={{ marginLeft: 'auto', color: getCapacityColor(selectedWindow.utilizationPercent) }}>
-                {selectedWindow.availableMinutes} min available
-              </span>
-            </div>
-          </div>
-
-          <div className="form-group" style={{ marginBottom: '1rem' }}>
-            <label className="form-label">Product *</label>
-            <select 
-              className="form-control"
-              value={selectedProduct}
-              onChange={e => setSelectedProduct(e.target.value)}
-            >
-              <option value="">Select a product...</option>
-              {products?.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.code}) - {p.dispensingMinutesPerDose} min/dose
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-            <div className="form-group">
-              <label className="form-label">Number of Doses *</label>
-              <input
-                type="number"
-                className="form-control"
-                value={numberOfDoses}
-                onChange={e => setNumberOfDoses(Math.max(1, parseInt(e.target.value) || 1))}
-                min={1}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Requested Activity (mCi) *</label>
-              <input
-                type="number"
-                className="form-control"
-                value={requestedActivity}
-                onChange={e => setRequestedActivity(parseFloat(e.target.value) || 0)}
-                step="0.1"
-              />
-            </div>
-          </div>
-
-          <div className="form-group" style={{ marginBottom: '1rem' }}>
-            <label className="form-label">Hospital Order Reference</label>
-            <input
-              type="text"
-              className="form-control"
-              value={hospitalOrderReference}
-              onChange={e => setHospitalOrderReference(e.target.value)}
-              placeholder="Your internal reference number (optional)"
-            />
-            <small style={{ color: 'var(--text-muted)' }}>
-              This is used as a pseudonym - no patient identifiers
-            </small>
-          </div>
-
-          <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-            <label className="form-label">Special Notes</label>
-            <textarea
-              className="form-control"
-              value={specialNotes}
-              onChange={e => setSpecialNotes(e.target.value)}
-              rows={2}
-              placeholder="Any special requirements or notes..."
-            />
-          </div>
-
-          {selectedProduct && (
-            <div style={{ 
-              background: 'var(--bg-muted)', 
-              padding: '1rem', 
-              borderRadius: '0.5rem',
-              marginBottom: '1.5rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}>
-                <Timer size={18} />
-                Estimated Time: {estimatedMinutes} minutes
+          {selectedWindow && (
+            <div className="card" style={{ padding: '1.5rem', position: 'sticky', top: '100px', alignSelf: 'start' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>Reserve Capacity</h3>
+                <button 
+                  onClick={() => setSelectedWindow(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
+                >
+                  <X size={18} style={{ color: 'var(--text-muted)' }} />
+                </button>
               </div>
-              {estimatedMinutes > selectedWindow.availableMinutes && (
-                <div style={{ color: 'var(--danger)', marginTop: '0.5rem', fontSize: '0.85rem' }}>
-                  <AlertTriangle size={16} style={{ marginRight: '0.25rem' }} />
-                  Not enough capacity available in this window
+
+              <div style={{ 
+                background: 'rgba(13, 148, 136, 0.1)', 
+                padding: '1rem', 
+                borderRadius: '8px',
+                marginBottom: '1.25rem',
+                border: '1px solid rgba(13, 148, 136, 0.2)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <Calendar size={16} style={{ color: '#0d9488' }} />
+                  <strong style={{ fontSize: '0.9375rem' }}>{format(new Date(selectedWindow.date), 'EEEE, MMMM d, yyyy')}</strong>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+                    <Clock size={16} style={{ color: '#0d9488' }} />
+                    {format(new Date(selectedWindow.startTime), 'HH:mm')} - {format(new Date(selectedWindow.endTime), 'HH:mm')}
+                  </div>
+                  <span style={{ color: getCapacityColor(selectedWindow.utilizationPercent), fontWeight: 600, fontSize: '0.875rem' }}>
+                    {selectedWindow.availableMinutes} min available
+                  </span>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Product *</label>
+                <select 
+                  className="form-control"
+                  value={selectedProduct}
+                  onChange={e => setSelectedProduct(e.target.value)}
+                  style={{ fontSize: '0.875rem' }}
+                >
+                  <option value="">Select a product...</option>
+                  {products?.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Number of Doses *</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={numberOfDoses}
+                    onChange={e => setNumberOfDoses(Math.max(1, parseInt(e.target.value) || 1))}
+                    min={1}
+                    style={{ fontSize: '0.875rem' }}
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Activity (mCi) *</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={requestedActivity}
+                    onChange={e => setRequestedActivity(parseFloat(e.target.value) || 0)}
+                    step="0.1"
+                    style={{ fontSize: '0.875rem' }}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Hospital Reference</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={hospitalOrderReference}
+                  onChange={e => setHospitalOrderReference(e.target.value)}
+                  placeholder="Your internal reference"
+                  style={{ fontSize: '0.875rem' }}
+                />
+                <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                  No patient identifiers
+                </small>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Special Notes</label>
+                <textarea
+                  className="form-control"
+                  value={specialNotes}
+                  onChange={e => setSpecialNotes(e.target.value)}
+                  rows={2}
+                  placeholder="Any special requirements..."
+                  style={{ fontSize: '0.875rem' }}
+                />
+              </div>
+
+              {selectedProduct && (
+                <div style={{ 
+                  background: estimatedMinutes > selectedWindow.availableMinutes ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-secondary)', 
+                  padding: '0.875rem', 
+                  borderRadius: '8px',
+                  marginBottom: '1rem',
+                  border: estimatedMinutes > selectedWindow.availableMinutes ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--border)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
+                    <Timer size={16} />
+                    Estimated: {estimatedMinutes} min
+                  </div>
+                  {estimatedMinutes > selectedWindow.availableMinutes && (
+                    <div style={{ color: 'var(--danger)', marginTop: '0.5rem', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <AlertTriangle size={14} />
+                      Not enough capacity
+                    </div>
+                  )}
                 </div>
               )}
+
+              <button
+                className="btn btn-primary"
+                onClick={handleCreateReservation}
+                disabled={!selectedProduct || estimatedMinutes > selectedWindow.availableMinutes || createReservationMutation.isPending}
+                style={{ width: '100%', background: '#0d9488', borderColor: '#0d9488' }}
+              >
+                {createReservationMutation.isPending ? 'Reserving...' : 'Reserve Capacity'}
+              </button>
             </div>
           )}
-
-          <button
-            className="btn btn-primary"
-            onClick={handleCreateReservation}
-            disabled={!selectedProduct || estimatedMinutes > selectedWindow.availableMinutes || createReservationMutation.isPending}
-            style={{ width: '100%' }}
-          >
-            {createReservationMutation.isPending ? 'Reserving...' : 'Reserve Capacity'}
-          </button>
         </div>
       )}
 
       {step === 'confirm' && pendingReservation && (
-        <div className="card" style={{ padding: '1.5rem', maxWidth: '600px', margin: '0 auto' }}>
+        <div className="card" style={{ padding: '2rem', maxWidth: '500px', margin: '2rem auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
             <div style={{ 
-              width: '60px', 
-              height: '60px', 
+              width: '64px', 
+              height: '64px', 
               borderRadius: '50%', 
-              background: 'var(--success-bg)', 
+              background: 'rgba(34, 197, 94, 0.1)', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
@@ -462,62 +540,65 @@ export default function PortalBookCapacity() {
             <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>
               Capacity Reserved!
             </h2>
-            <p style={{ color: 'var(--text-muted)' }}>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>
               Reservation: {pendingReservation.reservationNumber}
             </p>
           </div>
 
           <div style={{ 
-            background: countdown < 120 ? 'var(--danger-bg)' : 'var(--warning-bg)',
+            background: countdown < 120 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(234, 179, 8, 0.1)',
+            border: `1px solid ${countdown < 120 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(234, 179, 8, 0.3)'}`,
             padding: '1rem',
-            borderRadius: '0.5rem',
+            borderRadius: '8px',
             textAlign: 'center',
             marginBottom: '1.5rem'
           }}>
             <Timer size={24} style={{ marginBottom: '0.5rem', color: countdown < 120 ? 'var(--danger)' : 'var(--warning)' }} />
-            <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>
               {formatCountdown(countdown)}
             </div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Confirm your order before the reservation expires
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
+              Confirm before expiry
             </p>
           </div>
 
           <div style={{ 
             background: 'var(--bg-secondary)', 
             padding: '1rem', 
-            borderRadius: '0.5rem',
+            borderRadius: '8px',
             marginBottom: '1.5rem'
           }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '0.75rem' }}>Order Summary</h3>
-            <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.9rem' }}>
+            <div style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '0.75rem', fontWeight: 500 }}>
+              Order Summary
+            </div>
+            <div style={{ display: 'grid', gap: '0.625rem', fontSize: '0.875rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Product:</span>
-                <span>{pendingReservation.product?.name}</span>
+                <span style={{ color: 'var(--text-muted)' }}>Product</span>
+                <span style={{ fontWeight: 500 }}>{pendingReservation.product?.name}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Doses:</span>
-                <span>{pendingReservation.numberOfDoses}</span>
+                <span style={{ color: 'var(--text-muted)' }}>Doses</span>
+                <span style={{ fontWeight: 500 }}>{pendingReservation.numberOfDoses}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Activity:</span>
-                <span>{pendingReservation.requestedActivity} mCi</span>
+                <span style={{ color: 'var(--text-muted)' }}>Activity</span>
+                <span style={{ fontWeight: 500 }}>{pendingReservation.requestedActivity} mCi</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Delivery:</span>
-                <span>{format(new Date(pendingReservation.requestedDate), 'MMM d, yyyy')}</span>
+                <span style={{ color: 'var(--text-muted)' }}>Delivery</span>
+                <span style={{ fontWeight: 500 }}>{format(new Date(pendingReservation.requestedDate), 'MMM d, yyyy')}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Reserved Time:</span>
-                <span>{pendingReservation.estimatedMinutes} minutes</span>
+                <span style={{ color: 'var(--text-muted)' }}>Reserved Time</span>
+                <span style={{ fontWeight: 500 }}>{pendingReservation.estimatedMinutes} min</span>
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button
               className="btn btn-outline-secondary"
-              onClick={() => { setStep('calendar'); setPendingReservation(null); }}
+              onClick={() => { setStep('calendar'); setPendingReservation(null); setSelectedWindow(null); }}
               style={{ flex: 1 }}
             >
               Cancel
@@ -526,9 +607,9 @@ export default function PortalBookCapacity() {
               className="btn btn-primary"
               onClick={handleConfirmOrder}
               disabled={countdown === 0 || confirmReservationMutation.isPending}
-              style={{ flex: 2 }}
+              style={{ flex: 2, background: '#0d9488', borderColor: '#0d9488' }}
             >
-              {confirmReservationMutation.isPending ? 'Creating Order...' : 'Confirm & Create Order'}
+              {confirmReservationMutation.isPending ? 'Creating Order...' : 'Confirm Order'}
             </button>
           </div>
         </div>
