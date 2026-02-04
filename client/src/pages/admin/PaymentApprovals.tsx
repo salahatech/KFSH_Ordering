@@ -291,40 +291,43 @@ export default function PaymentApprovals() {
             </div>
 
             <div style={{ 
-              backgroundColor: 'var(--primary)', 
-              color: 'white', 
+              backgroundColor: 'rgba(234, 179, 8, 0.1)', 
+              borderLeft: '4px solid #3b82f6',
               padding: '1rem', 
               borderRadius: '0.5rem',
               marginBottom: '1.5rem'
             }}>
-              <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Payment Amount</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Payment Amount</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#16a34a' }}>
                 {formatCurrency(selectedRequest.amount)}
               </div>
             </div>
 
-            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
-                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Invoice</div>
-                <div style={{ fontWeight: 500, marginTop: '0.25rem', fontFamily: 'monospace' }}>
+            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <div>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Invoice</div>
+                <div style={{ fontWeight: 500, fontFamily: 'monospace', color: 'var(--primary)' }}>
                   {requestDetail?.invoice?.invoiceNumber}
                 </div>
               </div>
-              <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
-                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Method</div>
-                <div style={{ fontWeight: 500, marginTop: '0.25rem' }}>
+              <div>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Method</div>
+                <div style={{ fontWeight: 600 }}>
                   {selectedRequest.paymentMethod?.replace('_', ' ')}
                 </div>
               </div>
-              <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
-                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Submitted</div>
-                <div style={{ fontWeight: 500, marginTop: '0.25rem' }}>
+            </div>
+
+            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <div>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Submitted</div>
+                <div style={{ fontWeight: 500 }}>
                   {format(new Date(selectedRequest.submittedAt), 'MMM d, yyyy HH:mm')}
                 </div>
               </div>
-              <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
-                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Status</div>
-                <div style={{ marginTop: '0.25rem' }}>
+              <div>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Status</div>
+                <div>
                   {getStatusBadge(selectedRequest.status)}
                 </div>
               </div>
@@ -340,9 +343,9 @@ export default function PaymentApprovals() {
             )}
 
             {selectedRequest.notes && (
-              <div style={{ marginBottom: '1rem' }}>
+              <div style={{ marginBottom: '1.5rem' }}>
                 <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Notes</div>
-                <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.5rem', borderRadius: '0.25rem', fontSize: '0.875rem' }}>
+                <div style={{ fontSize: '0.875rem' }}>
                   {selectedRequest.notes}
                 </div>
               </div>
@@ -367,19 +370,19 @@ export default function PaymentApprovals() {
 
             {requestDetail?.invoice && (
               <div style={{ marginBottom: '1.5rem' }}>
-                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Invoice Summary</div>
-                <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Invoice Summary</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Total Amount</span>
-                    <span>{formatCurrency(requestDetail.invoice.totalAmount)}</span>
+                    <span style={{ fontWeight: 500 }}>{formatCurrency(requestDetail.invoice.totalAmount)}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Already Paid</span>
-                    <span style={{ color: 'var(--success)' }}>{formatCurrency(requestDetail.invoice.paidAmount)}</span>
+                    <span style={{ fontWeight: 500, color: '#16a34a' }}>{formatCurrency(requestDetail.invoice.paidAmount)}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
                     <span style={{ fontWeight: 500 }}>Balance After This Payment</span>
-                    <span style={{ fontWeight: 500 }}>
+                    <span style={{ fontWeight: 600 }}>
                       {formatCurrency(Math.max(0, requestDetail.invoice.totalAmount - requestDetail.invoice.paidAmount - selectedRequest.amount))}
                     </span>
                   </div>
