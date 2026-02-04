@@ -311,151 +311,204 @@ export default function PortalInvoices() {
         </div>
 
         {selectedInvoice && (
-          <div className="card" style={{ maxHeight: 'calc(100vh - 240px)', overflowY: 'auto' }}>
+          <div className="card" style={{ padding: 0, maxHeight: 'calc(100vh - 240px)', overflowY: 'auto', width: '380px' }}>
             <div style={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
-              alignItems: 'flex-start',
-              paddingBottom: '1rem',
-              borderBottom: '1px solid var(--border)',
-              marginBottom: '1rem'
+              alignItems: 'center',
+              padding: '1rem 1.25rem',
+              borderBottom: '1px solid var(--border)'
             }}>
-              <div>
-                <h3 style={{ fontWeight: 600, fontSize: '1.125rem', marginBottom: '0.25rem' }}>
-                  Invoice {selectedInvoice.invoiceNumber}
-                </h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-                  {format(new Date(selectedInvoice.invoiceDate), 'MMMM d, yyyy')}
-                </p>
-              </div>
-              <button className="btn btn-sm btn-outline" onClick={() => setSelectedInvoice(null)}>
-                <X size={14} />
+              <h3 style={{ fontWeight: 600, fontSize: '1rem', margin: 0 }}>Invoice Details</h3>
+              <button 
+                onClick={() => setSelectedInvoice(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
+              >
+                <X size={18} style={{ color: 'var(--text-muted)' }} />
               </button>
             </div>
 
-            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
-                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Due Date</div>
-                <div style={{ fontWeight: 500, marginTop: '0.25rem' }}>
-                  {format(new Date(selectedInvoice.dueDate), 'MMM d, yyyy')}
+            <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div style={{ 
+                  width: '40px', 
+                  height: '40px', 
+                  borderRadius: '10px', 
+                  background: 'rgba(13, 148, 136, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Receipt size={20} style={{ color: '#0d9488' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                    {selectedInvoice.invoiceNumber}
+                  </div>
+                  <div style={{ fontSize: '1rem', fontWeight: 600 }}>
+                    {format(new Date(selectedInvoice.invoiceDate), 'MMMM d, yyyy')}
+                  </div>
                 </div>
               </div>
-              <div style={{ backgroundColor: 'var(--background-secondary)', padding: '0.75rem', borderRadius: '0.5rem' }}>
-                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Status</div>
-                <div style={{ marginTop: '0.25rem' }}>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Status</span>
                   <span className={`badge badge-${getStatusColor(selectedInvoice.status, selectedInvoice.dueDate)}`}>
-                    {selectedInvoice.status}
+                    {selectedInvoice.status.replace(/_/g, ' ')}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Due Date</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                    {format(new Date(selectedInvoice.dueDate), 'MMM d, yyyy')}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Total Amount</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0d9488' }}>
+                    {formatMoney(selectedInvoice.totalAmount)}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Paid</span>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--success)' }}>
+                    {formatMoney(selectedInvoice.paidAmount)}
+                  </span>
+                </div>
+                {remainingAmount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Balance Due</span>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--danger)' }}>
+                      {formatMoney(remainingAmount)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border)' }}>
+              <h4 style={{ fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Line Items
+              </h4>
+              {(invoiceDetail?.items || selectedInvoice.items)?.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {(invoiceDetail?.items || selectedInvoice.items)?.map((item: any) => (
+                    <div key={item.id} style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      padding: '0.5rem 0',
+                      borderBottom: '1px solid var(--border)'
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.875rem' }}>{item.description}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Qty: {item.quantity}</div>
+                      </div>
+                      <span style={{ fontWeight: 500, fontSize: '0.875rem' }}>{formatMoney(item.lineTotal)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1rem' }}>
+                  No line items
+                </div>
+              )}
+
+              <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Subtotal</span>
+                  <span style={{ fontSize: '0.875rem' }}>{formatMoney(invoiceDetail?.vatBreakdown?.subtotal || selectedInvoice.subtotal)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>VAT ({invoiceDetail?.vatBreakdown?.vatRate || 15}%)</span>
+                  <span style={{ fontSize: '0.875rem' }}>{formatMoney(invoiceDetail?.vatBreakdown?.vatAmount || selectedInvoice.taxAmount)}</span>
+                </div>
+                {(invoiceDetail?.vatBreakdown?.discount > 0 || selectedInvoice.discountAmount > 0) && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--success)' }}>Discount</span>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--success)' }}>
+                      - {formatMoney(invoiceDetail?.vatBreakdown?.discount || selectedInvoice.discountAmount)}
+                    </span>
+                  </div>
+                )}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  paddingTop: '0.5rem',
+                  borderTop: '1px solid var(--border)',
+                  marginTop: '0.25rem'
+                }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Grand Total</span>
+                  <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0d9488' }}>
+                    {formatMoney(invoiceDetail?.vatBreakdown?.grandTotal || selectedInvoice.totalAmount)}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div style={{ 
-              backgroundColor: '#0d9488', 
-              color: 'white', 
-              padding: '1rem', 
-              borderRadius: '0.5rem',
-              marginBottom: '1.5rem'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Total Amount</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{formatMoney(selectedInvoice.totalAmount)}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Balance Due</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 500 }}>
-                    {formatMoney(remainingAmount)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-              <button 
-                className="btn btn-outline"
-                style={{ flex: canSubmitPayment ? 1 : undefined }}
-                onClick={async () => {
-                  try {
-                    const response = await api.get(`/invoice-pdf/${selectedInvoice.id}`, {
-                      responseType: 'blob',
-                    });
-                    const blob = new Blob([response.data], { type: 'application/pdf' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Invoice-${selectedInvoice.invoiceNumber}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                  } catch (error) {
-                    toast.error('Failed to download PDF');
-                  }
-                }}
-              >
-                <FileDown size={16} style={{ marginRight: '0.5rem' }} />
-                Download PDF
-              </button>
-              {canSubmitPayment && (
+            <div style={{ padding: '1.25rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button 
-                  className="btn btn-primary" 
-                  style={{ flex: 1 }}
-                  onClick={() => {
-                    setPaymentForm(prev => ({ ...prev, amount: remainingAmount.toString() }));
-                    setShowPaymentModal(true);
+                  className="btn"
+                  style={{ 
+                    flex: 1, 
+                    background: 'var(--bg-secondary)', 
+                    border: '1px solid var(--border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.875rem'
+                  }}
+                  onClick={async () => {
+                    try {
+                      const response = await api.get(`/invoice-pdf/${selectedInvoice.id}`, {
+                        responseType: 'blob',
+                      });
+                      const blob = new Blob([response.data], { type: 'application/pdf' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `Invoice-${selectedInvoice.invoiceNumber}.pdf`;
+                      document.body.appendChild(a);
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                    } catch (error) {
+                      toast.error('Failed to download PDF');
+                    }
                   }}
                 >
-                  <CreditCard size={16} style={{ marginRight: '0.5rem' }} />
-                  Submit Payment
+                  <FileDown size={16} />
+                  Download PDF
                 </button>
-              )}
-            </div>
-
-            <h4 style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
-              Line Items
-            </h4>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Description</th>
-                  <th>Qty</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(invoiceDetail?.items || selectedInvoice.items)?.map((item: any) => (
-                  <tr key={item.id}>
-                    <td style={{ fontSize: '0.875rem' }}>{item.description}</td>
-                    <td>{item.quantity}</td>
-                    <td style={{ fontWeight: 500 }}>{formatMoney(item.lineTotal)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {invoiceDetail?.vatBreakdown && (
-              <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: 'var(--background-secondary)', borderRadius: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Subtotal</span>
-                  <span>{formatMoney(invoiceDetail.vatBreakdown.subtotal)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>VAT ({invoiceDetail.vatBreakdown.vatRate}%)</span>
-                  <span>{formatMoney(invoiceDetail.vatBreakdown.vatAmount)}</span>
-                </div>
-                {invoiceDetail.vatBreakdown.discount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ color: 'var(--success)' }}>Discount</span>
-                    <span style={{ color: 'var(--success)' }}>- {formatMoney(invoiceDetail.vatBreakdown.discount)}</span>
-                  </div>
+                {canSubmitPayment && (
+                  <button 
+                    className="btn" 
+                    style={{ 
+                      flex: 1, 
+                      background: '#0d9488', 
+                      borderColor: '#0d9488', 
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      fontSize: '0.875rem'
+                    }}
+                    onClick={() => {
+                      setPaymentForm(prev => ({ ...prev, amount: remainingAmount.toString() }));
+                      setShowPaymentModal(true);
+                    }}
+                  >
+                    <CreditCard size={16} />
+                    Pay Now
+                  </button>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, borderTop: '1px solid var(--border)', paddingTop: '0.5rem' }}>
-                  <span>Grand Total</span>
-                  <span>{formatMoney(invoiceDetail.vatBreakdown.grandTotal)}</span>
-                </div>
               </div>
-            )}
+            </div>
 
             {invoiceDetail?.paymentRequests?.length > 0 && (
               <>
