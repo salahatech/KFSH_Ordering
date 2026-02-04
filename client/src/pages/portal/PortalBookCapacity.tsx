@@ -39,6 +39,9 @@ interface Product {
   code: string;
   productType: string;
   radionuclide: string;
+  halfLifeMinutes: number;
+  standardDose: number | null;
+  doseUnit: string;
   dispensingMinutesPerDose: number;
 }
 
@@ -150,6 +153,16 @@ export default function PortalBookCapacity() {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const selectedProductData = products?.find(p => p.id === selectedProduct);
+
+  const handleProductChange = (productId: string) => {
+    setSelectedProduct(productId);
+    const product = products?.find(p => p.id === productId);
+    if (product?.standardDose) {
+      setRequestedActivity(product.standardDose);
+    }
   };
 
   const getCapacityColor = (utilizationPercent: number) => {
@@ -574,7 +587,7 @@ export default function PortalBookCapacity() {
                   <select 
                     className="form-control"
                     value={selectedProduct}
-                    onChange={e => setSelectedProduct(e.target.value)}
+                    onChange={e => handleProductChange(e.target.value)}
                     style={{ 
                       fontSize: '0.8125rem', 
                       padding: '0.4rem 0.5rem',
@@ -593,6 +606,51 @@ export default function PortalBookCapacity() {
                   </select>
                 </div>
 
+                {selectedProductData && (
+                  <div style={{ 
+                    padding: '0.625rem', 
+                    background: 'rgba(13, 148, 136, 0.06)', 
+                    borderRadius: '6px', 
+                    marginBottom: '0.75rem',
+                    border: '1px solid rgba(13, 148, 136, 0.15)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <Package size={14} style={{ color: '#0d9488' }} />
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#0d9488' }}>{selectedProductData.code}</span>
+                      <span style={{ 
+                        fontSize: '0.625rem', 
+                        padding: '0.125rem 0.375rem', 
+                        background: 'rgba(13, 148, 136, 0.15)', 
+                        borderRadius: '4px',
+                        color: '#0d9488',
+                        textTransform: 'uppercase'
+                      }}>
+                        {selectedProductData.productType}
+                      </span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.6875rem' }}>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Radionuclide: </span>
+                        <span style={{ fontWeight: 500 }}>{selectedProductData.radionuclide}</span>
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Half-life: </span>
+                        <span style={{ fontWeight: 500 }}>{selectedProductData.halfLifeMinutes} min</span>
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Dose Unit: </span>
+                        <span style={{ fontWeight: 600, color: '#0d9488' }}>{selectedProductData.doseUnit}</span>
+                      </div>
+                      {selectedProductData.standardDose && (
+                        <div>
+                          <span style={{ color: 'var(--text-muted)' }}>Std. Dose: </span>
+                          <span style={{ fontWeight: 500 }}>{selectedProductData.standardDose} {selectedProductData.doseUnit}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
                   <div>
                     <label style={{ fontSize: '0.75rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>
@@ -609,7 +667,7 @@ export default function PortalBookCapacity() {
                   </div>
                   <div>
                     <label style={{ fontSize: '0.75rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>
-                      Activity (mCi) <span style={{ color: 'var(--danger)' }}>*</span>
+                      Activity ({selectedProductData?.doseUnit || 'mCi'}) <span style={{ color: 'var(--danger)' }}>*</span>
                     </label>
                     <input
                       type="number"
