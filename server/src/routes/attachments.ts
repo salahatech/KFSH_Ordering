@@ -310,7 +310,7 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
     
     await prisma.attachment.delete({ where: { id } });
     
-    await logAuditEvent(userId, attachment.entityType, attachment.entityId, 'ATTACHMENT_DELETE', {
+    await logAuditEvent(userId!, attachment.entityType, attachment.entityId, 'ATTACHMENT_DELETE', {
       attachmentId: id,
       fileName: attachment.originalName,
       fileSize: attachment.fileSize
@@ -340,7 +340,7 @@ router.get('/download/:id', authenticateToken, async (req: Request, res: Respons
       return res.status(404).json({ error: 'File not found on disk' });
     }
     
-    await logAuditEvent(userId, attachment.entityType, attachment.entityId, 'ATTACHMENT_DOWNLOAD', {
+    await logAuditEvent(userId!, attachment.entityType, attachment.entityId, 'ATTACHMENT_DOWNLOAD', {
       attachmentId: id,
       fileName: attachment.originalName
     });

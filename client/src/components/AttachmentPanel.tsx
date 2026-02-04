@@ -123,9 +123,16 @@ export default function AttachmentPanel({ entityType, entityId, title = 'Attachm
   const handleDownload = async (attachment: Attachment) => {
     try {
       const response = await api.get(`/attachments/download/${attachment.id}`, {
-        responseType: 'blob'
+        responseType: 'blob',
+        headers: {
+          'Accept': '*/*'
+        }
       });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // response.data is already a Blob when responseType is 'blob'
+      const blob = response.data instanceof Blob 
+        ? response.data 
+        : new Blob([response.data], { type: attachment.mimeType });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', attachment.originalName);
