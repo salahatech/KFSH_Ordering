@@ -146,7 +146,7 @@ export default function GlobalSearch() {
           cursor: 'pointer',
           color: 'var(--text-muted)',
           fontSize: '0.875rem',
-          minWidth: '200px',
+          minWidth: '280px',
         }}
       >
         <Search size={16} />

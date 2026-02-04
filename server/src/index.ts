@@ -59,6 +59,7 @@ import batchQcSessionRoutes from './routes/batchQcSession.js';
 import e2eTestingRoutes from './routes/e2eTesting.js';
 import automationRoutes from './routes/automation.js';
 import helpdeskRoutes from './routes/helpdesk.js';
+import searchRoutes from './routes/search.js';
 import { initializeScheduler } from './services/automation/scheduler.js';
 
 const app = express();
@@ -126,6 +127,7 @@ app.use('/api/batches/:batchId/qc-session', batchQcSessionRoutes);
 app.use('/api/e2e', e2eTestingRoutes);
 app.use('/api/automation', automationRoutes);
 app.use('/api/helpdesk', helpdeskRoutes);
+app.use('/api/search', searchRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
