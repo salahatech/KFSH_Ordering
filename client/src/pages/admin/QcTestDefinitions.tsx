@@ -541,125 +541,127 @@ export default function QcTestDefinitions() {
             </div>
 
             <form onSubmit={handleSubmit}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">Code *</label>
-                  <input
-                    type="text"
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                    className="form-control"
-                    placeholder="e.g., STERILITY"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Category</label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="form-control"
-                  >
-                    <option value="">Select Category</option>
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Name (English) *</label>
-                  <input
-                    type="text"
-                    value={formData.nameEn}
-                    onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
-                    className="form-control"
-                    placeholder="Sterility Test"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Name (Arabic)</label>
-                  <input
-                    type="text"
-                    value={formData.nameAr}
-                    onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
-                    className="form-control"
-                    dir="rtl"
-                    placeholder="اختبار العقم"
-                  />
-                </div>
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="form-label">Description (English)</label>
-                  <textarea
-                    value={formData.descriptionEn}
-                    onChange={(e) => setFormData({ ...formData, descriptionEn: e.target.value })}
-                    className="form-control"
-                    rows={2}
-                    placeholder="Detailed test description..."
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Result Type *</label>
-                  <select
-                    value={formData.resultType}
-                    onChange={(e) => setFormData({ ...formData, resultType: e.target.value })}
-                    className="form-control"
-                    required
-                  >
-                    {RESULT_TYPES.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Unit</label>
-                  <input
-                    type="text"
-                    value={formData.unit}
-                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                    className="form-control"
-                    placeholder="e.g., mCi, pH, %"
-                  />
-                </div>
-                {formData.resultType === 'OPTION_LIST' && (
-                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                    <label className="form-label">Options (comma-separated)</label>
+              <div className="modal-body">
+                <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">Code *</label>
                     <input
                       type="text"
-                      value={formData.optionList}
-                      onChange={(e) => setFormData({ ...formData, optionList: e.target.value })}
-                      className="form-control"
-                      placeholder="Clear, Slightly Hazy, Hazy"
+                      value={formData.code}
+                      onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                      className="form-input"
+                      placeholder="e.g., STERILITY"
+                      required
                     />
                   </div>
-                )}
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="form-label">Test Method</label>
-                  <input
-                    type="text"
-                    value={formData.method}
-                    onChange={(e) => setFormData({ ...formData, method: e.target.value })}
-                    className="form-control"
-                    placeholder="USP <71> Sterility Testing"
-                  />
-                </div>
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <div className="form-group">
+                    <label className="form-label">Category</label>
+                    <select
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      className="form-select"
+                    >
+                      <option value="">Select Category</option>
+                      {CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Name (English) *</label>
                     <input
-                      type="checkbox"
-                      checked={formData.isActive}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      type="text"
+                      value={formData.nameEn}
+                      onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
+                      className="form-input"
+                      placeholder="Sterility Test"
+                      required
                     />
-                    <span>Active</span>
-                  </label>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Name (Arabic)</label>
+                    <input
+                      type="text"
+                      value={formData.nameAr}
+                      onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
+                      className="form-input"
+                      dir="rtl"
+                      placeholder="اختبار العقم"
+                    />
+                  </div>
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="form-label">Description (English)</label>
+                    <textarea
+                      value={formData.descriptionEn}
+                      onChange={(e) => setFormData({ ...formData, descriptionEn: e.target.value })}
+                      className="form-input"
+                      rows={2}
+                      placeholder="Detailed test description..."
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Result Type *</label>
+                    <select
+                      value={formData.resultType}
+                      onChange={(e) => setFormData({ ...formData, resultType: e.target.value })}
+                      className="form-select"
+                      required
+                    >
+                      {RESULT_TYPES.map((type) => (
+                        <option key={type.value} value={type.value}>
+                          {type.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Unit</label>
+                    <input
+                      type="text"
+                      value={formData.unit}
+                      onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                      className="form-input"
+                      placeholder="e.g., mCi, pH, %"
+                    />
+                  </div>
+                  {formData.resultType === 'OPTION_LIST' && (
+                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                      <label className="form-label">Options (comma-separated)</label>
+                      <input
+                        type="text"
+                        value={formData.optionList}
+                        onChange={(e) => setFormData({ ...formData, optionList: e.target.value })}
+                        className="form-input"
+                        placeholder="Clear, Slightly Hazy, Hazy"
+                      />
+                    </div>
+                  )}
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="form-label">Test Method</label>
+                    <input
+                      type="text"
+                      value={formData.method}
+                      onChange={(e) => setFormData({ ...formData, method: e.target.value })}
+                      className="form-input"
+                      placeholder="USP <71> Sterility Testing"
+                    />
+                  </div>
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={formData.isActive}
+                        onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      />
+                      <span>Active</span>
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <div className="modal-footer">
                 <button type="button" onClick={closeModal} className="btn btn-secondary">
                   Cancel
                 </button>
