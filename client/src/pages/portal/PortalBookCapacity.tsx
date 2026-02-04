@@ -484,64 +484,103 @@ export default function PortalBookCapacity() {
               </div>
 
               <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
                   <div style={{ 
-                    width: '40px', 
-                    height: '40px', 
-                    borderRadius: '10px', 
+                    width: '44px', 
+                    height: '44px', 
+                    borderRadius: '12px', 
                     background: 'rgba(13, 148, 136, 0.1)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}>
-                    <Calendar size={20} style={{ color: '#0d9488' }} />
+                    <Calendar size={22} style={{ color: '#0d9488' }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       {format(new Date(selectedWindow.date), 'EEEE')}
                     </div>
-                    <div style={{ fontSize: '1rem', fontWeight: 600 }}>
+                    <div style={{ fontSize: '1.125rem', fontWeight: 600 }}>
                       {format(new Date(selectedWindow.date), 'MMMM d, yyyy')}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Time Slot</span>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Clock size={14} style={{ color: 'var(--text-muted)' }} />
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Time Slot</span>
+                    </div>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>
                       {format(new Date(selectedWindow.startTime), 'HH:mm')} - {format(new Date(selectedWindow.endTime), 'HH:mm')}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Available</span>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: getCapacityColor(selectedWindow.utilizationPercent) }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Zap size={14} style={{ color: '#0d9488' }} />
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Available</span>
+                    </div>
+                    <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: getCapacityColor(selectedWindow.utilizationPercent) }}>
                       {selectedWindow.availableMinutes} min
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Total Capacity</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Timer size={14} style={{ color: 'var(--text-muted)' }} />
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Total Capacity</span>
+                    </div>
                     <span style={{ fontSize: '0.875rem' }}>{selectedWindow.capacityMinutes} min</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Utilization</span>
-                    <span style={{ fontSize: '0.875rem' }}>{selectedWindow.utilizationPercent}%</span>
+                  <div style={{ padding: '0.625rem 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Utilization</span>
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{selectedWindow.utilizationPercent}%</span>
+                    </div>
+                    <div style={{ 
+                      height: '6px', 
+                      background: 'var(--bg-secondary)', 
+                      borderRadius: '3px', 
+                      overflow: 'hidden' 
+                    }}>
+                      <div style={{ 
+                        width: `${Math.min(selectedWindow.utilizationPercent, 100)}%`, 
+                        height: '100%', 
+                        background: getCapacityColor(selectedWindow.utilizationPercent),
+                        borderRadius: '3px',
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div style={{ padding: '1.25rem' }}>
-                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-primary)' }}>
+              <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border)' }}>
+                <h4 style={{ 
+                  fontSize: '0.75rem', 
+                  fontWeight: 600, 
+                  marginBottom: '1rem', 
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
                   Reserve This Slot
                 </h4>
 
-                <div className="form-group" style={{ marginBottom: '1rem' }}>
-                  <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Product *</label>
+                <div style={{ marginBottom: '0.875rem' }}>
+                  <label style={{ fontSize: '0.8125rem', fontWeight: 500, display: 'block', marginBottom: '0.375rem' }}>
+                    Product <span style={{ color: 'var(--danger)' }}>*</span>
+                  </label>
                   <select 
                     className="form-control"
                     value={selectedProduct}
                     onChange={e => setSelectedProduct(e.target.value)}
-                    style={{ fontSize: '0.875rem' }}
+                    style={{ 
+                      fontSize: '0.875rem', 
+                      padding: '0.5rem 0.75rem',
+                      borderColor: selectedProduct ? '#0d9488' : 'var(--border)',
+                      borderWidth: selectedProduct ? '2px' : '1px'
+                    }}
                   >
                     <option value="">Select a product...</option>
                     {products?.map(p => (
@@ -552,71 +591,84 @@ export default function PortalBookCapacity() {
                   </select>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Doses *</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.875rem' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8125rem', fontWeight: 500, display: 'block', marginBottom: '0.375rem' }}>
+                      Doses <span style={{ color: 'var(--danger)' }}>*</span>
+                    </label>
                     <input
                       type="number"
                       className="form-control"
                       value={numberOfDoses}
                       onChange={e => setNumberOfDoses(Math.max(1, parseInt(e.target.value) || 1))}
                       min={1}
-                      style={{ fontSize: '0.875rem' }}
+                      style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
                     />
                   </div>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Activity (mCi) *</label>
+                  <div>
+                    <label style={{ fontSize: '0.8125rem', fontWeight: 500, display: 'block', marginBottom: '0.375rem' }}>
+                      Activity (mCi) <span style={{ color: 'var(--danger)' }}>*</span>
+                    </label>
                     <input
                       type="number"
                       className="form-control"
                       value={requestedActivity}
                       onChange={e => setRequestedActivity(parseFloat(e.target.value) || 0)}
                       step="0.1"
-                      style={{ fontSize: '0.875rem' }}
+                      style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
                     />
                   </div>
                 </div>
 
-                <div className="form-group" style={{ marginBottom: '1rem' }}>
-                  <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Hospital Reference</label>
+                <div style={{ marginBottom: '0.875rem' }}>
+                  <label style={{ fontSize: '0.8125rem', fontWeight: 500, display: 'block', marginBottom: '0.375rem' }}>
+                    Hospital Reference
+                  </label>
                   <input
                     type="text"
                     className="form-control"
                     value={hospitalOrderReference}
                     onChange={e => setHospitalOrderReference(e.target.value)}
                     placeholder="Your internal reference"
-                    style={{ fontSize: '0.875rem' }}
+                    style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
                   />
                 </div>
 
-                <div className="form-group" style={{ marginBottom: '1rem' }}>
-                  <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Special Notes</label>
+                <div>
+                  <label style={{ fontSize: '0.8125rem', fontWeight: 500, display: 'block', marginBottom: '0.375rem' }}>
+                    Special Notes
+                  </label>
                   <textarea
                     className="form-control"
                     value={specialNotes}
                     onChange={e => setSpecialNotes(e.target.value)}
                     rows={2}
                     placeholder="Any special requirements..."
-                    style={{ fontSize: '0.875rem' }}
+                    style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem', resize: 'none' }}
                   />
                 </div>
+              </div>
 
+              <div style={{ padding: '1.25rem' }}>
                 {selectedProduct && (
                   <div style={{ 
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '0.75rem',
-                    background: estimatedMinutes > selectedWindow.availableMinutes ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-secondary)', 
+                    padding: '0.75rem 1rem',
+                    background: estimatedMinutes > selectedWindow.availableMinutes ? 'rgba(239, 68, 68, 0.08)' : 'rgba(13, 148, 136, 0.08)', 
                     borderRadius: '8px',
                     marginBottom: '1rem',
-                    border: estimatedMinutes > selectedWindow.availableMinutes ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--border)'
+                    border: estimatedMinutes > selectedWindow.availableMinutes ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(13, 148, 136, 0.2)'
                   }}>
-                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Est. Time</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Timer size={16} style={{ color: estimatedMinutes > selectedWindow.availableMinutes ? 'var(--danger)' : '#0d9488' }} />
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Est. Time Required</span>
+                    </div>
                     <span style={{ 
-                      fontSize: '0.875rem', 
-                      fontWeight: 600,
-                      color: estimatedMinutes > selectedWindow.availableMinutes ? 'var(--danger)' : 'var(--text-primary)'
+                      fontSize: '0.9375rem', 
+                      fontWeight: 700,
+                      color: estimatedMinutes > selectedWindow.availableMinutes ? 'var(--danger)' : '#0d9488'
                     }}>
                       {estimatedMinutes} min
                       {estimatedMinutes > selectedWindow.availableMinutes && (
@@ -632,16 +684,17 @@ export default function PortalBookCapacity() {
                   disabled={!selectedProduct || estimatedMinutes > selectedWindow.availableMinutes || createReservationMutation.isPending}
                   style={{ 
                     width: '100%', 
-                    background: '#0d9488', 
-                    borderColor: '#0d9488',
-                    color: 'white',
+                    background: (!selectedProduct || estimatedMinutes > selectedWindow.availableMinutes) ? 'var(--bg-secondary)' : '#0d9488', 
+                    borderColor: (!selectedProduct || estimatedMinutes > selectedWindow.availableMinutes) ? 'var(--border)' : '#0d9488',
+                    color: (!selectedProduct || estimatedMinutes > selectedWindow.availableMinutes) ? 'var(--text-muted)' : 'white',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '0.5rem',
                     padding: '0.75rem 1rem',
-                    fontSize: '0.875rem',
-                    fontWeight: 500
+                    fontSize: '0.9375rem',
+                    fontWeight: 600,
+                    cursor: (!selectedProduct || estimatedMinutes > selectedWindow.availableMinutes) ? 'not-allowed' : 'pointer'
                   }}
                 >
                   <CalendarCheck size={18} />
