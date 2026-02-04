@@ -18,6 +18,9 @@ export default function AnnouncementBar() {
   const queryClient = useQueryClient();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isHidden, setIsHidden] = useState(() => {
+    return sessionStorage.getItem('announcementBarHidden') === 'true';
+  });
 
   const { data: announcements = [] } = useQuery({
     queryKey: ['active-announcements'],
@@ -118,6 +121,16 @@ export default function AnnouncementBar() {
     }
   };
 
+  const handleHideBar = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsHidden(true);
+    sessionStorage.setItem('announcementBarHidden', 'true');
+  };
+
+  if (isHidden) {
+    return null;
+  }
+
   return (
     <div
       style={{
@@ -210,7 +223,7 @@ export default function AnnouncementBar() {
           View all
         </Link>
         <button
-          onClick={(e) => handleDismiss(e, current.id)}
+          onClick={handleHideBar}
           style={{
             background: 'rgba(255,255,255,0.2)',
             border: 'none',
@@ -222,7 +235,7 @@ export default function AnnouncementBar() {
             justifyContent: 'center',
             color: 'inherit',
           }}
-          title="Dismiss"
+          title="Close announcement bar"
         >
           <X size={16} />
         </button>
