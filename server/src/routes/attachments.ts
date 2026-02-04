@@ -175,6 +175,57 @@ router.get('/allowed-extensions', authenticateToken, async (req: Request, res: R
   }
 });
 
+// Download route - MUST be before /:entityType/:entityId to avoid matching "download" as entityType
+router.get('/download/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const token = req.query.token as string || req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    // Verify token
+    const jwt = await import('jsonwebtoken');
+    let userId: string;
+    try {
+      const decoded = jwt.default.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+      userId = decoded.userId;
+    } catch (err) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+    
+    const attachment = await prisma.attachment.findUnique({
+      where: { id }
+    });
+    
+    if (!attachment) {
+      return res.status(404).json({ error: 'Attachment not found' });
+    }
+    
+    if (!fs.existsSync(attachment.filePath)) {
+      return res.status(404).json({ error: 'File not found on disk' });
+    }
+    
+    await logAuditEvent(userId, attachment.entityType, attachment.entityId, 'ATTACHMENT_DOWNLOAD', {
+      attachmentId: id,
+      fileName: attachment.originalName
+    });
+    
+    // Set proper headers for file download
+    res.setHeader('Content-Type', attachment.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(attachment.originalName)}"`);
+    res.setHeader('Content-Length', attachment.fileSize);
+    
+    // Stream the file
+    const fileStream = fs.createReadStream(attachment.filePath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error('Error downloading attachment:', error);
+    res.status(500).json({ error: 'Failed to download attachment' });
+  }
+});
+
 router.get('/:entityType/:entityId', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { entityType, entityId } = req.params;
@@ -320,56 +371,6 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
   } catch (error) {
     console.error('Error deleting attachment:', error);
     res.status(500).json({ error: 'Failed to delete attachment' });
-  }
-});
-
-router.get('/download/:id', async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const token = req.query.token as string || req.headers.authorization?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    
-    // Verify token
-    const jwt = await import('jsonwebtoken');
-    let userId: string;
-    try {
-      const decoded = jwt.default.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
-      userId = decoded.userId;
-    } catch (err) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
-    }
-    
-    const attachment = await prisma.attachment.findUnique({
-      where: { id }
-    });
-    
-    if (!attachment) {
-      return res.status(404).json({ error: 'Attachment not found' });
-    }
-    
-    if (!fs.existsSync(attachment.filePath)) {
-      return res.status(404).json({ error: 'File not found on disk' });
-    }
-    
-    await logAuditEvent(userId, attachment.entityType, attachment.entityId, 'ATTACHMENT_DOWNLOAD', {
-      attachmentId: id,
-      fileName: attachment.originalName
-    });
-    
-    // Set proper headers for file download
-    res.setHeader('Content-Type', attachment.mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(attachment.originalName)}"`);
-    res.setHeader('Content-Length', attachment.fileSize);
-    
-    // Stream the file
-    const fileStream = fs.createReadStream(attachment.filePath);
-    fileStream.pipe(res);
-  } catch (error) {
-    console.error('Error downloading attachment:', error);
-    res.status(500).json({ error: 'Failed to download attachment' });
   }
 });
 
