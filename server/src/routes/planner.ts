@@ -354,7 +354,7 @@ router.get('/capacity', authenticateToken, async (req: Request, res: Response): 
       include: {
         reservations: {
           where: { status: { in: ['TENTATIVE', 'CONFIRMED'] } },
-          select: { id: true, status: true, estimatedMinutes: true, orderId: true },
+          select: { id: true, status: true, estimatedMinutes: true },
         },
       },
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
