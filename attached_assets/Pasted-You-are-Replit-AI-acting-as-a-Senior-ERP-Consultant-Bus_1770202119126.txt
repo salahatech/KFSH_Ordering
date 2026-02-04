@@ -1,0 +1,227 @@
+You are Replit AI acting as a Senior ERP Consultant, Business Analyst, and Technical Writer.
+
+Objective:
+Create a CLIENT-READY SYSTEM DOCUMENT that fully explains the RadioPharma System.
+This document will be submitted to the client as an official “All About the System” reference.
+
+The document must be:
+- Professional and structured
+- Non-technical where possible, but accurate
+- Suitable for PDF submission
+- Written in clear business language
+- Organized with headings, tables, and diagrams placeholders
+- Include placeholders for screenshots at the correct locations
+
+=====================================================
+DOCUMENT TITLE
+=====================================================
+“RadioPharma Ordering, Manufacturing & Delivery System
+System Overview & End-to-End Business Process Document”
+
+=====================================================
+1) DOCUMENT PURPOSE
+=====================================================
+Explain:
+- Why this document exists
+- What the system covers
+- Who should read it (management, operations, QA, IT, finance)
+
+=====================================================
+2) SYSTEM OVERVIEW
+=====================================================
+Include:
+- High-level description of the RadioPharma system
+- End-to-end lifecycle coverage (Order → Production → QC → Delivery → Invoice → Payment)
+- Key objectives: compliance, traceability, efficiency, transparency
+
+=====================================================
+3) SYSTEM ARCHITECTURE (BUSINESS VIEW)
+=====================================================
+Describe (no code):
+- Web-based platform
+- Internal Portal
+- Customer Portal
+- Driver Portal
+- Integration layer (Email, SMS, WhatsApp, ZATCA)
+Add:
+[Placeholder: System Architecture Diagram]
+
+=====================================================
+4) USER ROLES & RESPONSIBILITIES
+=====================================================
+Create a table listing:
+- Admin
+- Customer
+- Order Desk
+- Planner
+- Production
+- QC Analyst
+- QP
+- Logistics
+- Driver
+- Finance
+Explain what each role can do.
+
+=====================================================
+5) SYSTEM MODULES & PAGES
+=====================================================
+Describe each module with its key pages and purpose:
+
+5.1 Master Data
+- Products
+- Materials
+- Recipes & BOM
+- Customers
+- Suppliers
+- Warehouses
+[Placeholder: Product Master Screenshot]
+
+5.2 Product Management
+- Selling & production definition
+- QC template per product
+[Placeholder: Product Details Screenshot]
+
+5.3 Customer Management
+- Arabic & English names
+- Address, GPS, documents
+[Placeholder: Customer Edit Page Screenshot]
+
+=====================================================
+6) ORDER MANAGEMENT WORKFLOW
+=====================================================
+Describe step-by-step:
+- Customer creates order
+- Order validation
+- Planning & scheduling
+- Status progression
+Include:
+[Placeholder: Order Journey Screenshot]
+
+=====================================================
+7) MANUFACTURING & BATCH EXECUTION
+=====================================================
+Explain:
+- Batch creation from order
+- Recipe usage
+- Electronic Batch Record (eBR)
+- Material consumption tracking
+[Placeholder: Batch Execution Screenshot]
+
+=====================================================
+8) QUALITY CONTROL (QC)
+=====================================================
+Explain:
+- QC test definitions from settings
+- Product-based QC templates
+- Batch QC testing table:
+  Test | Criteria | Result | Status
+- Auto pass/fail logic
+- Attachments & audit
+[Placeholder: QC Batch Testing Screenshot]
+
+=====================================================
+9) QP RELEASE
+=====================================================
+Explain:
+- Qualified Person responsibilities
+- E-signature
+- Separation of duties
+- Release decision
+[Placeholder: QP Release Screenshot]
+
+=====================================================
+10) DISPENSING
+=====================================================
+Explain:
+- Dose unit creation
+- Label printing
+- Link to shipment
+[Placeholder: Dispensing Screenshot]
+
+=====================================================
+11) LOGISTICS & DELIVERY
+=====================================================
+Explain:
+- Shipment creation
+- Driver assignment
+- Driver portal flow
+- Proof of Delivery (signature, photo, GPS)
+[Placeholder: Driver Delivery Screenshot]
+
+=====================================================
+12) FINANCE & INVOICING
+=====================================================
+Explain clearly:
+- Invoice generation timing
+- Approval workflow
+- Default currency = SAR (mandatory everywhere)
+- ZATCA integration & QR code
+- Partial & full payments
+- Receipt vouchers
+[Placeholder: Invoice & Receipt Screenshot]
+
+=====================================================
+13) NOTIFICATIONS & ANNOUNCEMENTS
+=====================================================
+Explain:
+- In-app notifications
+- Email / SMS / WhatsApp
+- Announcement message bar
+- Scheduled announcements
+[Placeholder: Announcement Bar Screenshot]
+
+=====================================================
+14) REPORTS & AUDIT
+=====================================================
+Explain:
+- Reports covering all modules
+- Excel & PDF export
+- Audit trail for every action
+[Placeholder: Reports Dashboard Screenshot]
+
+=====================================================
+15) END-TO-END EXAMPLE SCENARIO
+=====================================================
+Provide a FULL real-life example:
+“FDG Order – From Customer Order to Final Payment”
+Include numbered steps:
+1. Order created
+2. Batch produced
+3. QC passed
+4. Released
+5. Delivered
+6. Invoiced
+7. Paid & closed
+Include:
+[Placeholder: E2E Screenshots Sequence]
+
+=====================================================
+16) COMPLIANCE & CONTROL SUMMARY
+=====================================================
+Explain:
+- Traceability
+- QC & QP enforcement
+- SAR currency control
+- ZATCA compliance
+- Audit readiness
+
+=====================================================
+17) CONCLUSION
+=====================================================
+Summarize system value and readiness.
+
+=====================================================
+FORMATTING REQUIREMENTS
+=====================================================
+- Use headings and sub-headings
+- Use tables where appropriate
+- Professional business tone
+- Clear section numbering
+- Add “[Screenshot Placeholder]” exactly where screenshots should be inserted
+- Do NOT include code
+- Do NOT include implementation details
+
+=====================================================
+FINAL OUTPUT
+=====================================================
+Produce the full document text in one response, ready to be copied into Word or Google Docs and exported as PDF.
