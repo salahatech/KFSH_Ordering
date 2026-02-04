@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient, TicketStatus, TicketPriority, TicketCategory, TicketRequesterRole, TicketTeam, TicketMessageType, TicketMessageVisibility, TicketEventType, TicketTaskStatus } from '@prisma/client';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { sendNotification } from '../services/notification.js';
 
 const router = Router();
@@ -337,7 +337,7 @@ router.post('/tickets/:id/reply', authenticateToken, async (req: Request, res: R
 // ADMIN ENDPOINTS
 // =========================
 
-router.get('/admin/tickets', authenticateToken, async (req: Request, res: Response) => {
+router.get('/admin/tickets', authenticateToken, requireRole('Admin', 'Sales'), async (req: Request, res: Response) => {
   try {
     const { status, priority, category, assignedTo, team, customerId, search, slaBreached, page = '1', limit = '20' } = req.query;
     
@@ -423,7 +423,7 @@ router.get('/admin/tickets', authenticateToken, async (req: Request, res: Respon
   }
 });
 
-router.get('/admin/tickets/:id', authenticateToken, async (req: Request, res: Response) => {
+router.get('/admin/tickets/:id', authenticateToken, requireRole('Admin', 'Sales'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -471,7 +471,7 @@ router.get('/admin/tickets/:id', authenticateToken, async (req: Request, res: Re
   }
 });
 
-router.patch('/admin/tickets/:id', authenticateToken, async (req: Request, res: Response) => {
+router.patch('/admin/tickets/:id', authenticateToken, requireRole('Admin', 'Sales'), async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const { id } = req.params;
@@ -570,7 +570,7 @@ router.patch('/admin/tickets/:id', authenticateToken, async (req: Request, res: 
   }
 });
 
-router.post('/admin/tickets/:id/reply', authenticateToken, async (req: Request, res: Response) => {
+router.post('/admin/tickets/:id/reply', authenticateToken, requireRole('Admin', 'Sales'), async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const { id } = req.params;
@@ -630,7 +630,7 @@ router.post('/admin/tickets/:id/reply', authenticateToken, async (req: Request, 
   }
 });
 
-router.post('/admin/tickets/:id/internal-note', authenticateToken, async (req: Request, res: Response) => {
+router.post('/admin/tickets/:id/internal-note', authenticateToken, requireRole('Admin', 'Sales'), async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const { id } = req.params;
@@ -675,7 +675,7 @@ router.post('/admin/tickets/:id/internal-note', authenticateToken, async (req: R
 // TASK ENDPOINTS
 // =========================
 
-router.post('/admin/tickets/:id/tasks', authenticateToken, async (req: Request, res: Response) => {
+router.post('/admin/tickets/:id/tasks', authenticateToken, requireRole('Admin', 'Sales'), async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const { id } = req.params;
@@ -726,7 +726,7 @@ router.post('/admin/tickets/:id/tasks', authenticateToken, async (req: Request, 
   }
 });
 
-router.patch('/admin/tasks/:taskId', authenticateToken, async (req: Request, res: Response) => {
+router.patch('/admin/tasks/:taskId', authenticateToken, requireRole('Admin', 'Sales'), async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const { taskId } = req.params;
@@ -782,7 +782,7 @@ router.patch('/admin/tasks/:taskId', authenticateToken, async (req: Request, res
   }
 });
 
-router.get('/admin/tasks', authenticateToken, async (req: Request, res: Response) => {
+router.get('/admin/tasks', authenticateToken, requireRole('Admin', 'Sales'), async (req: Request, res: Response) => {
   try {
     const { status, assignedTo, ticketId, page = '1', limit = '20' } = req.query;
     
@@ -830,7 +830,7 @@ router.get('/admin/tasks', authenticateToken, async (req: Request, res: Response
 // SUPPORT USERS LIST
 // =========================
 
-router.get('/admin/support-users', authenticateToken, async (req: Request, res: Response) => {
+router.get('/admin/support-users', authenticateToken, requireRole('Admin', 'Sales'), async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
       where: {
