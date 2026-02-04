@@ -70,6 +70,7 @@ export default function Login() {
 
         {error && (
           <div
+            data-testid="error-message"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -93,6 +94,7 @@ export default function Login() {
             <input
               type="email"
               className="form-input"
+              data-testid="email-input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -104,6 +106,7 @@ export default function Login() {
             <input
               type="password"
               className="form-input"
+              data-testid="password-input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -114,6 +117,7 @@ export default function Login() {
             type="submit"
             disabled={loading}
             className="btn btn-primary"
+            data-testid="login-button"
             style={{ width: '100%', marginTop: '1rem', padding: '0.75rem' }}
           >
             {loading ? 'Signing in...' : 'Sign In'}

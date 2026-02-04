@@ -1,0 +1,412 @@
+You are Replit AI acting as a Senior QA Automation Engineer + Full-Stack Engineer.
+
+Goal:
+Implement FULL End-to-End (E2E) automated testing using REALISTIC demo data that validates the full RadioPharma process:
+Customer Order → Validation → Scheduling/Planner → Batch → Manufacturing Execution (eBR) → QC Testing → QP Release → Dispensing → Shipment/Driver → POD → Invoice generation → Approval/Posting → Customer Payment (partial/full) → Finance Confirmation → Receipt Voucher
+AND verify attachments uploads, PDF printouts, exports (Excel/PDF), notifications, and audit logs.
+
+Tech requirements:
+- Use Playwright (preferred) for E2E browser automation
+- Tests must run headless in CI and locally
+- Use seeded demo data (idempotent) + optionally a “Live Demo Mode”
+- Mock external services: Email/SMS providers, ZATCA APIs, and any payment gateway
+- Store E2E artifacts: screenshots, videos on failure, and downloaded PDFs/Excel files
+
+========================================================
+1) E2E TEST FRAMEWORK SETUP (MANDATORY)
+========================================================
+1.1 Install and configure Playwright
+- Add playwright config:
+  - baseURL from env
+  - storageState per role (login once, reuse)
+  - retries = 1–2
+  - record video on failure
+  - screenshots on failure
+- Add test folders:
+  /e2e/tests
+  /e2e/fixtures
+  /e2e/pages (Page Object Model)
+  /e2e/utils (helpers)
+  /e2e/artifacts (downloads output)
+
+1.2 Test Data Strategy
+Implement deterministic demo data creation before tests:
+- Option A: call POST /admin/demo/seed?mode=LIVE_DEMO (recommended)
+- Option B: run prisma seed
+Ensure it creates known identifiers:
+- Customer: “Al Noor Hospital” (مستشفى النور)
+- Order: O-10001
+- Batch: B-20001
+- Shipment: S-30001
+- Invoice: INV-40001
+
+1.3 Environment Modes
+- E2E_USE_MOCKS=true
+- ZATCA_MOCK=true
+- EMAIL_MOCK=true
+- SMS_MOCK=true
+Implement mock endpoints and logs tables so tests can assert that “email/sms would have been sent”.
+
+========================================================
+2) ROLES + TEST USERS (MANDATORY)
+========================================================
+Create and use these accounts:
+- portal1@hospitaldemo.com (CUSTOMER)
+- orderdesk@demo.com (ORDER_DESK/VALIDATOR)
+- planner@demo.com (PLANNER)
+- qc@demo.com (QC_ANALYST)
+- qp@demo.com (QP)
+- logistics@demo.com (LOGISTICS)
+- driver1@demo.com (DRIVER)
+- finance@demo.com (FINANCE_ADMIN)
+- admin@demo.com (ADMIN)
+
+Create Playwright storage states per role:
+- /e2e/storage/customer.json
+- /e2e/storage/orderdesk.json
+- /e2e/storage/planner.json
+- /e2e/storage/qc.json
+- /e2e/storage/qp.json
+- /e2e/storage/logistics.json
+- /e2e/storage/driver.json
+- /e2e/storage/finance.json
+- /e2e/storage/admin.json
+
+========================================================
+3) PAGE OBJECTS (MANDATORY)
+========================================================
+Create page objects for stability:
+- LoginPage
+- CustomerPortalOrdersPage
+- CustomerPortalOrderDetailPage
+- QCWorkbenchPage
+- QPQueuePage
+- DispensingWorkbenchPage
+- ShipmentsPage + ShipmentDetailPage
+- DriverPortalShipmentsPage + DriverShipmentDetailPage
+- FinanceInvoicesPage + InvoiceDetailPage
+- FinancePaymentApprovalsPage
+- NotificationsTopBar + NotificationCenterPage
+- ReportsCenterPage
+
+Each page object must include robust selectors using data-testid.
+Add data-testid attributes to UI components as needed.
+
+========================================================
+4) CORE E2E FLOWS (MANDATORY) — END TO END WITH VERIFICATIONS
+========================================================
+
+--------------------------------------------------------
+TEST 4.1: CUSTOMER ORDER CREATION & SUBMISSION (Portal)
+--------------------------------------------------------
+Steps:
+1) Login as customer (portal1)
+2) Go to /portal/orders → Create Order
+3) Fill required fields:
+   - product
+   - quantity
+   - delivery date/time
+   - injection time (if applicable)
+   - notes
+4) Attach a file (e.g., “DoctorRequest.pdf” < 5MB)
+5) Submit
+
+Verify:
+- Customer is auto-captured (no customer dropdown visible)
+- Order created with number (O-10001 or new)
+- Order status = SUBMITTED
+- Timeline shows “Submitted by customer”
+- Attachment appears in order documents tab
+- Notification appears in top bar and notification center (“Order submitted”)
+
+--------------------------------------------------------
+TEST 4.2: ORDER VALIDATION (Internal)
+--------------------------------------------------------
+Steps:
+1) Login as orderdesk
+2) Open validation queue
+3) Open order details
+4) Validate and approve (status → VALIDATED)
+
+Verify:
+- Order status badge updates
+- Timeline logs event with actor
+- Customer receives in-app notification (and email/SMS mock if enabled)
+- Customer portal shows updated order status
+
+--------------------------------------------------------
+TEST 4.3: PLANNER SCHEDULING + RESERVATION
+--------------------------------------------------------
+Steps:
+1) Login as planner
+2) Open planner / reservation page
+3) Assign delivery window and confirm schedule
+4) Order status becomes SCHEDULED
+
+Verify:
+- Order journey stepper highlights SCHEDULED
+- Planner day view shows reserved minutes
+- Capacity widget updates
+- Notification sent to customer (mock email/sms + in-app)
+
+--------------------------------------------------------
+TEST 4.4: BATCH CREATION + MANUFACTURING EXECUTION (eBR)
+--------------------------------------------------------
+Steps:
+1) Login as admin or production operator (if exists) else planner
+2) Create batch from order
+3) Open eBR steps
+4) Execute steps sequentially:
+   - enter parameter values
+   - attach a step evidence file (optional)
+5) Complete production step
+
+Verify:
+- Batch linked to order
+- eBR step completion % updates
+- Yield captured (planned vs actual)
+- Timeline events created
+- Batch status moves to QC_PENDING
+
+--------------------------------------------------------
+TEST 4.5: QC TESTING (Pass scenario)
+--------------------------------------------------------
+Steps:
+1) Login as qc
+2) Open QC workbench and locate batch
+3) Create sample + enter test results (all pass)
+4) Attach QC report file (PDF <5MB)
+5) Mark QC Passed
+
+Verify:
+- QC status badge = PASSED
+- Batch status now awaiting QP (or QC completed)
+- OOS workflow not triggered
+- Timeline includes sample taken, results entered, QC passed
+- Customer sees milestone “QC completed” (sanitized)
+
+--------------------------------------------------------
+TEST 4.6: QP RELEASE WITH E-SIGNATURE
+--------------------------------------------------------
+Steps:
+1) Login as qp
+2) Open QP queue, open batch
+3) Click “Release” → e-sign modal:
+   - re-enter password
+   - choose meaning “Batch Release”
+   - add comment
+4) Confirm release
+
+Verify:
+- QP disposition = RELEASED
+- E-signature record created
+- SoD rule enforced (if qp == qc user, must block; verify by attempting with qc user in a negative test)
+- Batch becomes RELEASED → Dispensing allowed
+- Notification to logistics/dispensing
+
+--------------------------------------------------------
+TEST 4.7: DISPENSING (Create Dose Units + Labels)
+--------------------------------------------------------
+Steps:
+1) Login as dispensing role (or logistics if combined)
+2) Open dispensing workbench, open batch
+3) Create dose units (match quantity)
+4) Mark dose units DISPENSED
+5) Print labels:
+   - click “Print labels PDF”
+   - download file
+
+Verify:
+- Dose units status updated
+- Label PDF downloaded and not empty (file size > 5KB)
+- Dose units linked to shipment (later)
+- Timeline shows dose units events
+
+--------------------------------------------------------
+TEST 4.8: SHIPMENT CREATION + DRIVER ASSIGNMENT + SCHEDULING
+--------------------------------------------------------
+Steps:
+1) Login as logistics
+2) Create shipment from order/dose units
+3) Schedule pickup & delivery times
+4) Assign driver from modal
+5) Mark shipment PACKED
+
+Verify:
+- Shipment status transitions:
+  PACKED → ASSIGNED_TO_DRIVER
+- Shipment list actions menu works (bug fixed): dropdown visible, action triggers success toast
+- Driver receives notification (in-app + email/sms mock)
+
+--------------------------------------------------------
+TEST 4.9: DRIVER PORTAL – ACCEPT → PICKUP → DELIVER WITH POD
+--------------------------------------------------------
+Steps:
+1) Login as driver
+2) Open /driver/shipments and find assigned shipment
+3) Accept shipment
+4) Confirm pickup
+5) Mark Arrived
+6) Deliver shipment:
+   - receiver name required
+   - capture signature (canvas) OR upload signature image
+   - upload POD photo (jpg)
+   - capture GPS (if available; else manual lat/lng)
+7) Submit delivery
+
+Verify:
+- Shipment status = DELIVERED
+- POD record stored with attachments
+- Customer portal tracking shows delivered + POD evidence (if allowed)
+- Order journey updates to DELIVERED
+- Notifications sent
+
+--------------------------------------------------------
+TEST 4.10: INVOICE GENERATION + APPROVAL + CUSTOMER VISIBILITY
+--------------------------------------------------------
+Steps:
+1) Ensure invoice trigger is ON_DELIVERED (admin setting)
+2) Login as finance
+3) Open invoices queue:
+   - find draft invoice generated from delivery
+4) Approve & Post (ISSUED_POSTED)
+5) Download A4 Invoice PDF
+6) Verify ZATCA QR exists:
+   - if ZATCA integration enabled: QR based on mock ZATCA response
+   - else: Phase 1 TLV QR exists
+
+Verify:
+- Invoice visible in customer portal only after ISSUED_POSTED
+- Invoice list shows Total/Paid/Remaining columns
+- Invoice PDF downloaded, not empty, includes QR image (verify by file size and “qr placeholder text” or embedded image marker)
+
+--------------------------------------------------------
+TEST 4.11: CUSTOMER PAYMENT SUBMISSION (Partial then Full)
+--------------------------------------------------------
+Steps:
+1) Login as customer
+2) Open invoice INV-40001
+3) Submit partial payment:
+   - amount = 50%
+   - method = bank transfer
+   - reference number
+   - upload payment proof file (pdf/jpg)
+4) Submit remaining payment request
+
+Verify:
+- PaymentRequest status = PENDING_CONFIRMATION
+- Invoice paid amount does not change until finance confirms
+- Customer sees payment request history
+
+--------------------------------------------------------
+TEST 4.12: FINANCE PAYMENT CONFIRMATION + RECEIPT VOUCHERS
+--------------------------------------------------------
+Steps:
+1) Login as finance
+2) Open payment approvals queue
+3) Confirm partial payment → receipt voucher generated
+4) Confirm remaining payment → invoice becomes PAID and CLOSED_ARCHIVED
+5) Customer downloads receipt voucher PDFs
+
+Verify:
+- Receipt vouchers exist and downloadable (A4 PDF not empty)
+- Invoice status transitions:
+  ISSUED_POSTED → PARTIALLY_PAID → PAID → CLOSED_ARCHIVED
+- Remaining amount becomes 0
+- Customer portal shows invoice closed but still accessible as reference
+- Notifications triggered for payment confirmed and invoice fully paid
+
+--------------------------------------------------------
+TEST 4.13: REPORTS EXPORTS (Excel + PDF)
+--------------------------------------------------------
+Steps:
+1) Login as admin
+2) Open /reports
+3) Run at least 5 reports (cover major areas):
+   - Orders status report
+   - Inventory balance report
+   - Batch timeline report
+   - Shipments delivered report
+   - Invoices + payments report
+4) Export each to Excel and PDF
+
+Verify:
+- Export files downloaded
+- Excel file extension .xlsx and size > 5KB
+- PDF file A4 output size > 5KB
+- Reports respect RBAC (customer cannot access admin reports)
+
+--------------------------------------------------------
+TEST 4.14: AUDIT LOG VERIFICATION
+--------------------------------------------------------
+Steps:
+1) Login as admin
+2) Open audit log report
+3) Filter by entity O-10001 / INV-40001 / S-30001
+
+Verify:
+- audit shows before/after for key changes
+- includes actor, timestamp, traceId
+- critical actions show e-signature reference (QP release, recipe activation, invoice approval)
+
+========================================================
+5) NEGATIVE TESTS (MANDATORY)
+========================================================
+5.1 Customer cannot spoof customerId
+- Attempt to submit order payload with different customerId using API request interception
+Verify server ignores and uses linked customerId.
+
+5.2 Upload size validation (5MB)
+- Attempt upload a file > 5MB
+Verify user-friendly error and server rejects.
+
+5.3 SoD enforcement
+- Try QP release with same user as QC
+Verify blocked with meaningful message.
+
+5.4 Invoice visibility
+- Ensure customer cannot see invoice while DRAFT/PENDING_APPROVAL
+Verify invoice list empty or not showing that invoice.
+
+========================================================
+6) ASSERTIONS FOR NOTIFICATIONS (MANDATORY)
+========================================================
+- Verify top-bar count increments for key events
+- Verify notification center list contains event titles
+- Verify mock email/sms “outbox” tables contain records when channels enabled
+
+========================================================
+7) ARTIFACTS & EVIDENCE OUTPUT (MANDATORY)
+========================================================
+For each test suite run:
+- Save screenshots/videos on failure
+- Save downloaded PDFs/Excel under /e2e/artifacts/run-<timestamp>/
+- Generate an E2E summary JSON:
+  - test name
+  - result pass/fail
+  - created entities IDs
+  - downloaded files list
+  - key status assertions
+
+========================================================
+8) CI INTEGRATION (MANDATORY)
+========================================================
+Add npm scripts:
+- "test:e2e": start app + run seed + run playwright
+- "test:e2e:headed": same but headed
+
+Add CI workflow:
+- spin up DB (docker)
+- run migrations
+- run seed (LIVE_DEMO mode)
+- run E2E tests
+- upload artifacts
+
+========================================================
+9) ACCEPTANCE CRITERIA
+========================================================
+- E2E covers all stages from customer order → delivery → invoice → payment → receipt.
+- Tests verify all required data entry, attachments, printouts, and exports.
+- Mock integrations verified via outbox/logs.
+- Failures produce artifacts.
+- Tests are stable (no flaky selectors; rely on data-testid and deterministic seed).

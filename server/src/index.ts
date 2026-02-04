@@ -56,6 +56,7 @@ import announcementRoutes from './routes/announcements.js';
 import qcTestDefinitionRoutes from './routes/qcTestDefinitions.js';
 import productQcTemplateRoutes from './routes/productQcTemplates.js';
 import batchQcSessionRoutes from './routes/batchQcSession.js';
+import e2eTestingRoutes from './routes/e2eTesting.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -119,6 +120,7 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/qc/test-definitions', qcTestDefinitionRoutes);
 app.use('/api/products/:productId/qc-templates', productQcTemplateRoutes);
 app.use('/api/batches/:batchId/qc-session', batchQcSessionRoutes);
+app.use('/api/e2e', e2eTestingRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

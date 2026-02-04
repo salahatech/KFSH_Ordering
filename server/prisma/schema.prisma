@@ -3364,3 +3364,38 @@ model AnnouncementDelivery {
   @@index([isRead])
   @@index([isDismissed])
 }
+
+// ==================== MOCK OUTBOX FOR E2E TESTING ====================
+
+enum MockOutboxChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+}
+
+enum MockOutboxStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+model MockOutbox {
+  id          String             @id @default(uuid())
+  channel     MockOutboxChannel
+  recipient   String
+  subject     String?
+  body        String             @db.Text
+  status      MockOutboxStatus   @default(QUEUED)
+  metadata    Json?
+  relatedId   String?
+  relatedType String?
+  error       String?
+  sentAt      DateTime?
+  createdAt   DateTime           @default(now())
+
+  @@index([channel])
+  @@index([recipient])
+  @@index([status])
+  @@index([relatedId])
+  @@index([createdAt])
+}
