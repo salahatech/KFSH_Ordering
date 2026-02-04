@@ -37,6 +37,19 @@ RadioPharma OMS is a comprehensive web application for managing radiopharmaceuti
 - **Reporting**: Centralized Enterprise Reporting Center with various categories, filters, and export options (Excel, PDF).
 - **Localization**: Admin-managed internationalization with language support, translation entries, exchange rate management, and user-specific language/timezone/currency overrides.
 
+## E2E Testing Framework
+- **Framework**: Playwright with TypeScript
+- **Location**: `e2e/` directory with tests, pages (POM), fixtures, and utilities
+- **Test Coverage**: Full workflow from customer order to delivery, invoice, and audit log verification
+- **Scripts**: 
+  - `npm run test:e2e` - Run all tests headless
+  - `npm run test:e2e:headed` - Run with browser visible
+  - `npm run test:e2e:ui` - Playwright UI mode
+  - `npm run test:e2e:debug` - Debug mode
+- **Test Users**: 9 role-based users (customer, orderdesk, planner, qc, qp, logistics, driver, finance, admin)
+- **Mock Services**: MockOutbox model for email/SMS verification in tests
+- **E2E Seeding**: POST /api/e2e/seed endpoint (requires E2E_USE_MOCKS=true or NODE_ENV=test)
+
 ## External Dependencies
 - **PostgreSQL**: Primary database.
 - **Prisma ORM**: Database interaction.
@@ -44,3 +57,4 @@ RadioPharma OMS is a comprehensive web application for managing radiopharmaceuti
 - **Twilio**: SMS and WhatsApp notifications.
 - **PDFKit**: Server-side A4 PDF generation.
 - **QRCode**: ZATCA-compliant QR code generation.
+- **Playwright**: E2E browser testing framework.
