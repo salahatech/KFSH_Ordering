@@ -29,10 +29,7 @@ export default function AnnouncementForm() {
     sendEmail: false,
     sendSms: false,
     sendWhatsapp: false,
-    targetCustomers: true,
-    targetSellers: false,
-    targetTechnicians: false,
-    targetDrivers: false,
+    targetRoleCodes: [] as string[],
     specificCustomerIds: [] as string[],
     specificUserIds: [] as string[],
   });
@@ -86,10 +83,7 @@ export default function AnnouncementForm() {
         sendEmail: existing.sendEmail,
         sendSms: existing.sendSms,
         sendWhatsapp: existing.sendWhatsapp,
-        targetCustomers: roleAudiences.some((a: any) => a.roleCode === 'Customer') || customerAudiences.length > 0,
-        targetSellers: roleAudiences.some((a: any) => a.roleCode === 'Seller'),
-        targetTechnicians: roleAudiences.some((a: any) => a.roleCode === 'Technician'),
-        targetDrivers: roleAudiences.some((a: any) => a.roleCode === 'Driver'),
+        targetRoleCodes: roleAudiences.map((a: any) => a.roleCode),
         specificCustomerIds: customerAudiences.filter((a: any) => a.customerId).map((a: any) => a.customerId),
         specificUserIds: userAudiences.map((a: any) => a.userId),
       });
@@ -147,24 +141,14 @@ export default function AnnouncementForm() {
 
     const audiences: AudienceTarget[] = [];
 
-    if (formData.targetCustomers) {
-      if (formData.specificCustomerIds.length > 0) {
-        formData.specificCustomerIds.forEach(customerId => {
-          audiences.push({ audienceType: 'CUSTOMER', customerId });
-        });
-      } else {
-        audiences.push({ audienceType: 'ROLE', roleCode: 'Customer' });
-      }
-    }
-    if (formData.targetSellers) {
-      audiences.push({ audienceType: 'ROLE', roleCode: 'Seller' });
-    }
-    if (formData.targetTechnicians) {
-      audiences.push({ audienceType: 'ROLE', roleCode: 'Technician' });
-    }
-    if (formData.targetDrivers) {
-      audiences.push({ audienceType: 'ROLE', roleCode: 'Driver' });
-    }
+    formData.targetRoleCodes.forEach(roleCode => {
+      audiences.push({ audienceType: 'ROLE', roleCode });
+    });
+    
+    formData.specificCustomerIds.forEach(customerId => {
+      audiences.push({ audienceType: 'CUSTOMER', customerId });
+    });
+    
     formData.specificUserIds.forEach(userId => {
       audiences.push({ audienceType: 'USER', userId });
     });
@@ -278,44 +262,46 @@ export default function AnnouncementForm() {
               <div style={{ marginBottom: '1rem' }}>
                 <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Target Roles</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-                  {[
-                    { key: 'targetCustomers', label: 'Customers' },
-                    { key: 'targetSellers', label: 'Sellers' },
-                    { key: 'targetTechnicians', label: 'Technicians' },
-                    { key: 'targetDrivers', label: 'Drivers' },
-                  ].map(({ key, label }) => (
-                    <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  {roles?.map((role: any) => (
+                    <label key={role.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                       <input
                         type="checkbox"
-                        checked={(formData as any)[key]}
-                        onChange={(e) => setFormData(prev => ({ ...prev, [key]: e.target.checked }))}
+                        checked={formData.targetRoleCodes.includes(role.code)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData(prev => ({ ...prev, targetRoleCodes: [...prev.targetRoleCodes, role.code] }));
+                          } else {
+                            setFormData(prev => ({ ...prev, targetRoleCodes: prev.targetRoleCodes.filter(c => c !== role.code) }));
+                          }
+                        }}
                       />
-                      {label}
+                      {role.name}
                     </label>
                   ))}
                 </div>
+                {!roles?.length && (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No roles found in the system</p>
+                )}
               </div>
 
-              {formData.targetCustomers && (
-                <div className="form-group">
-                  <label className="form-label">Specific Customers (optional)</label>
-                  <select
-                    className="form-select"
-                    multiple
-                    value={formData.specificCustomerIds}
-                    onChange={(e) => {
-                      const selected = Array.from(e.target.selectedOptions, option => option.value);
-                      setFormData(prev => ({ ...prev, specificCustomerIds: selected }));
-                    }}
-                    style={{ minHeight: '100px' }}
-                  >
-                    {customers?.map((c: any) => (
-                      <option key={c.id} value={c.id}>{c.nameEn || c.name} ({c.code})</option>
-                    ))}
-                  </select>
-                  <small style={{ color: 'var(--text-muted)' }}>Leave empty to target all customers. Hold Ctrl/Cmd to select multiple.</small>
-                </div>
-              )}
+              <div className="form-group">
+                <label className="form-label">Specific Customers (optional)</label>
+                <select
+                  className="form-select"
+                  multiple
+                  value={formData.specificCustomerIds}
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.selectedOptions, option => option.value);
+                    setFormData(prev => ({ ...prev, specificCustomerIds: selected }));
+                  }}
+                  style={{ minHeight: '100px' }}
+                >
+                  {customers?.map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.nameEn || c.name} ({c.code})</option>
+                  ))}
+                </select>
+                <small style={{ color: 'var(--text-muted)' }}>Select specific customers to target. Hold Ctrl/Cmd to select multiple.</small>
+              </div>
 
               <div className="form-group">
                 <label className="form-label">Specific Users (optional)</label>
