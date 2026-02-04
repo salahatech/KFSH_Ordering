@@ -3,12 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { useToast } from '../components/ui/Toast';
-import { PageHeader } from '../components/shared';
+import { KpiCard } from '../components/shared';
 import {
   FlaskConical,
   Plus,
   Trash2,
-  GripVertical,
   ChevronDown,
   ChevronUp,
   Check,
@@ -16,6 +15,10 @@ import {
   ArrowLeft,
   Play,
   Archive,
+  FileText,
+  CheckCircle,
+  Clock,
+  Edit2,
 } from 'lucide-react';
 
 interface QcTestDefinition {
@@ -153,13 +156,12 @@ export default function ProductQcTemplate() {
       });
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-qc-templates', productId] });
-      setSelectedTemplate(data);
-      toast.success('Template Saved', 'Template has been saved');
+      toast.success('Saved', 'Template changes saved');
     },
     onError: (error: any) => {
-      toast.error('Error', error.response?.data?.error || 'Failed to save template');
+      toast.error('Error', error.response?.data?.error || 'Failed to save');
     },
   });
 
@@ -173,10 +175,10 @@ export default function ProductQcTemplate() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-qc-templates', productId] });
-      toast.success('Template Activated', 'Template is now active and will be used for new batches');
+      toast.success('Activated', 'Template is now active');
     },
     onError: (error: any) => {
-      toast.error('Error', error.response?.data?.error || 'Failed to activate template');
+      toast.error('Error', error.response?.data?.error || 'Failed to activate');
     },
   });
 
@@ -190,64 +192,56 @@ export default function ProductQcTemplate() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-qc-templates', productId] });
-      toast.success('Template Retired', 'Template has been retired');
+      toast.success('Retired', 'Template has been retired');
     },
     onError: (error: any) => {
-      toast.error('Error', error.response?.data?.error || 'Failed to retire template');
+      toast.error('Error', error.response?.data?.error || 'Failed to retire');
     },
   });
 
   const addTestLine = (testDef: QcTestDefinition) => {
-    const isDuplicate = draftLines.some(line => line.testDefinitionId === testDef.id);
-    if (isDuplicate) {
-      toast.error('Duplicate Test', `"${testDef.nameEn}" is already added to this template`);
-      return;
-    }
-    const newLine: TemplateLine = {
-      testDefinitionId: testDef.id,
-      testDefinition: testDef,
-      displayOrder: draftLines.length,
-      isRequired: true,
-      specRule: { ruleType: 'PASS_FAIL_ONLY' },
-      allowManualPassFail: false,
-      attachmentRequired: false,
-    };
-    setDraftLines([...draftLines, newLine]);
+    setDraftLines([
+      ...draftLines,
+      {
+        testDefinitionId: testDef.id,
+        testDefinition: testDef,
+        displayOrder: draftLines.length,
+        isRequired: true,
+        allowManualPassFail: false,
+        attachmentRequired: false,
+        specRule: { ruleType: 'PASS_FAIL_ONLY' },
+      },
+    ]);
     setShowAddTest(false);
-    setEditingLineIdx(draftLines.length);
   };
 
   const removeLine = (idx: number) => {
     setDraftLines(draftLines.filter((_, i) => i !== idx));
-    if (editingLineIdx === idx) setEditingLineIdx(null);
-  };
-
-  const updateLine = (idx: number, updates: Partial<TemplateLine>) => {
-    setDraftLines(
-      draftLines.map((line, i) => (i === idx ? { ...line, ...updates } : line))
-    );
+    setEditingLineIdx(null);
   };
 
   const moveLine = (idx: number, direction: 'up' | 'down') => {
-    if (direction === 'up' && idx === 0) return;
-    if (direction === 'down' && idx === draftLines.length - 1) return;
     const newLines = [...draftLines];
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    [newLines[idx], newLines[swapIdx]] = [newLines[swapIdx], newLines[idx]];
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    [newLines[idx], newLines[targetIdx]] = [newLines[targetIdx], newLines[idx]];
     setDraftLines(newLines);
   };
 
-  const getCriteriaDisplay = (line: TemplateLine) => {
+  const updateLine = (idx: number, updates: Partial<TemplateLine>) => {
+    setDraftLines(draftLines.map((line, i) => (i === idx ? { ...line, ...updates } : line)));
+  };
+
+  const getCriteriaDisplay = (line: TemplateLine): string => {
     const rule = line.specRule;
     if (!rule) return '-';
-    const unit = line.testDefinition?.unit || '';
+    const unit = line.testDefinition?.unit ? ` ${line.testDefinition.unit}` : '';
     switch (rule.ruleType) {
       case 'MIN':
-        return `${rule.minValue}${unit}`;
+        return `≥${rule.minValue}${unit}`;
       case 'MAX':
-        return `${rule.maxValue}${unit}`;
+        return `≤${rule.maxValue}${unit}`;
       case 'RANGE':
-        return `${rule.minValue}${rule.maxValue}${unit}`;
+        return `${rule.minValue}–${rule.maxValue}${unit}`;
       case 'EQUAL':
         return `=${rule.targetValue}${unit}`;
       case 'PASS_FAIL_ONLY':
@@ -259,245 +253,351 @@ export default function ProductQcTemplate() {
     }
   };
 
-  const activeTemplate = templates.find((t) => t.status === 'ACTIVE');
-  const draftTemplates = templates.filter((t) => t.status === 'DRAFT');
+  const stats = {
+    total: templates.length,
+    active: templates.filter((t) => t.status === 'ACTIVE').length,
+    draft: templates.filter((t) => t.status === 'DRAFT').length,
+    retired: templates.filter((t) => t.status === 'RETIRED').length,
+  };
+
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return { bg: 'rgba(34, 197, 94, 0.1)', color: 'var(--success)' };
+      case 'DRAFT':
+        return { bg: 'rgba(234, 179, 8, 0.1)', color: 'var(--warning)' };
+      case 'RETIRED':
+        return { bg: 'rgba(100, 116, 139, 0.1)', color: 'var(--text-muted)' };
+      default:
+        return { bg: 'rgba(100, 116, 139, 0.1)', color: 'var(--text-muted)' };
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="loading-overlay">
+        <div className="spinner" />
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center gap-4 mb-6">
-        <button onClick={() => navigate('/products')} className="p-2 hover:bg-hover rounded-lg">
-          <ArrowLeft size={20} />
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <button
+            onClick={() => navigate('/products')}
+            style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)',
+              padding: '0.5rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <ArrowLeft size={18} />
+          </button>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+              QC Template: {product?.name || 'Loading...'}
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+              Configure quality control tests for this product
+            </p>
+          </div>
+        </div>
+        <button className="btn btn-primary" onClick={() => createTemplateMutation.mutate()} disabled={createTemplateMutation.isPending}>
+          <Plus size={16} /> New Version
         </button>
-        <PageHeader
-          title={`QC Template: ${product?.name || 'Loading...'}`}
-          subtitle="Configure quality control tests for this product"
-          icon={<FlaskConical size={24} />}
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <KpiCard 
+          title="Total Versions" 
+          value={stats.total} 
+          icon={<FileText size={20} />}
+          color="primary"
+        />
+        <KpiCard 
+          title="Active" 
+          value={stats.active} 
+          icon={<CheckCircle size={20} />}
+          color="success"
+        />
+        <KpiCard 
+          title="Draft" 
+          value={stats.draft} 
+          icon={<Edit2 size={20} />}
+          color="warning"
+        />
+        <KpiCard 
+          title="Retired" 
+          value={stats.retired} 
+          icon={<Archive size={20} />}
+          color="default"
         />
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-3">
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Template Versions</h3>
-              <button
-                onClick={() => createTemplateMutation.mutate()}
-                className="btn btn-sm btn-primary flex items-center gap-1"
-                disabled={createTemplateMutation.isPending}
-              >
-                <Plus size={14} />
-                New
-              </button>
-            </div>
+      <div style={{ display: 'flex', gap: '1.5rem' }}>
+        <div style={{ width: '280px', flexShrink: 0 }}>
+          <div style={{
+            background: 'var(--bg-primary)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            padding: '1rem'
+          }}>
+            <h3 style={{ fontWeight: 600, marginBottom: '1rem', fontSize: '0.9375rem' }}>Template Versions</h3>
 
-            {isLoading ? (
-              <div className="text-muted text-center py-4">Loading...</div>
-            ) : templates.length === 0 ? (
-              <div className="text-muted text-center py-4">No templates yet</div>
+            {templates.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)' }}>
+                <FlaskConical size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
+                <p style={{ margin: 0, fontSize: '0.875rem' }}>No templates yet</p>
+              </div>
             ) : (
-              <div className="space-y-2">
-                {templates.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setSelectedTemplate(t)}
-                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                      selectedTemplate?.id === t.id
-                        ? 'border-primary bg-primary/10'
-                        : 'border-default hover:bg-hover'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">Version {t.version}</span>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full ${
-                          t.status === 'ACTIVE'
-                            ? 'bg-green-500/10 text-green-500'
-                            : t.status === 'DRAFT'
-                            ? 'bg-yellow-500/10 text-yellow-500'
-                            : 'bg-gray-500/10 text-gray-500'
-                        }`}
-                      >
-                        {t.status}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted mt-1">
-                      {t.templateLines?.length || 0} tests
-                      {t._count?.batchQcSessions ? ` | ${t._count.batchQcSessions} batches` : ''}
-                    </div>
-                  </button>
-                ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {templates.map((t) => {
+                  const statusStyle = getStatusStyle(t.status);
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setSelectedTemplate(t)}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '0.75rem',
+                        borderRadius: 'var(--radius)',
+                        border: selectedTemplate?.id === t.id ? '2px solid var(--primary)' : '1px solid var(--border)',
+                        background: selectedTemplate?.id === t.id ? 'rgba(59, 130, 246, 0.05)' : 'var(--bg-primary)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 500 }}>Version {t.version}</span>
+                        <span style={{
+                          fontSize: '0.6875rem',
+                          padding: '0.125rem 0.5rem',
+                          borderRadius: '9999px',
+                          background: statusStyle.bg,
+                          color: statusStyle.color
+                        }}>
+                          {t.status}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                        {t.templateLines?.length || 0} tests
+                        {t._count?.batchQcSessions ? ` • ${t._count.batchQcSessions} batches` : ''}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
 
-        <div className="col-span-9">
+        <div style={{ flex: 1, minWidth: 0 }}>
           {!selectedTemplate ? (
-            <div className="card text-center py-12 text-muted">
-              Select a template version to edit, or create a new one
+            <div style={{
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)',
+              padding: '3rem',
+              textAlign: 'center',
+              color: 'var(--text-muted)'
+            }}>
+              <FlaskConical size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+              <p style={{ margin: 0 }}>Select a template version to edit, or create a new one</p>
             </div>
           ) : (
-            <div className="card">
-              <div className="flex items-center justify-between mb-6">
+            <div style={{
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)',
+              padding: '1.25rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                 <div>
-                  <h3 className="font-semibold text-lg">
-                    Version {selectedTemplate.version}
-                    <span
-                      className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
-                        selectedTemplate.status === 'ACTIVE'
-                          ? 'bg-green-500/10 text-green-500'
-                          : selectedTemplate.status === 'DRAFT'
-                          ? 'bg-yellow-500/10 text-yellow-500'
-                          : 'bg-gray-500/10 text-gray-500'
-                      }`}
-                    >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <h3 style={{ margin: 0, fontWeight: 600, fontSize: '1.125rem' }}>
+                      Version {selectedTemplate.version}
+                    </h3>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '9999px',
+                      background: getStatusStyle(selectedTemplate.status).bg,
+                      color: getStatusStyle(selectedTemplate.status).color
+                    }}>
                       {selectedTemplate.status}
                     </span>
-                  </h3>
+                  </div>
                   {selectedTemplate.effectiveFrom && (
-                    <p className="text-sm text-muted">
-                      Effective from:{' '}
-                      {new Date(selectedTemplate.effectiveFrom).toLocaleDateString()}
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
+                      Effective from: {new Date(selectedTemplate.effectiveFrom).toLocaleDateString()}
                     </p>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
                   {selectedTemplate.status === 'DRAFT' && (
                     <>
                       <button
-                        onClick={() => updateTemplateMutation.mutate()}
                         className="btn btn-secondary"
+                        onClick={() => updateTemplateMutation.mutate()}
                         disabled={updateTemplateMutation.isPending}
                       >
                         Save Changes
                       </button>
                       <button
+                        className="btn btn-primary"
                         onClick={() => activateMutation.mutate()}
-                        className="btn btn-primary flex items-center gap-1"
                         disabled={draftLines.length === 0 || activateMutation.isPending}
                       >
-                        <Play size={14} />
-                        Activate
+                        <Play size={14} /> Activate
                       </button>
                     </>
                   )}
                   {selectedTemplate.status === 'ACTIVE' && (
                     <button
+                      className="btn btn-secondary"
                       onClick={() => retireMutation.mutate()}
-                      className="btn btn-secondary flex items-center gap-1"
                       disabled={retireMutation.isPending}
                     >
-                      <Archive size={14} />
-                      Retire
+                      <Archive size={14} /> Retire
                     </button>
                   )}
                 </div>
               </div>
 
               {selectedTemplate.status !== 'DRAFT' && (
-                <div className="bg-yellow-500/10 text-yellow-700 p-3 rounded-lg mb-4 text-sm">
-                  This template is {selectedTemplate.status.toLowerCase()}. Create a new version to
-                  make changes.
+                <div style={{
+                  background: 'rgba(234, 179, 8, 0.1)',
+                  color: 'var(--warning)',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius)',
+                  marginBottom: '1rem',
+                  fontSize: '0.8125rem'
+                }}>
+                  This template is {selectedTemplate.status.toLowerCase()}. Create a new version to make changes.
                 </div>
               )}
 
-              <div className="border border-default rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-hover">
-                    <tr>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted w-10"></th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted">Test</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted">
-                        Category
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted">
-                        Result Type
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted">
-                        Criteria
-                      </th>
-                      <th className="text-center py-3 px-4 text-sm font-medium text-muted">
-                        Required
-                      </th>
-                      <th className="w-20"></th>
+              <div style={{
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius)',
+                overflow: 'hidden'
+              }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg-secondary)' }}>
+                      <th style={{ textAlign: 'left', padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)', width: '40px' }}>#</th>
+                      <th style={{ textAlign: 'left', padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>Test</th>
+                      <th style={{ textAlign: 'left', padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>Category</th>
+                      <th style={{ textAlign: 'left', padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>Result Type</th>
+                      <th style={{ textAlign: 'left', padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>Criteria</th>
+                      <th style={{ textAlign: 'center', padding: '0.75rem 1rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>Required</th>
+                      <th style={{ width: '100px' }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {draftLines.map((line, idx) => (
                       <>
-                        <tr key={line.testDefinitionId + idx} className="border-t border-default">
-                          <td className="py-3 px-4">
-                            {selectedTemplate.status === 'DRAFT' && (
-                              <GripVertical size={16} className="text-muted cursor-move" />
-                            )}
-                          </td>
-                          <td className="py-3 px-4 font-medium">
+                        <tr key={line.testDefinitionId + idx} style={{ borderTop: '1px solid var(--border)' }}>
+                          <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>{idx + 1}</td>
+                          <td style={{ padding: '0.75rem 1rem', fontWeight: 500 }}>
                             {line.testDefinition?.nameEn || line.testDefinitionId}
                           </td>
-                          <td className="py-3 px-4 text-muted">
+                          <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>
                             {line.testDefinition?.category || '-'}
                           </td>
-                          <td className="py-3 px-4">
-                            <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                          <td style={{ padding: '0.75rem 1rem' }}>
+                            <span style={{
+                              fontSize: '0.6875rem',
+                              padding: '0.125rem 0.5rem',
+                              borderRadius: '9999px',
+                              background: 'rgba(59, 130, 246, 0.1)',
+                              color: 'var(--primary)'
+                            }}>
                               {line.testDefinition?.resultType}
                             </span>
                           </td>
-                          <td className="py-3 px-4">{getCriteriaDisplay(line)}</td>
-                          <td className="py-3 px-4 text-center">
+                          <td style={{ padding: '0.75rem 1rem' }}>{getCriteriaDisplay(line)}</td>
+                          <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
                             {line.isRequired ? (
-                              <Check size={16} className="text-green-500 mx-auto" />
+                              <Check size={16} style={{ color: 'var(--success)' }} />
                             ) : (
-                              <X size={16} className="text-muted mx-auto" />
+                              <X size={16} style={{ color: 'var(--text-muted)' }} />
                             )}
                           </td>
-                          <td className="py-3 px-4">
+                          <td style={{ padding: '0.75rem 1rem' }}>
                             {selectedTemplate.status === 'DRAFT' && (
-                              <div className="flex gap-1">
+                              <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'flex-end' }}>
                                 <button
                                   onClick={() => moveLine(idx, 'up')}
                                   disabled={idx === 0}
-                                  className="p-1 hover:bg-hover rounded disabled:opacity-30"
+                                  style={{
+                                    padding: '0.25rem',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                    opacity: idx === 0 ? 0.3 : 1,
+                                    borderRadius: 'var(--radius)'
+                                  }}
                                 >
                                   <ChevronUp size={16} />
                                 </button>
                                 <button
                                   onClick={() => moveLine(idx, 'down')}
                                   disabled={idx === draftLines.length - 1}
-                                  className="p-1 hover:bg-hover rounded disabled:opacity-30"
+                                  style={{
+                                    padding: '0.25rem',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: idx === draftLines.length - 1 ? 'not-allowed' : 'pointer',
+                                    opacity: idx === draftLines.length - 1 ? 0.3 : 1,
+                                    borderRadius: 'var(--radius)'
+                                  }}
                                 >
                                   <ChevronDown size={16} />
                                 </button>
                                 <button
-                                  onClick={() =>
-                                    setEditingLineIdx(editingLineIdx === idx ? null : idx)
-                                  }
-                                  className={`p-1 hover:bg-hover rounded ${
-                                    editingLineIdx === idx ? 'bg-primary/10' : ''
-                                  }`}
+                                  onClick={() => setEditingLineIdx(editingLineIdx === idx ? null : idx)}
+                                  style={{
+                                    padding: '0.25rem',
+                                    background: editingLineIdx === idx ? 'rgba(59, 130, 246, 0.1)' : 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    borderRadius: 'var(--radius)'
+                                  }}
                                 >
-                                  <ChevronDown
-                                    size={16}
-                                    className={
-                                      editingLineIdx === idx ? 'rotate-180' : ''
-                                    }
-                                  />
+                                  <Edit2 size={14} />
                                 </button>
                                 <button
                                   onClick={() => removeLine(idx)}
-                                  className="p-1 hover:bg-hover rounded text-red-500"
+                                  style={{
+                                    padding: '0.25rem',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: 'var(--danger)',
+                                    borderRadius: 'var(--radius)'
+                                  }}
                                 >
-                                  <Trash2 size={16} />
+                                  <Trash2 size={14} />
                                 </button>
                               </div>
                             )}
                           </td>
                         </tr>
                         {editingLineIdx === idx && selectedTemplate.status === 'DRAFT' && (
-                          <tr className="bg-hover/50">
-                            <td colSpan={7} className="p-4">
-                              <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                  <label className="label">Rule Type</label>
+                          <tr style={{ background: 'var(--bg-secondary)' }}>
+                            <td colSpan={7} style={{ padding: '1rem' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                                <div className="form-group">
+                                  <label className="form-label">Rule Type</label>
                                   <select
                                     value={line.specRule?.ruleType || 'PASS_FAIL_ONLY'}
                                     onChange={(e) =>
@@ -508,7 +608,7 @@ export default function ProductQcTemplate() {
                                         },
                                       })
                                     }
-                                    className="input w-full"
+                                    className="form-control"
                                   >
                                     {RULE_TYPES.map((rt) => (
                                       <option key={rt.value} value={rt.value}>
@@ -517,11 +617,9 @@ export default function ProductQcTemplate() {
                                     ))}
                                   </select>
                                 </div>
-                                {['MIN', 'RANGE'].includes(
-                                  line.specRule?.ruleType || ''
-                                ) && (
-                                  <div>
-                                    <label className="label">Min Value</label>
+                                {['MIN', 'RANGE'].includes(line.specRule?.ruleType || '') && (
+                                  <div className="form-group">
+                                    <label className="form-label">Min Value</label>
                                     <input
                                       type="number"
                                       value={line.specRule?.minValue || ''}
@@ -534,16 +632,14 @@ export default function ProductQcTemplate() {
                                           },
                                         })
                                       }
-                                      className="input w-full"
+                                      className="form-control"
                                       placeholder="0"
                                     />
                                   </div>
                                 )}
-                                {['MAX', 'RANGE'].includes(
-                                  line.specRule?.ruleType || ''
-                                ) && (
-                                  <div>
-                                    <label className="label">Max Value</label>
+                                {['MAX', 'RANGE'].includes(line.specRule?.ruleType || '') && (
+                                  <div className="form-group">
+                                    <label className="form-label">Max Value</label>
                                     <input
                                       type="number"
                                       value={line.specRule?.maxValue || ''}
@@ -556,14 +652,14 @@ export default function ProductQcTemplate() {
                                           },
                                         })
                                       }
-                                      className="input w-full"
+                                      className="form-control"
                                       placeholder="100"
                                     />
                                   </div>
                                 )}
                                 {line.specRule?.ruleType === 'EQUAL' && (
-                                  <div>
-                                    <label className="label">Target Value</label>
+                                  <div className="form-group">
+                                    <label className="form-label">Target Value</label>
                                     <input
                                       type="number"
                                       value={line.specRule?.targetValue || ''}
@@ -576,14 +672,14 @@ export default function ProductQcTemplate() {
                                           },
                                         })
                                       }
-                                      className="input w-full"
+                                      className="form-control"
                                       placeholder="7.0"
                                     />
                                   </div>
                                 )}
                                 {line.specRule?.ruleType === 'CUSTOM_TEXT' && (
-                                  <div className="col-span-2">
-                                    <label className="label">Custom Criteria Text</label>
+                                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                                    <label className="form-label">Custom Criteria Text</label>
                                     <input
                                       type="text"
                                       value={line.specRule?.textCriteriaEn || ''}
@@ -596,31 +692,25 @@ export default function ProductQcTemplate() {
                                           },
                                         })
                                       }
-                                      className="input w-full"
+                                      className="form-control"
                                       placeholder="Clear to slightly opalescent"
                                     />
                                   </div>
                                 )}
-                                <div className="flex items-center gap-4">
-                                  <label className="flex items-center gap-2 cursor-pointer">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                                     <input
                                       type="checkbox"
                                       checked={line.isRequired}
-                                      onChange={(e) =>
-                                        updateLine(idx, { isRequired: e.target.checked })
-                                      }
-                                      className="form-checkbox"
+                                      onChange={(e) => updateLine(idx, { isRequired: e.target.checked })}
                                     />
                                     Required
                                   </label>
-                                  <label className="flex items-center gap-2 cursor-pointer">
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                                     <input
                                       type="checkbox"
                                       checked={line.attachmentRequired}
-                                      onChange={(e) =>
-                                        updateLine(idx, { attachmentRequired: e.target.checked })
-                                      }
-                                      className="form-checkbox"
+                                      onChange={(e) => updateLine(idx, { attachmentRequired: e.target.checked })}
                                     />
                                     Attachment Required
                                   </label>
@@ -633,7 +723,7 @@ export default function ProductQcTemplate() {
                     ))}
                     {draftLines.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="py-8 text-center text-muted">
+                        <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                           No tests added yet. Click "Add Test" to add QC tests to this template.
                         </td>
                       </tr>
@@ -643,32 +733,52 @@ export default function ProductQcTemplate() {
               </div>
 
               {selectedTemplate.status === 'DRAFT' && (
-                <div className="mt-4">
+                <div style={{ marginTop: '1rem' }}>
                   {showAddTest ? (
-                    <div className="border border-default rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-medium">Select a Test to Add</h4>
+                    <div style={{
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius)',
+                      padding: '1rem'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <h4 style={{ margin: 0, fontWeight: 500 }}>Select a Test to Add</h4>
                         <button
                           onClick={() => setShowAddTest(false)}
-                          className="p-1 hover:bg-hover rounded"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '0.25rem'
+                          }}
                         >
                           <X size={16} />
                         </button>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '0.5rem',
+                        maxHeight: '15rem',
+                        overflowY: 'auto'
+                      }}>
                         {testDefinitions
-                          .filter(
-                            (td) =>
-                              !draftLines.some((l) => l.testDefinitionId === td.id)
-                          )
+                          .filter((td) => !draftLines.some((l) => l.testDefinitionId === td.id))
                           .map((td) => (
                             <button
                               key={td.id}
                               onClick={() => addTestLine(td)}
-                              className="text-left p-2 rounded border border-default hover:bg-hover transition-colors"
+                              style={{
+                                textAlign: 'left',
+                                padding: '0.5rem 0.75rem',
+                                borderRadius: 'var(--radius)',
+                                border: '1px solid var(--border)',
+                                background: 'var(--bg-primary)',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
                             >
-                              <div className="font-medium text-sm">{td.nameEn}</div>
-                              <div className="text-xs text-muted">
+                              <div style={{ fontWeight: 500, fontSize: '0.8125rem' }}>{td.nameEn}</div>
+                              <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
                                 {td.code} | {td.resultType}
                               </div>
                             </button>
@@ -676,12 +786,8 @@ export default function ProductQcTemplate() {
                       </div>
                     </div>
                   ) : (
-                    <button
-                      onClick={() => setShowAddTest(true)}
-                      className="btn btn-secondary flex items-center gap-2"
-                    >
-                      <Plus size={16} />
-                      Add Test
+                    <button className="btn btn-secondary" onClick={() => setShowAddTest(true)}>
+                      <Plus size={16} /> Add Test
                     </button>
                   )}
                 </div>
