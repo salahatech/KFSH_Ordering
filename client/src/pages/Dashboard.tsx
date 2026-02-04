@@ -25,6 +25,9 @@ import {
   ExceptionPanel,
   RecentActivityTimeline,
   CapacityWidget,
+  QuickActions,
+  CriticalAlerts,
+  KPIChartsGrid,
 } from '../components/dashboard';
 
 export default function Dashboard() {
@@ -85,6 +88,26 @@ export default function Dashboard() {
         lastRefreshed={dashboard?.lastRefreshed ? new Date(dashboard.lastRefreshed) : undefined}
         onRefresh={() => refetch()}
         isRefreshing={isFetching}
+      />
+
+      {/* Quick Actions */}
+      <QuickActions />
+
+      {/* Critical Alerts */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <CriticalAlerts
+          alerts={dashboard?.criticalAlerts || []}
+          title="Requiring Immediate Attention"
+        />
+      </div>
+
+      {/* Visual KPI Charts */}
+      <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase' }}>Performance Analytics</h3>
+      <KPIChartsGrid
+        throughputData={dashboard?.charts?.throughput || generateMockThroughput()}
+        qcPassRateData={dashboard?.charts?.qcPassRate || generateMockQCPassRate()}
+        deliveryData={dashboard?.charts?.delivery || generateMockDelivery()}
+        orderDistribution={dashboard?.charts?.orderDistribution || generateMockOrderDistribution()}
       />
 
       {/* Orders & Production KPI Cards */}
@@ -329,4 +352,38 @@ function generatePlaceholderCapacity() {
     });
   }
   return days;
+}
+
+function generateMockThroughput() {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  return days.map(name => ({
+    name,
+    value: Math.floor(Math.random() * 15) + 5,
+  }));
+}
+
+function generateMockQCPassRate() {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  return days.map(name => ({
+    name,
+    value: Math.floor(Math.random() * 10) + 88,
+  }));
+}
+
+function generateMockDelivery() {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  return days.map(name => ({
+    name,
+    value: Math.floor(Math.random() * 8) + 90,
+  }));
+}
+
+function generateMockOrderDistribution() {
+  return [
+    { name: 'Pending', value: 12 },
+    { name: 'In Progress', value: 28 },
+    { name: 'QC', value: 8 },
+    { name: 'Ready', value: 15 },
+    { name: 'Delivered', value: 42 },
+  ];
 }
