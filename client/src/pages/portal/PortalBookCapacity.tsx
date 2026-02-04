@@ -285,7 +285,7 @@ export default function PortalBookCapacity() {
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: 'repeat(7, 1fr)', 
-            gap: '0.5rem',
+            gap: '0.75rem',
           }}>
             {Array.from({ length: 14 }).map((_, i) => {
               const date = addDays(startDate, i);
@@ -293,91 +293,171 @@ export default function PortalBookCapacity() {
               const windows = groupedByDate[dateKey] || [];
               const isToday = format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
               const isPast = date < startOfDay(new Date());
+              const dayAvailable = windows.reduce((sum, w) => sum + w.availableMinutes, 0);
 
               return (
                 <div 
                   key={i} 
                   className="card" 
                   style={{ 
-                    padding: '0.75rem',
+                    padding: 0,
                     opacity: isPast ? 0.5 : 1,
                     border: isToday ? '2px solid #0d9488' : '1px solid var(--border)',
+                    overflow: 'hidden',
                   }}
                 >
                   <div style={{ 
-                    fontSize: '0.75rem', 
-                    color: 'var(--text-muted)',
-                    marginBottom: '0.5rem',
-                    textAlign: 'center'
+                    background: isToday ? 'rgba(13, 148, 136, 0.1)' : 'var(--bg-secondary)',
+                    padding: '0.75rem',
+                    textAlign: 'center',
+                    borderBottom: '1px solid var(--border)',
                   }}>
-                    {format(date, 'EEE')}
                     <div style={{ 
-                      fontSize: '1rem', 
-                      fontWeight: 600, 
+                      fontSize: '0.6875rem', 
+                      fontWeight: 500,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      marginBottom: '0.25rem'
+                    }}>
+                      {format(date, 'EEE')}
+                    </div>
+                    <div style={{ 
+                      fontSize: '1.25rem', 
+                      fontWeight: 700, 
                       color: isToday ? '#0d9488' : 'var(--text-primary)' 
                     }}>
                       {format(date, 'd')}
                     </div>
                   </div>
                   
-                  {windows.length === 0 ? (
-                    <div style={{ 
-                      fontSize: '0.75rem', 
-                      color: 'var(--text-muted)', 
-                      textAlign: 'center',
-                      padding: '1rem 0'
-                    }}>
-                      No slots
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {windows.map(w => {
-                        const isSelected = selectedWindow?.id === w.id;
-                        return (
-                          <button
-                            key={w.id}
-                            onClick={() => !isPast && handleWindowSelect(w)}
-                            disabled={isPast || w.availableMinutes <= 0}
-                            style={{
-                              padding: '0.625rem',
-                              borderRadius: '8px',
-                              border: isSelected ? '2px solid #0d9488' : '1px solid var(--border)',
-                              background: isSelected ? 'rgba(13, 148, 136, 0.1)' : getCapacityBg(w.utilizationPercent),
-                              cursor: isPast || w.availableMinutes <= 0 ? 'not-allowed' : 'pointer',
-                              textAlign: 'left',
-                              fontSize: '0.75rem',
-                              transition: 'all 0.15s ease',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.375rem', fontWeight: 500 }}>
-                              <Clock size={12} style={{ color: 'var(--text-muted)' }} />
-                              {format(new Date(w.startTime), 'HH:mm')} - {format(new Date(w.endTime), 'HH:mm')}
-                            </div>
-                            <div style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'space-between' 
-                            }}>
-                              <span style={{ color: getCapacityColor(w.utilizationPercent), fontWeight: 600 }}>
-                                {w.availableMinutes} min
-                              </span>
-                              <div style={{
-                                width: '32px',
-                                height: '5px',
-                                background: 'var(--bg-muted)',
-                                borderRadius: '3px',
-                                overflow: 'hidden'
+                  <div style={{ padding: '0.75rem' }}>
+                    {windows.length === 0 ? (
+                      <div style={{ 
+                        fontSize: '0.75rem', 
+                        color: 'var(--text-muted)', 
+                        textAlign: 'center',
+                        padding: '1.5rem 0',
+                        background: 'var(--bg-secondary)',
+                        borderRadius: '8px',
+                      }}>
+                        No slots
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                        {windows.map(w => {
+                          const isSelected = selectedWindow?.id === w.id;
+                          const isFull = w.availableMinutes <= 0;
+                          const statusLabel = isFull ? 'Full' : w.utilizationPercent >= 70 ? 'Limited' : 'Available';
+                          const statusColor = isFull ? 'var(--danger)' : w.utilizationPercent >= 70 ? 'var(--warning)' : 'var(--success)';
+                          const statusBg = isFull ? 'rgba(239, 68, 68, 0.1)' : w.utilizationPercent >= 70 ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)';
+                          
+                          return (
+                            <button
+                              key={w.id}
+                              onClick={() => !isPast && handleWindowSelect(w)}
+                              disabled={isPast || isFull}
+                              style={{
+                                padding: 0,
+                                borderRadius: '10px',
+                                border: isSelected ? '2px solid #0d9488' : '1px solid var(--border)',
+                                background: isSelected ? 'rgba(13, 148, 136, 0.08)' : 'var(--bg-primary)',
+                                cursor: isPast || isFull ? 'not-allowed' : 'pointer',
+                                textAlign: 'left',
+                                transition: 'all 0.2s ease',
+                                overflow: 'hidden',
+                                boxShadow: isSelected ? '0 2px 8px rgba(13, 148, 136, 0.2)' : 'none',
+                              }}
+                            >
+                              <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'space-between',
+                                padding: '0.625rem 0.75rem',
+                                borderBottom: '1px solid var(--border)',
+                                background: isSelected ? 'rgba(13, 148, 136, 0.05)' : 'var(--bg-secondary)',
                               }}>
-                                <div style={{
-                                  width: `${w.utilizationPercent}%`,
-                                  height: '100%',
-                                  background: getCapacityColor(w.utilizationPercent),
-                                }} />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', fontWeight: 600 }}>
+                                  <Clock size={13} style={{ color: isSelected ? '#0d9488' : 'var(--text-muted)' }} />
+                                  {format(new Date(w.startTime), 'HH:mm')} - {format(new Date(w.endTime), 'HH:mm')}
+                                </div>
+                                <span style={{ 
+                                  padding: '0.1875rem 0.5rem',
+                                  borderRadius: '10px',
+                                  fontSize: '0.625rem',
+                                  fontWeight: 600,
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.3px',
+                                  background: statusBg,
+                                  color: statusColor,
+                                }}>
+                                  {statusLabel}
+                                </span>
                               </div>
-                            </div>
-                          </button>
-                        );
-                      })}
+                              
+                              <div style={{ padding: '0.625rem 0.75rem' }}>
+                                <div style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'space-between',
+                                  marginBottom: '0.5rem'
+                                }}>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Capacity</span>
+                                  <span style={{ 
+                                    fontSize: '0.875rem', 
+                                    fontWeight: 700, 
+                                    color: statusColor 
+                                  }}>
+                                    {w.availableMinutes} min
+                                  </span>
+                                </div>
+                                <div style={{
+                                  width: '100%',
+                                  height: '6px',
+                                  background: 'var(--bg-muted)',
+                                  borderRadius: '3px',
+                                  overflow: 'hidden'
+                                }}>
+                                  <div style={{
+                                    width: `${w.utilizationPercent}%`,
+                                    height: '100%',
+                                    background: statusColor,
+                                    borderRadius: '3px',
+                                    transition: 'width 0.3s ease',
+                                  }} />
+                                </div>
+                                <div style={{ 
+                                  display: 'flex', 
+                                  justifyContent: 'space-between',
+                                  marginTop: '0.375rem',
+                                  fontSize: '0.625rem',
+                                  color: 'var(--text-muted)'
+                                }}>
+                                  <span>{w.usedMinutes} used</span>
+                                  <span>{w.capacityMinutes} total</span>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {windows.length > 0 && (
+                    <div style={{ 
+                      background: 'var(--bg-secondary)',
+                      padding: '0.5rem 0.75rem',
+                      borderTop: '1px solid var(--border)',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      fontSize: '0.6875rem',
+                      color: 'var(--text-muted)',
+                    }}>
+                      <Timer size={11} />
+                      {dayAvailable} min available
                     </div>
                   )}
                 </div>
