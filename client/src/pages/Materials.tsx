@@ -16,11 +16,15 @@ import {
   Box,
   Layers,
   FlaskConical,
+  ScanLine,
+  Printer,
 } from 'lucide-react';
 import { useToast } from '../components/ui/Toast';
 import { parseApiError } from '../components/ui/FormErrors';
 import { KpiCard, EmptyState } from '../components/shared';
 import AttachmentPanel from '../components/AttachmentPanel';
+import { BarcodeScannerModal } from '../components/BarcodeScanner';
+import { MaterialLabel } from '../components/PrintableLabel';
 
 const CATEGORIES = [
   { value: 'RAW_MATERIAL', label: 'Raw Material' },
@@ -69,8 +73,16 @@ export default function Materials() {
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
+  const [showLabelModal, setShowLabelModal] = useState(false);
   const queryClient = useQueryClient();
   const toast = useToast();
+
+  const handleBarcodeScan = (code: string) => {
+    setShowScanner(false);
+    setSearchQuery(code);
+    toast.info('Barcode Scanned', `Searching for: ${code}`);
+  };
 
   const { data: materials, isLoading } = useQuery({
     queryKey: ['materials', categoryFilter, statusFilter, searchQuery],
@@ -247,6 +259,13 @@ export default function Materials() {
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowScanner(true)}
+            title="Scan barcode to search"
+          >
+            <ScanLine size={16} /> Scan
+          </button>
           {(categoryFilter || statusFilter || searchQuery) && (
             <button
               className="btn btn-sm btn-secondary"
@@ -537,7 +556,7 @@ export default function Materials() {
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <button
                   className="btn btn-primary"
                   style={{ flex: 1 }}
@@ -547,6 +566,13 @@ export default function Materials() {
                   }}
                 >
                   <Edit2 size={16} /> Edit Material
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setShowLabelModal(true)}
+                  title="Print Label"
+                >
+                  <Printer size={16} />
                 </button>
                 {detailMaterial._count?.recipeComponents === 0 && (
                   <button
@@ -676,6 +702,27 @@ export default function Materials() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      <BarcodeScannerModal
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        onScan={handleBarcodeScan}
+        title="Scan Material Barcode"
+      />
+
+      {showLabelModal && detailMaterial && (
+        <div className="modal-overlay" onClick={() => setShowLabelModal(false)}>
+          <div className="modal" style={{ maxWidth: '450px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 600, margin: 0 }}>Print Material Label</h3>
+              <button onClick={() => setShowLabelModal(false)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', justifyContent: 'center' }}>
+              <MaterialLabel material={detailMaterial} />
+            </div>
           </div>
         </div>
       )}

@@ -5,11 +5,13 @@ import api from '../lib/api';
 import { format, addDays } from 'date-fns';
 import { 
   Play, Route, ArrowRight, Calendar, Package, FlaskConical, 
-  Beaker, Shield, AlertTriangle, Clock, Filter, X, Search, Eye
+  Beaker, Shield, AlertTriangle, Clock, Filter, X, Search, Eye, ScanLine, Printer
 } from 'lucide-react';
 import { useToast } from '../components/ui/Toast';
 import { parseApiError } from '../components/ui/FormErrors';
 import { KpiCard, StatusBadge, EmptyState } from '../components/shared';
+import { BarcodeScannerModal } from '../components/BarcodeScanner';
+import { BatchLabel } from '../components/PrintableLabel';
 
 const allStatuses = [
   { value: 'PLANNED', label: 'Planned', group: 'main' },
@@ -41,8 +43,16 @@ export default function Batches() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showExceptionsOnly, setShowExceptionsOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [labelBatch, setLabelBatch] = useState<any>(null);
   const queryClient = useQueryClient();
   const toast = useToast();
+
+  const handleBarcodeScan = (code: string) => {
+    setShowScanner(false);
+    setSearchQuery(code);
+    toast.info('Barcode Scanned', `Searching for: ${code}`);
+  };
 
   const { data: batches, isLoading } = useQuery({
     queryKey: ['batches', statusFilter, productFilter, dateFrom, dateTo],
@@ -359,6 +369,13 @@ export default function Batches() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        <button
+                          className="btn btn-sm btn-outline"
+                          title="Print Label"
+                          onClick={() => setLabelBatch(batch)}
+                        >
+                          <Printer size={14} />
+                        </button>
                         <Link to={`/batches/${batch.id}/journey`} className="btn btn-sm btn-outline" title="View Journey">
                           <Route size={14} />
                         </Link>
@@ -390,6 +407,27 @@ export default function Batches() {
           </div>
         )}
       </div>
+
+      <BarcodeScannerModal
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        onScan={handleBarcodeScan}
+        title="Scan Batch Barcode"
+      />
+
+      {labelBatch && (
+        <div className="modal-overlay" onClick={() => setLabelBatch(null)}>
+          <div className="modal" style={{ maxWidth: '450px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 600, margin: 0 }}>Print Batch Label</h3>
+              <button onClick={() => setLabelBatch(null)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', justifyContent: 'center' }}>
+              <BatchLabel batch={labelBatch} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

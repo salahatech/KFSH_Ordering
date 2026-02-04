@@ -3,11 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import { format } from 'date-fns';
-import { Truck, Package, Send, CheckCircle, Plus, Clock, AlertTriangle, Eye, UserPlus, MoreVertical, Calendar, X, MapPin, Phone } from 'lucide-react';
+import { Truck, Package, Send, CheckCircle, Plus, Clock, AlertTriangle, Eye, UserPlus, MoreVertical, Calendar, X, MapPin, Phone, Printer, ScanLine } from 'lucide-react';
 import { useLocalization } from '../hooks/useLocalization';
 import { useToast } from '../components/ui/Toast';
 import { parseApiError } from '../components/ui/FormErrors';
 import { KpiCard, StatusBadge, FilterBar, EmptyState, type FilterWidget } from '../components/shared';
+import { BarcodeScannerModal } from '../components/BarcodeScanner';
+import { ShipmentLabel } from '../components/PrintableLabel';
 
 export default function Shipments() {
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
@@ -17,10 +19,18 @@ export default function Shipments() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [filters, setFilters] = useState<Record<string, any>>({});
+  const [showScanner, setShowScanner] = useState(false);
+  const [labelShipment, setLabelShipment] = useState<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const toast = useToast();
   const { formatDateOnly, formatTimeOnly, formatDateTime } = useLocalization();
+
+  const handleBarcodeScan = (code: string) => {
+    setShowScanner(false);
+    setFilters({ ...filters, search: code });
+    toast.info('Barcode Scanned', `Searching for: ${code}`);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -470,6 +480,13 @@ export default function Shipments() {
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', position: 'relative' }}>
+                      <button
+                        className="btn btn-sm btn-outline"
+                        title="Print Label"
+                        onClick={() => setLabelShipment(shipment)}
+                      >
+                        <Printer size={14} />
+                      </button>
                       <Link to={`/shipments/${shipment.id}`} className="btn btn-sm btn-outline" title="View Details">
                         <Eye size={14} />
                       </Link>
@@ -806,6 +823,27 @@ export default function Shipments() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      <BarcodeScannerModal
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        onScan={handleBarcodeScan}
+        title="Scan Shipment Barcode"
+      />
+
+      {labelShipment && (
+        <div className="modal-overlay" onClick={() => setLabelShipment(null)}>
+          <div className="modal" style={{ maxWidth: '450px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 600, margin: 0 }}>Print Shipment Label</h3>
+              <button onClick={() => setLabelShipment(null)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', justifyContent: 'center' }}>
+              <ShipmentLabel shipment={labelShipment} />
+            </div>
           </div>
         </div>
       )}
