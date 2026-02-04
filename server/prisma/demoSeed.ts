@@ -175,6 +175,7 @@ async function seedRolesAndPermissions() {
     { name: 'Admin', description: 'Full system access', permissions: allPerms },
     { name: 'Order Desk', description: 'Order validation and processing', permissions: ['create_order', 'approve_order', 'view_reports', 'manage_customers'].map(n => ({ id: permMap[n] })) },
     { name: 'Production Planner', description: 'Production planning and scheduling', permissions: ['schedule_batch', 'view_reports', 'view_dashboard'].map(n => ({ id: permMap[n] })) },
+    { name: 'Production', description: 'Batch manufacturing and eBR execution', permissions: ['schedule_batch', 'view_reports', 'view_dashboard'].map(n => ({ id: permMap[n] })) },
     { name: 'QC Analyst', description: 'Quality Control testing', permissions: ['enter_qc_results', 'view_reports', 'view_dashboard'].map(n => ({ id: permMap[n] })) },
     { name: 'Qualified Person', description: 'Batch release authority (QP)', permissions: ['release_batch', 'enter_qc_results', 'view_reports', 'view_dashboard'].map(n => ({ id: permMap[n] })) },
     { name: 'Logistics', description: 'Shipment and delivery coordination', permissions: ['dispatch_shipment', 'manage_drivers', 'view_reports', 'view_dashboard'].map(n => ({ id: permMap[n] })) },
@@ -200,6 +201,7 @@ async function seedDemoUsers(roles: Record<string, any>, hashedPassword: string)
     { email: 'admin@demo.com', firstName: 'Ahmed', lastName: 'Admin', role: 'Admin' },
     { email: 'orderdesk@demo.com', firstName: 'Omar', lastName: 'Validator', role: 'Order Desk' },
     { email: 'planner@demo.com', firstName: 'Fahad', lastName: 'Planner', role: 'Production Planner' },
+    { email: 'production@demo.com', firstName: 'Mansour', lastName: 'Operator', role: 'Production' },
     { email: 'qc@demo.com', firstName: 'Qasim', lastName: 'Analyst', role: 'QC Analyst' },
     { email: 'qp@demo.com', firstName: 'Khalid', lastName: 'QPerson', role: 'Qualified Person' },
     { email: 'logistics@demo.com', firstName: 'Laith', lastName: 'Shipper', role: 'Logistics' },
@@ -1340,6 +1342,7 @@ function printCredentials() {
   console.log('  admin@demo.com          Admin (Full access)');
   console.log('  orderdesk@demo.com      Order Desk / Validator');
   console.log('  planner@demo.com        Production Planner');
+  console.log('  production@demo.com     Production Operator');
   console.log('  qc@demo.com             QC Analyst');
   console.log('  qp@demo.com             Qualified Person (QP)');
   console.log('  logistics@demo.com      Logistics Coordinator');
