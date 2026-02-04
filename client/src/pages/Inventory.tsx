@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Package, Search, ArrowLeftRight, TrendingUp, TrendingDown, AlertTriangle, Clock, 
-  Filter, CheckCircle, AlertOctagon, X, Warehouse, MapPin, Calendar, DollarSign,
+  Filter, CheckCircle, AlertOctagon, X, Warehouse, MapPin, Calendar, Coins,
   Layers, Hash
 } from 'lucide-react';
 import api from '../lib/api';
 import { KpiCard, EmptyState } from '../components/shared';
 import { useToast } from '../components/ui/Toast';
+import { formatMoney } from '../lib/format';
 
 interface Material {
   id: string;
@@ -634,10 +635,10 @@ export default function Inventory() {
                       Cost Information
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius)' }}>
-                      <DollarSign size={16} style={{ color: 'var(--success)' }} />
+                      <Coins size={16} style={{ color: 'var(--success)' }} />
                       <div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Unit Cost</div>
-                        <div style={{ fontWeight: 600 }}>SAR {displayItem.unitCost.toFixed(2)}</div>
+                        <div style={{ fontWeight: 600 }}>{formatMoney(displayItem.unitCost)}</div>
                       </div>
                     </div>
                   </div>

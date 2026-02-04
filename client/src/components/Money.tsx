@@ -1,4 +1,4 @@
-import { formatCurrency, formatAmount } from '../lib/format';
+import { formatAmount, SYSTEM_CURRENCY, SYSTEM_CURRENCY_SYMBOL } from '../lib/format';
 
 interface MoneyProps {
   value: number | null | undefined;
@@ -12,9 +12,6 @@ interface MoneyProps {
   className?: string;
   style?: React.CSSProperties;
 }
-
-const SYSTEM_CURRENCY = 'SAR';
-const SYSTEM_CURRENCY_SYMBOL = '﷼';
 
 export default function Money({
   value,
@@ -99,14 +96,6 @@ export function MoneyRange({
   );
 }
 
-export function formatMoney(value: number | null | undefined, showCode: boolean = true): string {
-  const amount = value ?? 0;
-  if (showCode) {
-    return `${SYSTEM_CURRENCY} ${formatAmount(amount)}`;
-  }
-  return formatAmount(amount);
-}
-
 export function formatMoneyCompact(value: number | null | undefined): string {
   const amount = value ?? 0;
   if (amount >= 1000000) {
@@ -118,4 +107,4 @@ export function formatMoneyCompact(value: number | null | undefined): string {
   return `${SYSTEM_CURRENCY} ${formatAmount(amount)}`;
 }
 
-export const SYSTEM_BASE_CURRENCY = SYSTEM_CURRENCY;
+export { formatMoney, SYSTEM_CURRENCY, SYSTEM_CURRENCY_SYMBOL } from '../lib/format';

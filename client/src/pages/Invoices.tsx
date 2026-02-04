@@ -60,7 +60,7 @@ export default function Invoices() {
   const [detailTab, setDetailTab] = useState<'details' | 'payments' | 'attachments'>('details');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const queryClient = useQueryClient();
-  const { formatDateOnly, formatMoney } = useLocalization();
+  const { formatDateOnly } = useLocalization();
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['invoices', statusFilter],
@@ -448,8 +448,8 @@ export default function Invoices() {
           />
           <KpiCard 
             title="Outstanding" 
-            value={`SAR ${((summary.outstanding || 0) / 1000)?.toFixed(1)}k`}
-            icon={<DollarSign size={20} />}
+            value={`${SYSTEM_CURRENCY} ${((summary.outstanding || 0) / 1000)?.toFixed(1)}k`}
+            icon={<Coins size={20} />}
             color="primary"
             onClick={() => setStatusFilter('')}
             selected={!statusFilter}

@@ -740,7 +740,7 @@ router.post('/enterprise/:reportKey/export/excel', authenticateToken, async (req
         } else if (col.type === 'datetime' && value) {
           value = new Date(value).toLocaleString();
         } else if (col.type === 'currency' && value !== undefined) {
-          value = Number(value).toFixed(2);
+          value = `SAR ${Number(value).toFixed(2)}`;
         } else if (col.type === 'percent' && value !== undefined) {
           value = `${value}%`;
         }
@@ -800,6 +800,8 @@ router.post('/enterprise/:reportKey/export/pdf', authenticateToken, async (req: 
     doc.fontSize(14).text(report.name, { align: 'center' });
     doc.moveDown(0.3);
     doc.fontSize(10).text(`Generated: ${new Date().toLocaleString()}`, { align: 'center' });
+    doc.fontSize(8).fillColor('#666666').text('All amounts in SAR (Saudi Riyal)', { align: 'center' });
+    doc.fillColor('#000000');
     doc.moveDown();
     
     const pageWidth = isLandscape ? 800 : 515;
@@ -836,7 +838,7 @@ router.post('/enterprise/:reportKey/export/pdf', authenticateToken, async (req: 
         } else if (col.type === 'datetime' && value) {
           value = new Date(value).toLocaleString();
         } else if (col.type === 'currency') {
-          value = `$${Number(value).toFixed(2)}`;
+          value = `SAR ${Number(value).toFixed(2)}`;
         } else if (col.type === 'percent') {
           value = `${value}%`;
         }

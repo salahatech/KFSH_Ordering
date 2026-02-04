@@ -4,6 +4,7 @@ import api from '../../lib/api';
 import { format } from 'date-fns';
 import { Receipt, Eye, X, Download, CreditCard, AlertCircle, CheckCircle, Upload, FileText, Clock, XCircle, FileDown } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { formatMoney } from '../../lib/format';
 
 export default function PortalInvoices() {
   const queryClient = useQueryClient();
@@ -171,7 +172,7 @@ export default function PortalInvoices() {
             </div>
             <div>
               <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>
-                SAR {summary.total.toLocaleString()}
+                {formatMoney(summary.total)}
               </div>
               <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Total Billed</div>
             </div>
@@ -193,7 +194,7 @@ export default function PortalInvoices() {
             </div>
             <div>
               <div style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--success)' }}>
-                SAR {summary.paid.toLocaleString()}
+                {formatMoney(summary.paid)}
               </div>
               <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Paid</div>
             </div>
@@ -215,7 +216,7 @@ export default function PortalInvoices() {
             </div>
             <div>
               <div style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--warning)' }}>
-                SAR {summary.outstanding.toLocaleString()}
+                {formatMoney(summary.outstanding)}
               </div>
               <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Outstanding</div>
             </div>
@@ -277,9 +278,9 @@ export default function PortalInvoices() {
                     <td style={{ color: isOverdue ? 'var(--danger)' : undefined }}>
                       {format(new Date(invoice.dueDate), 'MMM d, yyyy')}
                     </td>
-                    <td style={{ fontWeight: 500 }}>SAR {invoice.totalAmount.toLocaleString()}</td>
+                    <td style={{ fontWeight: 500 }}>{formatMoney(invoice.totalAmount)}</td>
                     <td style={{ color: invoice.paidAmount > 0 ? 'var(--success)' : 'var(--text-muted)' }}>
-                      SAR {invoice.paidAmount.toLocaleString()}
+                      {formatMoney(invoice.paidAmount)}
                     </td>
                     <td>
                       <span className={`badge badge-${getStatusColor(invoice.status, invoice.dueDate)}`}>
@@ -359,12 +360,12 @@ export default function PortalInvoices() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Total Amount</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>SAR {selectedInvoice.totalAmount.toLocaleString()}</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{formatMoney(selectedInvoice.totalAmount)}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Balance Due</div>
                   <div style={{ fontSize: '1.25rem', fontWeight: 500 }}>
-                    SAR {remainingAmount.toLocaleString()}
+                    {formatMoney(remainingAmount)}
                   </div>
                 </div>
               </div>
@@ -412,7 +413,7 @@ export default function PortalInvoices() {
                   <tr key={item.id}>
                     <td style={{ fontSize: '0.875rem' }}>{item.description}</td>
                     <td>{item.quantity}</td>
-                    <td style={{ fontWeight: 500 }}>SAR {item.lineTotal?.toLocaleString()}</td>
+                    <td style={{ fontWeight: 500 }}>{formatMoney(item.lineTotal)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -422,21 +423,21 @@ export default function PortalInvoices() {
               <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: 'var(--background-secondary)', borderRadius: '0.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Subtotal</span>
-                  <span>SAR {invoiceDetail.vatBreakdown.subtotal?.toLocaleString()}</span>
+                  <span>{formatMoney(invoiceDetail.vatBreakdown.subtotal)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <span style={{ color: 'var(--text-muted)' }}>VAT ({invoiceDetail.vatBreakdown.vatRate}%)</span>
-                  <span>SAR {invoiceDetail.vatBreakdown.vatAmount?.toLocaleString()}</span>
+                  <span>{formatMoney(invoiceDetail.vatBreakdown.vatAmount)}</span>
                 </div>
                 {invoiceDetail.vatBreakdown.discount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--success)' }}>Discount</span>
-                    <span style={{ color: 'var(--success)' }}>- SAR {invoiceDetail.vatBreakdown.discount?.toLocaleString()}</span>
+                    <span style={{ color: 'var(--success)' }}>- {formatMoney(invoiceDetail.vatBreakdown.discount)}</span>
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, borderTop: '1px solid var(--border)', paddingTop: '0.5rem' }}>
                   <span>Grand Total</span>
-                  <span>SAR {invoiceDetail.vatBreakdown.grandTotal?.toLocaleString()}</span>
+                  <span>{formatMoney(invoiceDetail.vatBreakdown.grandTotal)}</span>
                 </div>
               </div>
             )}
@@ -455,7 +456,7 @@ export default function PortalInvoices() {
                       borderLeft: `3px solid ${pr.status === 'CONFIRMED' ? 'var(--success)' : pr.status === 'REJECTED' ? 'var(--danger)' : 'var(--warning)'}` 
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                        <span style={{ fontWeight: 500 }}>SAR {pr.amount.toLocaleString()}</span>
+                        <span style={{ fontWeight: 500 }}>{formatMoney(pr.amount)}</span>
                         {getPaymentRequestStatusBadge(pr.status)}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -495,7 +496,7 @@ export default function PortalInvoices() {
                       <tr key={payment.id}>
                         <td>{format(new Date(payment.paymentDate), 'MMM d, yyyy')}</td>
                         <td>{payment.paymentMethod.replace('_', ' ')}</td>
-                        <td style={{ fontWeight: 500, color: 'var(--success)' }}>SAR {payment.amount.toLocaleString()}</td>
+                        <td style={{ fontWeight: 500, color: 'var(--success)' }}>{formatMoney(payment.amount)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -525,7 +526,7 @@ export default function PortalInvoices() {
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Invoice</div>
                 <div style={{ fontWeight: 600 }}>{selectedInvoice?.invoiceNumber}</div>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                  Balance Due: SAR {remainingAmount.toLocaleString()}
+                  Balance Due: {formatMoney(remainingAmount)}
                 </div>
               </div>
 

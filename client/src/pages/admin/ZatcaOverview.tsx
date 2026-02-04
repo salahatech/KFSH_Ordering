@@ -7,6 +7,7 @@ import {
   FileCheck, Settings, Activity, AlertTriangle, CheckCircle, 
   XCircle, Clock, Play, RefreshCw, Shield 
 } from 'lucide-react';
+import { formatMoney } from '../../lib/format';
 
 export default function ZatcaOverview() {
   const navigate = useNavigate();
@@ -206,7 +207,7 @@ export default function ZatcaOverview() {
                         {sub.invoice?.invoiceNumber || '-'}
                       </td>
                       <td>{sub.invoice?.customer?.name || '-'}</td>
-                      <td>SAR {sub.invoice?.totalAmount?.toFixed(2) || '0.00'}</td>
+                      <td>{formatMoney(sub.invoice?.totalAmount)}</td>
                       <td>
                         <span className={`badge badge-${getStatusColor(sub.status)}`}>
                           {sub.status}
