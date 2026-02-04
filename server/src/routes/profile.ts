@@ -321,7 +321,7 @@ router.get('/location-photos', authenticateToken, async (req: Request, res: Resp
       where: { customerId: user.customerId },
       orderBy: { createdAt: 'desc' },
       include: {
-        uploadedBy: { select: { id: true, username: true } }
+        uploadedBy: { select: { id: true, firstName: true, lastName: true } }
       }
     });
 
@@ -371,7 +371,7 @@ router.post('/location-photos', authenticateToken, (req: Request, res: Response)
           uploadedByUserId: user.userId,
         },
         include: {
-          uploadedBy: { select: { id: true, username: true } }
+          uploadedBy: { select: { id: true, firstName: true, lastName: true } }
         }
       });
 

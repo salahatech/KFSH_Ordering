@@ -47,7 +47,7 @@ router.get('/orders/:id/journey', authenticateToken, async (req: Request, res: R
         product: true,
         batch: {
           include: {
-            batchEvents: {
+            events: {
               include: { actor: true },
               orderBy: { createdAt: 'asc' },
             },
@@ -92,7 +92,7 @@ router.get('/orders/:id/journey', authenticateToken, async (req: Request, res: R
         severity: 'info',
       });
 
-      for (const event of order.batch.batchEvents || []) {
+      for (const event of order.batch.events || []) {
         events.push({
           id: event.id,
           type: event.eventType,
@@ -234,7 +234,7 @@ router.get('/batches/:id/journey', authenticateToken, async (req: Request, res: 
         batchReleases: {
           include: { releasedBy: true },
         },
-        batchEvents: {
+        events: {
           include: { actor: true },
           orderBy: { createdAt: 'asc' },
         },
@@ -259,7 +259,7 @@ router.get('/batches/:id/journey', authenticateToken, async (req: Request, res: 
       severity: 'info',
     });
 
-    for (const event of batch.batchEvents || []) {
+    for (const event of batch.events || []) {
       events.push({
         id: event.id,
         type: event.eventType,
