@@ -25,6 +25,21 @@ function createZatcaTlv(sellerName: string, vatNumber: string, timestamp: string
   return tlvData.toString('base64');
 }
 
+function formatStatus(status: string): string {
+  const statusMap: Record<string, string> = {
+    DRAFT: 'Draft',
+    PENDING_APPROVAL: 'Pending Approval',
+    ISSUED_POSTED: 'Issued',
+    SENT: 'Sent',
+    PARTIALLY_PAID: 'Partially Paid',
+    PAID: 'Paid',
+    OVERDUE: 'Overdue',
+    CANCELLED_VOIDED: 'Cancelled',
+    CLOSED_ARCHIVED: 'Closed',
+  };
+  return statusMap[status] || status.replace(/_/g, ' ');
+}
+
 router.get('/:id', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -88,128 +103,178 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response): Promi
     res.setHeader('Content-Disposition', `inline; filename="invoice-${invoice.invoiceNumber}.pdf"`);
     doc.pipe(res);
 
-    doc.fontSize(20).fillColor('#1e3a5f').text('RadioPharma', 50, 50, { continued: true })
+    doc.rect(0, 0, 612, 130).fill('#f8fafc');
+
+    doc.fontSize(24).fillColor('#1e3a5f').text('RadioPharma', 50, 40, { continued: true })
        .fillColor('#0d9488').text(' KSA', { continued: false });
     
-    doc.fontSize(9).fillColor('#666666')
-       .text('Manufacturing Radiopharmaceuticals', 50, 75)
-       .text('King Fahd Road, Riyadh, Saudi Arabia', 50, 87)
-       .text('VAT: 300000000000003 | CR: 1010000000', 50, 99);
+    doc.fontSize(9).fillColor('#64748b')
+       .text('Manufacturing Radiopharmaceuticals', 50, 70)
+       .text('King Fahd Road, Riyadh, Saudi Arabia', 50, 84)
+       .text('VAT: 300000000000003 | CR: 1010000000', 50, 98);
 
-    doc.fontSize(24).fillColor('#1e3a5f').text('TAX INVOICE', 400, 50, { align: 'right' });
-    doc.fontSize(12).fillColor('#666666').text(invoice.invoiceNumber, 400, 78, { align: 'right' });
+    doc.fontSize(28).fillColor('#1e3a5f').text('INVOICE', 380, 40, { align: 'right' });
+    doc.fontSize(11).fillColor('#0d9488').text(invoice.invoiceNumber, 380, 75, { align: 'right' });
 
     const qrBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
-    doc.image(qrBuffer, 460, 100, { width: 80 });
-    doc.fontSize(7).fillColor('#999999').text('ZATCA e-Invoice QR', 460, 185, { width: 80, align: 'center' });
+    doc.image(qrBuffer, 480, 90, { width: 70 });
 
-    doc.rect(50, 210, 250, 80).stroke('#e5e7eb');
-    doc.fontSize(9).fillColor('#666666').text('BILL TO:', 60, 220);
-    doc.fontSize(11).fillColor('#1e3a5f').text(invoice.customer.nameEn || invoice.customer.name, 60, 235);
-    if (invoice.customer.nameAr) {
-      doc.font('Helvetica').fontSize(10).text(invoice.customer.nameAr, 60, 250);
+    doc.rect(50, 150, 240, 100).lineWidth(1).stroke('#e2e8f0');
+    doc.rect(50, 150, 240, 22).fill('#f1f5f9');
+    doc.fontSize(9).fillColor('#64748b').text('BILL TO', 60, 157);
+    
+    doc.fontSize(12).fillColor('#1e3a5f').text(invoice.customer.name, 60, 180);
+    
+    let customerY = 198;
+    if (invoice.customer.email) {
+      doc.fontSize(9).fillColor('#64748b').text(invoice.customer.email, 60, customerY);
+      customerY += 14;
     }
-    doc.fontSize(9).fillColor('#666666');
-    if (invoice.customer.address) doc.text(invoice.customer.address, 60, 265, { width: 230 });
+    if (invoice.customer.phone) {
+      doc.text(invoice.customer.phone, 60, customerY);
+      customerY += 14;
+    }
+    if (invoice.customer.address) {
+      doc.text(invoice.customer.address, 60, customerY, { width: 220 });
+    }
 
-    doc.rect(320, 210, 225, 80).stroke('#e5e7eb');
-    doc.fontSize(9).fillColor('#666666');
-    doc.text('Invoice Date:', 330, 220);
-    doc.text(invoice.invoiceDate.toLocaleDateString('en-GB'), 420, 220);
-    doc.text('Due Date:', 330, 237);
-    doc.text(invoice.dueDate.toLocaleDateString('en-GB'), 420, 237);
-    doc.text('Status:', 330, 254);
+    doc.rect(310, 150, 235, 100).lineWidth(1).stroke('#e2e8f0');
+    doc.rect(310, 150, 235, 22).fill('#f1f5f9');
+    doc.fontSize(9).fillColor('#64748b').text('INVOICE DETAILS', 320, 157);
+    
+    const detailsX1 = 320;
+    const detailsX2 = 440;
+    let detailsY = 180;
+    
+    doc.fontSize(9).fillColor('#64748b');
+    doc.text('Invoice Date:', detailsX1, detailsY);
+    doc.fillColor('#1e293b').text(invoice.invoiceDate.toLocaleDateString('en-GB', { 
+      day: '2-digit', month: 'short', year: 'numeric' 
+    }), detailsX2, detailsY);
+    detailsY += 16;
+    
+    doc.fillColor('#64748b').text('Due Date:', detailsX1, detailsY);
+    doc.fillColor('#1e293b').text(invoice.dueDate.toLocaleDateString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    }), detailsX2, detailsY);
+    detailsY += 16;
+    
+    doc.fillColor('#64748b').text('Status:', detailsX1, detailsY);
     const statusColors: Record<string, string> = {
       PAID: '#22c55e',
-      PARTIALLY_PAID: '#eab308',
-      SENT: '#f97316',
+      CLOSED_ARCHIVED: '#22c55e',
+      PARTIALLY_PAID: '#f59e0b',
+      ISSUED_POSTED: '#3b82f6',
+      SENT: '#3b82f6',
+      OVERDUE: '#ef4444',
       DRAFT: '#6b7280',
     };
-    doc.fillColor(statusColors[invoice.status] || '#6b7280').text(invoice.status, 420, 254);
-    doc.fillColor('#666666').text('Currency:', 330, 271);
-    doc.text(invoice.currency, 420, 271);
+    doc.fillColor(statusColors[invoice.status] || '#6b7280').text(formatStatus(invoice.status), detailsX2, detailsY);
+    detailsY += 16;
+    
+    doc.fillColor('#64748b').text('Currency:', detailsX1, detailsY);
+    doc.fillColor('#1e293b').text('SAR (Saudi Riyal)', detailsX2, detailsY);
 
-    const tableTop = 310;
-    doc.rect(50, tableTop, 495, 25).fill('#1e3a5f');
-    doc.fillColor('#ffffff').fontSize(9);
-    doc.text('#', 60, tableTop + 8, { width: 30 });
-    doc.text('Description', 90, tableTop + 8, { width: 200 });
-    doc.text('Qty', 300, tableTop + 8, { width: 40, align: 'center' });
-    doc.text('Unit Price', 350, tableTop + 8, { width: 70, align: 'right' });
-    doc.text('Tax %', 430, tableTop + 8, { width: 40, align: 'right' });
-    doc.text('Total', 480, tableTop + 8, { width: 55, align: 'right' });
+    const tableTop = 275;
+    doc.rect(50, tableTop, 495, 28).fill('#1e3a5f');
+    doc.fillColor('#ffffff').fontSize(9).font('Helvetica-Bold');
+    doc.text('#', 60, tableTop + 9, { width: 25 });
+    doc.text('Description', 85, tableTop + 9, { width: 220 });
+    doc.text('Qty', 305, tableTop + 9, { width: 40, align: 'center' });
+    doc.text('Unit Price', 345, tableTop + 9, { width: 70, align: 'right' });
+    doc.text('Tax', 420, tableTop + 9, { width: 40, align: 'center' });
+    doc.text('Total', 465, tableTop + 9, { width: 70, align: 'right' });
 
-    let yPos = tableTop + 30;
-    doc.fillColor('#333333');
+    let yPos = tableTop + 32;
+    doc.font('Helvetica').fillColor('#334155');
+    
     invoice.items.forEach((item, index) => {
       if (index % 2 === 0) {
-        doc.rect(50, yPos - 5, 495, 22).fill('#f9fafb');
-        doc.fillColor('#333333');
+        doc.rect(50, yPos - 4, 495, 24).fill('#f8fafc');
+        doc.fillColor('#334155');
       }
       doc.fontSize(9);
-      doc.text((index + 1).toString(), 60, yPos, { width: 30 });
-      doc.text(item.description, 90, yPos, { width: 200 });
-      doc.text(item.quantity.toString(), 300, yPos, { width: 40, align: 'center' });
-      doc.text(`SAR ${item.unitPrice.toFixed(2)}`, 350, yPos, { width: 70, align: 'right' });
-      doc.text(`${item.taxPercent}%`, 430, yPos, { width: 40, align: 'right' });
-      doc.text(`SAR ${item.lineTotal.toFixed(2)}`, 480, yPos, { width: 55, align: 'right' });
-      yPos += 22;
+      doc.text((index + 1).toString(), 60, yPos, { width: 25 });
+      doc.text(item.description, 85, yPos, { width: 220 });
+      doc.text(item.quantity.toString(), 305, yPos, { width: 40, align: 'center' });
+      doc.text(`SAR ${item.unitPrice.toFixed(2)}`, 345, yPos, { width: 70, align: 'right' });
+      doc.text(`${item.taxPercent}%`, 420, yPos, { width: 40, align: 'center' });
+      doc.fillColor('#1e293b').text(`SAR ${item.lineTotal.toFixed(2)}`, 465, yPos, { width: 70, align: 'right' });
+      doc.fillColor('#334155');
+      yPos += 24;
     });
 
-    doc.moveTo(50, yPos + 5).lineTo(545, yPos + 5).stroke('#e5e7eb');
+    doc.moveTo(50, yPos + 8).lineTo(545, yPos + 8).lineWidth(0.5).stroke('#e2e8f0');
+    yPos += 25;
+
+    const summaryX = 370;
+    const valueX = 465;
+    
+    doc.fontSize(9).fillColor('#64748b');
+    doc.text('Subtotal:', summaryX, yPos);
+    doc.fillColor('#1e293b').text(`SAR ${invoice.subtotal.toFixed(2)}`, valueX, yPos, { width: 70, align: 'right' });
     yPos += 20;
 
-    const summaryX = 380;
-    doc.fontSize(9).fillColor('#666666');
-    doc.text('Subtotal:', summaryX, yPos);
-    doc.fillColor('#333333').text(`SAR ${invoice.subtotal.toFixed(2)}`, 480, yPos, { width: 55, align: 'right' });
-    yPos += 18;
-
-    doc.fillColor('#666666').text(`VAT (${invoice.items[0]?.taxPercent || 15}%):`, summaryX, yPos);
-    doc.fillColor('#333333').text(`SAR ${invoice.taxAmount.toFixed(2)}`, 480, yPos, { width: 55, align: 'right' });
-    yPos += 18;
+    doc.fillColor('#64748b').text(`VAT (${invoice.items[0]?.taxPercent || 15}%):`, summaryX, yPos);
+    doc.fillColor('#1e293b').text(`SAR ${invoice.taxAmount.toFixed(2)}`, valueX, yPos, { width: 70, align: 'right' });
+    yPos += 20;
 
     if (invoice.discountAmount > 0) {
       doc.fillColor('#22c55e').text('Discount:', summaryX, yPos);
-      doc.text(`- SAR ${invoice.discountAmount.toFixed(2)}`, 480, yPos, { width: 55, align: 'right' });
-      yPos += 18;
+      doc.text(`- SAR ${invoice.discountAmount.toFixed(2)}`, valueX, yPos, { width: 70, align: 'right' });
+      yPos += 20;
     }
 
-    doc.rect(summaryX - 10, yPos, 185, 25).fill('#1e3a5f');
-    doc.fillColor('#ffffff').fontSize(11);
-    doc.text('TOTAL:', summaryX, yPos + 7);
-    doc.text(`SAR ${invoice.totalAmount.toFixed(2)}`, 480, yPos + 7, { width: 55, align: 'right' });
-    yPos += 35;
+    doc.rect(summaryX - 10, yPos, 185, 30).fill('#1e3a5f');
+    doc.fillColor('#ffffff').fontSize(12).font('Helvetica-Bold');
+    doc.text('TOTAL', summaryX, yPos + 9);
+    doc.text(`SAR ${invoice.totalAmount.toFixed(2)}`, valueX, yPos + 9, { width: 70, align: 'right' });
+    yPos += 40;
 
+    doc.font('Helvetica');
+    
     if (invoice.paidAmount > 0) {
-      doc.fillColor('#22c55e').fontSize(9).text('Paid:', summaryX, yPos);
-      doc.text(`SAR ${invoice.paidAmount.toFixed(2)}`, 480, yPos, { width: 55, align: 'right' });
-      yPos += 18;
+      doc.fillColor('#22c55e').fontSize(9).text('Amount Paid:', summaryX, yPos);
+      doc.text(`SAR ${invoice.paidAmount.toFixed(2)}`, valueX, yPos, { width: 70, align: 'right' });
+      yPos += 20;
 
       const balance = invoice.totalAmount - invoice.paidAmount;
       if (balance > 0) {
-        doc.fillColor('#f97316').text('Balance Due:', summaryX, yPos);
-        doc.text(`SAR ${balance.toFixed(2)}`, 480, yPos, { width: 55, align: 'right' });
-        yPos += 18;
+        doc.rect(summaryX - 10, yPos - 2, 185, 24).fill('#fef2f2');
+        doc.fillColor('#dc2626').text('Balance Due:', summaryX, yPos + 5);
+        doc.text(`SAR ${balance.toFixed(2)}`, valueX, yPos + 5, { width: 70, align: 'right' });
+        yPos += 30;
       }
     }
 
     if (invoice.payments.length > 0) {
-      yPos += 20;
-      doc.fontSize(10).fillColor('#1e3a5f').text('Payment History', 50, yPos);
       yPos += 15;
-      doc.fontSize(8).fillColor('#666666');
+      doc.rect(50, yPos, 250, 22).fill('#f1f5f9');
+      doc.fontSize(10).fillColor('#1e3a5f').font('Helvetica-Bold').text('Payment History', 60, yPos + 6);
+      yPos += 28;
+      doc.font('Helvetica').fontSize(8).fillColor('#64748b');
       invoice.payments.forEach(payment => {
-        doc.text(`${payment.paymentDate.toLocaleDateString('en-GB')} - ${payment.paymentMethod.replace('_', ' ')} - SAR ${payment.amount.toFixed(2)}`, 50, yPos);
-        yPos += 12;
+        const paymentDate = payment.paymentDate.toLocaleDateString('en-GB', {
+          day: '2-digit', month: 'short', year: 'numeric'
+        });
+        const method = payment.paymentMethod.replace(/_/g, ' ');
+        doc.text(`${paymentDate}  •  ${method}  •  SAR ${payment.amount.toFixed(2)}`, 60, yPos);
+        yPos += 14;
       });
     }
 
-    doc.rect(50, 750, 495, 50).fill('#f3f4f6');
-    doc.fontSize(8).fillColor('#666666');
-    doc.text('Bank Details: Saudi National Bank | Account: 1234567890 | IBAN: SA0000000000001234567890', 60, 760, { width: 475 });
-    doc.text('Payment Terms: Net 30 days | Late payments may incur interest at 1.5% per month', 60, 775, { width: 475 });
-    doc.text('This is a computer-generated invoice and is valid without signature.', 60, 790, { width: 475 });
+    const footerY = 730;
+    doc.rect(50, footerY, 495, 70).fill('#f8fafc');
+    doc.rect(50, footerY, 495, 1).fill('#e2e8f0');
+    
+    doc.fontSize(8).fillColor('#64748b');
+    doc.font('Helvetica-Bold').text('Bank Details', 60, footerY + 12);
+    doc.font('Helvetica').text('Saudi National Bank  |  Account: 1234567890  |  IBAN: SA0000000000001234567890', 60, footerY + 24, { width: 475 });
+    
+    doc.font('Helvetica-Bold').text('Terms & Conditions', 60, footerY + 42);
+    doc.font('Helvetica').text('Payment due within 30 days. Late payments may incur interest at 1.5% per month. This is a computer-generated invoice.', 60, footerY + 54, { width: 475 });
+
+    doc.fontSize(7).fillColor('#94a3b8').text('ZATCA e-Invoice QR', 480, 162, { width: 70, align: 'center' });
 
     doc.end();
   } catch (error) {
