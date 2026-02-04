@@ -105,9 +105,7 @@ export default function AttachmentPanel({ entityType, entityId, title = 'Attachm
         formData.append('description', description);
       }
 
-      await api.post(`/attachments/${entityType}/${entityId}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      await api.post(`/attachments/${entityType}/${entityId}`, formData);
 
       queryClient.invalidateQueries({ queryKey: ['attachments', entityType, entityId] });
       toast.success('File uploaded');
