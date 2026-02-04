@@ -113,6 +113,7 @@ const menuSections: MenuSection[] = [
       { path: '/qc', labelKey: 'nav.qc', icon: ClipboardCheck },
       { path: '/oos-investigations', labelKey: 'nav.oosInvestigations', icon: AlertTriangle },
       { path: '/release', labelKey: 'nav.release', icon: CheckCircle },
+      { path: '/admin/qc/test-definitions', labelKey: 'nav.qcTestDefinitions', icon: FileText },
     ],
   },
   {

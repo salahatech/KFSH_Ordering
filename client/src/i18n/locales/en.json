@@ -74,6 +74,7 @@
     "batches": "Batches",
     "qc": "QC Tests",
     "release": "QP Release",
+    "qcTestDefinitions": "QC Test Definitions",
     "dispensing": "Dispensing",
     "shipments": "Shipments",
     "drivers": "Drivers",
