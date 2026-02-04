@@ -66,5 +66,5 @@ externalPort = 3002
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["sh", "-c", "bash -c npx vite build -c client/vite.config.ts client"]
+build = ["bash", "-c", "cd client && npx vite build"]
 run = ["bash", "-c", "cd server && NODE_ENV=production npx tsx src/index.ts"]
