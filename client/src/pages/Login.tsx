@@ -20,7 +20,18 @@ export default function Login() {
       await login(email, password);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed');
+      const serverError = err.response?.data?.error;
+      if (serverError === 'Invalid credentials') {
+        setError('The email or password you entered is incorrect. Please try again.');
+      } else if (err.response?.status === 401) {
+        setError('Invalid email or password. Please check your credentials and try again.');
+      } else if (err.response?.status === 403) {
+        setError('Your account has been disabled. Please contact support.');
+      } else if (!err.response) {
+        setError('Unable to connect to the server. Please check your internet connection.');
+      } else {
+        setError(serverError || 'Login failed. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }
@@ -73,18 +84,23 @@ export default function Login() {
             data-testid="error-message"
             style={{
               display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem',
-              background: 'var(--danger-bg)',
-              color: 'var(--danger-text)',
+              alignItems: 'flex-start',
+              gap: '0.75rem',
+              padding: '1rem',
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#991b1b',
               borderRadius: '8px',
-              marginBottom: '1rem',
+              marginBottom: '1.25rem',
               fontSize: '0.875rem',
+              lineHeight: '1.5',
             }}
           >
-            <AlertCircle size={18} />
-            {error}
+            <AlertCircle size={20} style={{ flexShrink: 0, marginTop: '1px' }} />
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Login Failed</div>
+              <div style={{ color: '#b91c1c' }}>{error}</div>
+            </div>
           </div>
         )}
 
