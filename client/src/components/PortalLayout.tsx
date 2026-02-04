@@ -13,6 +13,7 @@ import {
   Plus,
   Building2,
   Calendar,
+  Ticket,
 } from 'lucide-react';
 import AnnouncementBar from './AnnouncementBar';
 
@@ -22,6 +23,7 @@ const portalMenuItems = [
   { path: '/portal/orders', label: 'My Orders', icon: ShoppingCart },
   { path: '/portal/orders/new', label: 'Place Order', icon: Plus },
   { path: '/portal/invoices', label: 'Invoices', icon: Receipt },
+  { path: '/portal/helpdesk', label: 'Support', icon: Ticket },
   { path: '/portal/profile', label: 'My Profile', icon: Building2 },
 ];
 

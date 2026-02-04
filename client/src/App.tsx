@@ -60,6 +60,8 @@ import MyNotificationPreferences from './pages/MyNotificationPreferences';
 import Announcements from './pages/admin/Announcements';
 import AnnouncementForm from './pages/admin/AnnouncementForm';
 import AdminDemo from './pages/AdminDemo';
+import AdminHelpdesk from './pages/admin/AdminHelpdesk';
+import AdminTicketDetail from './pages/admin/AdminTicketDetail';
 import Drivers from './pages/Drivers';
 import ShipmentDetail from './pages/ShipmentDetail';
 import NotificationCenter from './pages/NotificationCenter';
@@ -302,6 +304,8 @@ export default function App() {
                   <Route path="/admin/announcements" element={<Announcements />} />
                   <Route path="/admin/announcements/new" element={<AnnouncementForm />} />
                   <Route path="/admin/announcements/:id/edit" element={<AnnouncementForm />} />
+                  <Route path="/admin/helpdesk" element={<AdminHelpdesk />} />
+                  <Route path="/admin/helpdesk/tickets/:id" element={<AdminTicketDetail />} />
                   <Route path="/admin/qc/test-definitions" element={<QcTestDefinitions />} />
                   <Route path="/products/:productId/qc-template" element={<ProductQcTemplate />} />
                   <Route path="/batches/:batchId/qc" element={<BatchQcSession />} />

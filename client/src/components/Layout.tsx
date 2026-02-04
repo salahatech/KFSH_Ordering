@@ -47,6 +47,7 @@ import {
   Star,
   StarOff,
   BarChart3,
+  Ticket,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import AnnouncementBar from './AnnouncementBar';
@@ -150,6 +151,7 @@ const menuSections: MenuSection[] = [
     icon: Settings,
     items: [
       { path: '/approvals', labelKey: 'nav.approvals', icon: FileCheck },
+      { path: '/admin/helpdesk', labelKey: 'Support Tickets', icon: Ticket },
       { path: '/users', labelKey: 'nav.users', icon: Users },
       { path: '/roles', labelKey: 'nav.roles', icon: Shield },
       { path: '/enterprise-reports', labelKey: 'Enterprise Reports', icon: FileText },
