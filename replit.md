@@ -33,6 +33,7 @@ RadioPharma OMS is a comprehensive web application for managing radiopharmaceuti
 - **Data Management**: Master data management for recipes/BOM, materials, suppliers, and system settings. Barcode/QR scanning for material lookup and printable labels for batches, shipments, and materials.
 - **Inventory & Warehouse**: Warehouse control with location hierarchy, Goods Receiving Notes (GRN), stock tracking with movements, and radioactive material handling.
 - **User Interaction**: Dashboards for various roles, notification center (multi-channel), global announcement system, and standardized entity detail pages.
+- **Support Helpdesk**: Complete ticketing system with customer portal and admin console. Features include two-way communication (public replies + internal notes), task management for each ticket, SLA tracking with breach detection, team-based assignment (Support, Finance, Logistics, Quality, IT), event timeline for audit, multi-channel notifications (email, SMS, WhatsApp) for ticket events.
 - **Data Visualization**: Production Schedule page with Gantt chart, equipment heat map, and list views; batch lifecycle timeline with phase breakdown; order journey timeline with event tracking.
 - **Security**: Status state machines, comprehensive audit logging, and role management with permission assignment.
 - **Reporting**: Centralized Enterprise Reporting Center with various categories, filters, and export options (Excel, PDF).
