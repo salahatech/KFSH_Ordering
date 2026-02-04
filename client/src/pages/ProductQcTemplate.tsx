@@ -199,6 +199,40 @@ export default function ProductQcTemplate() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedTemplate) return;
+      const { data } = await api.delete(
+        `/products/${productId}/qc-templates/${selectedTemplate.id}`
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['product-qc-templates', productId] });
+      setSelectedTemplate(null);
+      toast.success('Deleted', 'Template version has been deleted');
+    },
+    onError: (error: any) => {
+      toast.error('Error', error.response?.data?.error || 'Failed to delete template');
+    },
+  });
+
+  const handleDeleteTemplate = () => {
+    if (!selectedTemplate) return;
+    const sessionCount = selectedTemplate._count?.batchQcSessions || 0;
+    if (sessionCount > 0) {
+      toast.error('Cannot Delete', `This template is referenced by ${sessionCount} batch QC session(s). Consider retiring it instead.`);
+      return;
+    }
+    if (selectedTemplate.status === 'ACTIVE') {
+      toast.error('Cannot Delete', 'Cannot delete an active template. Retire it first or activate a different version.');
+      return;
+    }
+    if (confirm(`Are you sure you want to delete version ${selectedTemplate.version}? This action cannot be undone.`)) {
+      deleteMutation.mutate();
+    }
+  };
+
   const addTestLine = (testDef: QcTestDefinition) => {
     setDraftLines([
       ...draftLines,
@@ -467,6 +501,21 @@ export default function ProductQcTemplate() {
                       disabled={retireMutation.isPending}
                     >
                       <Archive size={14} /> Retire
+                    </button>
+                  )}
+                  {(selectedTemplate.status === 'DRAFT' || selectedTemplate.status === 'RETIRED') && (
+                    <button
+                      className="btn"
+                      style={{ 
+                        background: 'rgba(239, 68, 68, 0.1)', 
+                        color: 'var(--error)',
+                        border: '1px solid var(--error)'
+                      }}
+                      onClick={handleDeleteTemplate}
+                      disabled={deleteMutation.isPending || (selectedTemplate._count?.batchQcSessions || 0) > 0}
+                      title={(selectedTemplate._count?.batchQcSessions || 0) > 0 ? 'Cannot delete: template is used by batch QC sessions' : 'Delete this template version'}
+                    >
+                      <Trash2 size={14} /> Delete
                     </button>
                   )}
                 </div>

@@ -428,4 +428,59 @@ router.post('/:templateId/retire', authenticateToken, requireRole('Admin', 'QC M
   }
 });
 
+router.delete('/:templateId', authenticateToken, requireRole('Admin', 'QC Manager'), async (req: Request, res: Response) => {
+  try {
+    const { templateId } = req.params;
+    const userId = req.user?.userId;
+    
+    const template = await prisma.productQcTemplate.findUnique({
+      where: { id: templateId },
+      include: {
+        _count: {
+          select: { batchQcSessions: true }
+        }
+      }
+    });
+    
+    if (!template) {
+      return res.status(404).json({ error: 'QC template not found' });
+    }
+    
+    if (template._count.batchQcSessions > 0) {
+      return res.status(400).json({ 
+        error: `Cannot delete template version ${template.version}. It is referenced by ${template._count.batchQcSessions} batch QC session(s). Consider retiring it instead.`
+      });
+    }
+    
+    if (template.status === QcTemplateStatus.ACTIVE) {
+      return res.status(400).json({ 
+        error: 'Cannot delete an active template. Retire it first or activate a different version.'
+      });
+    }
+    
+    await prisma.qcTemplateLine.deleteMany({
+      where: { templateId }
+    });
+    
+    await prisma.productQcTemplate.delete({
+      where: { id: templateId }
+    });
+    
+    await createAuditLog(
+      userId,
+      'DELETE',
+      'ProductQcTemplate',
+      templateId,
+      { version: template.version, status: template.status },
+      null,
+      req
+    );
+    
+    res.json({ success: true, message: `Template version ${template.version} deleted successfully` });
+  } catch (error) {
+    console.error('Error deleting QC template:', error);
+    res.status(500).json({ error: 'Failed to delete QC template' });
+  }
+});
+
 export default router;
