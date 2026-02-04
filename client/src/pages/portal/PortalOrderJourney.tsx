@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { format } from 'date-fns';
-import { ArrowLeft, Package, Truck, CheckCircle, Clock, Activity, MapPin, Calendar, Info, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Package, Truck, CheckCircle, Clock, Activity, MapPin, Calendar, Info, AlertCircle, Hash, FileText, Building2, MessageSquare, Send } from 'lucide-react';
 import { Stepper, Timeline, StatusBadge } from '../../components/shared';
 
 export default function PortalOrderJourney() {
@@ -165,36 +165,117 @@ export default function PortalOrderJourney() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="card">
-            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-              <h3 style={{ fontWeight: 600, fontSize: '1rem', margin: 0 }}>Order Details</h3>
+          <div className="card" style={{ padding: 0 }}>
+            <div style={{ padding: '0.875rem 1rem', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ fontWeight: 600, fontSize: '0.9375rem', margin: 0 }}>Order Details</h3>
             </div>
-            <div style={{ padding: '1rem 1.5rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <Package size={18} style={{ color: 'var(--text-muted)' }} />
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Product</div>
-                    <div style={{ fontWeight: 500 }}>{order.product}</div>
-                  </div>
+            <div style={{ padding: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '1rem' }}>
+                <div style={{ 
+                  width: '40px', 
+                  height: '40px', 
+                  borderRadius: '10px', 
+                  background: 'rgba(13, 148, 136, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Package size={20} style={{ color: '#0d9488' }} />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <Activity size={18} style={{ color: 'var(--text-muted)' }} />
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Requested Activity</div>
-                    <div style={{ fontWeight: 500 }}>{order.activity || 'N/A'}</div>
+                <div>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    {order.productCode || 'Product'}
                   </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <Calendar size={18} style={{ color: 'var(--text-muted)' }} />
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Delivery Date</div>
-                    <div style={{ fontWeight: 500 }}>
-                      {order.deliveryTime ? format(new Date(order.deliveryTime), 'MMM d, yyyy HH:mm') : 'N/A'}
-                    </div>
+                  <div style={{ fontSize: '0.9375rem', fontWeight: 600 }}>
+                    {order.product}
                   </div>
                 </div>
               </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.375rem 0', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <Hash size={12} style={{ color: 'var(--text-muted)' }} />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Doses</span>
+                  </div>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{order.numberOfDoses || 1}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.375rem 0', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <Activity size={12} style={{ color: '#0d9488' }} />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Activity</span>
+                  </div>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#0d9488' }}>
+                    {order.requestedActivity} {order.activityUnit || 'mCi'}
+                  </span>
+                </div>
+                {order.hospitalOrderReference && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.375rem 0', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <Building2 size={12} style={{ color: 'var(--text-muted)' }} />
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Reference</span>
+                    </div>
+                    <span style={{ fontSize: '0.8125rem' }}>{order.hospitalOrderReference}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.375rem 0', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <Calendar size={12} style={{ color: 'var(--text-muted)' }} />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Delivery Window</span>
+                  </div>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+                    {order.deliveryTimeStart && order.deliveryTimeEnd 
+                      ? `${format(new Date(order.deliveryTimeStart), 'HH:mm')} - ${format(new Date(order.deliveryTimeEnd), 'HH:mm')}`
+                      : order.deliveryTime 
+                        ? format(new Date(order.deliveryTime), 'HH:mm')
+                        : 'N/A'
+                    }
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.375rem 0', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <Calendar size={12} style={{ color: 'var(--text-muted)' }} />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Delivery Date</span>
+                  </div>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+                    {order.deliveryDate ? format(new Date(order.deliveryDate), 'MMM d, yyyy') : 'N/A'}
+                  </span>
+                </div>
+                {order.estimatedDispatchTime && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.375rem 0', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <Truck size={12} style={{ color: 'var(--text-muted)' }} />
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Est. Dispatch</span>
+                    </div>
+                    <span style={{ fontSize: '0.8125rem' }}>
+                      {format(new Date(order.estimatedDispatchTime), 'MMM d, HH:mm')}
+                    </span>
+                  </div>
+                )}
+                {order.estimatedDeliveryTime && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.375rem 0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <MapPin size={12} style={{ color: 'var(--text-muted)' }} />
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Est. Arrival</span>
+                    </div>
+                    <span style={{ fontSize: '0.8125rem' }}>
+                      {format(new Date(order.estimatedDeliveryTime), 'MMM d, HH:mm')}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {order.specialNotes && (
+                <div style={{ marginTop: '0.75rem', padding: '0.625rem', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>
+                    <FileText size={12} style={{ color: 'var(--text-muted)' }} />
+                    <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Special Notes</span>
+                  </div>
+                  <p style={{ fontSize: '0.8125rem', margin: 0, color: 'var(--text-secondary)' }}>
+                    {order.specialNotes}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -249,18 +330,39 @@ export default function PortalOrderJourney() {
             </div>
           )}
 
-          <div className="card" style={{ 
-            backgroundColor: 'rgba(13, 148, 136, 0.05)',
-            border: '1px solid rgba(13, 148, 136, 0.2)'
-          }}>
-            <div style={{ padding: '1rem 1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <Info size={18} style={{ color: '#0d9488' }} />
-                <h4 style={{ fontWeight: 600, fontSize: '0.875rem', margin: 0, color: '#0d9488' }}>Need Help?</h4>
-              </div>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: 0 }}>
-                If you have questions about your order, please contact our support team.
+          <div className="card" style={{ padding: 0 }}>
+            <div style={{ padding: '0.875rem 1rem', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ fontWeight: 600, fontSize: '0.9375rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <MessageSquare size={16} style={{ color: '#0d9488' }} />
+                Communication
+              </h3>
+            </div>
+            <div style={{ padding: '1rem' }}>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: '0 0 0.75rem 0' }}>
+                Have questions about this order? Open a support ticket to communicate with our team.
               </p>
+              <Link
+                to={`/portal/helpdesk/new?subject=Order ${order.orderNumber}&orderId=${order.id}`}
+                className="btn"
+                style={{ 
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  background: '#0d9488',
+                  borderColor: '#0d9488',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  padding: '0.625rem 1rem',
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  textDecoration: 'none'
+                }}
+              >
+                <Send size={14} />
+                Contact Support
+              </Link>
             </div>
           </div>
         </div>
