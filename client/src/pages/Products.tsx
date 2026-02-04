@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { 
@@ -16,6 +17,7 @@ import {
   Search,
   Filter,
   Paperclip,
+  Settings,
 } from 'lucide-react';
 import AttachmentPanel from '../components/AttachmentPanel';
 import { useToast } from '../components/ui/Toast';
@@ -23,6 +25,7 @@ import { parseApiError } from '../components/ui/FormErrors';
 import { KpiCard, EmptyState } from '../components/shared';
 
 export default function Products() {
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [detailProduct, setDetailProduct] = useState<any>(null);
@@ -439,12 +442,12 @@ export default function Products() {
                 </div>
               </div>
 
-              {detailProduct.qcTemplates?.length > 0 && (
-                <div>
-                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
-                    QC Tests ({detailProduct.qcTemplates.length})
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+              <div>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                  QC Tests ({detailProduct.qcTemplates?.length || 0})
+                </div>
+                {detailProduct.qcTemplates?.length > 0 ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.75rem' }}>
                     {detailProduct.qcTemplates.map((qc: any) => (
                       <span 
                         key={qc.id} 
@@ -455,8 +458,19 @@ export default function Products() {
                       </span>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                    No QC tests configured
+                  </p>
+                )}
+                <button
+                  className="btn btn-secondary"
+                  style={{ width: '100%', fontSize: '0.8125rem' }}
+                  onClick={() => navigate(`/products/${detailProduct.id}/qc-template`)}
+                >
+                  <Settings size={14} /> Configure QC Tests
+                </button>
+              </div>
 
               <div style={{ marginTop: '1.25rem', marginBottom: '1rem' }}>
                 <AttachmentPanel
