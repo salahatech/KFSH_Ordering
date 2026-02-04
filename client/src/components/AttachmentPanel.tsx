@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { format } from 'date-fns';
-import { Paperclip, Upload, Trash2, Download, FileText, Image, File, X, AlertCircle } from 'lucide-react';
+import { Paperclip, Upload, Trash2, Download, FileText, Image, File, X, AlertCircle, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Attachment {
@@ -48,6 +48,7 @@ export default function AttachmentPanel({ entityType, entityId, title = 'Attachm
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [description, setDescription] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<Attachment | null>(null);
 
   const { data: attachments, isLoading } = useQuery({
     queryKey: ['attachments', entityType, entityId],
@@ -73,9 +74,11 @@ export default function AttachmentPanel({ entityType, entityId, title = 'Attachm
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attachments', entityType, entityId] });
       toast.success('Attachment deleted');
+      setDeleteConfirm(null);
     },
     onError: () => {
       toast.error('Failed to delete attachment');
+      setDeleteConfirm(null);
     }
   });
 
@@ -329,11 +332,7 @@ export default function AttachmentPanel({ entityType, entityId, title = 'Attachm
                     </button>
                     {!readOnly && (
                       <button
-                        onClick={() => {
-                          if (confirm('Delete this attachment?')) {
-                            deleteMutation.mutate(attachment.id);
-                          }
-                        }}
+                        onClick={() => setDeleteConfirm(attachment)}
                         style={{
                           padding: '0.375rem',
                           background: 'none',
@@ -354,6 +353,75 @@ export default function AttachmentPanel({ entityType, entityId, title = 'Attachm
           </div>
         )}
       </div>
+
+      {deleteConfirm && (
+        <div 
+          className="modal-overlay"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={() => setDeleteConfirm(null)}
+        >
+          <div 
+            className="modal"
+            style={{
+              background: 'var(--bg-primary)',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              maxWidth: '400px',
+              width: '90%',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'rgba(239, 68, 68, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <AlertTriangle size={20} style={{ color: '#ef4444' }} />
+              </div>
+              <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600 }}>Delete Attachment</h3>
+            </div>
+            
+            <p style={{ margin: '0 0 1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+              Are you sure you want to delete <strong>{deleteConfirm.originalName}</strong>? This action cannot be undone.
+            </p>
+            
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deleteMutation.isPending}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn"
+                style={{ background: '#ef4444', color: 'white', border: 'none' }}
+                onClick={() => deleteMutation.mutate(deleteConfirm.id)}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
