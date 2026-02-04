@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
 import { useLanguageStore } from '../store/languageStore';
+import { useFavoritesStore } from '../store/favoritesStore';
 import api from '../lib/api';
 import { useLocalization } from '../hooks/useLocalization';
 import {
@@ -41,9 +42,15 @@ import {
   Globe,
   DollarSign,
   Languages,
+  ChevronDown,
+  ChevronRight,
+  Star,
+  StarOff,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import AnnouncementBar from './AnnouncementBar';
+import GlobalSearch from './GlobalSearch';
+import Breadcrumbs from './Breadcrumbs';
 
 interface Notification {
   id: string;
@@ -56,37 +63,103 @@ interface Notification {
   relatedType?: string;
 }
 
-const menuItems = [
+interface MenuItem {
+  path: string;
+  labelKey: string;
+  icon: typeof LayoutDashboard;
+}
+
+interface MenuSection {
+  id: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  items: MenuItem[];
+}
+
+const menuSections: MenuSection[] = [
+  {
+    id: 'orders',
+    label: 'Orders & Customers',
+    icon: ShoppingCart,
+    items: [
+      { path: '/orders', labelKey: 'nav.orders', icon: ShoppingCart },
+      { path: '/customers', labelKey: 'nav.customers', icon: Building2 },
+      { path: '/contracts', labelKey: 'nav.contracts', icon: FileSignature },
+      { path: '/availability', labelKey: 'nav.availability', icon: CalendarClock },
+      { path: '/reservations', labelKey: 'nav.reservations', icon: CalendarCheck },
+    ],
+  },
+  {
+    id: 'production',
+    label: 'Production',
+    icon: Factory,
+    items: [
+      { path: '/planner', labelKey: 'nav.planner', icon: Calendar },
+      { path: '/batches', labelKey: 'nav.batches', icon: FlaskConical },
+      { path: '/manufacturing', labelKey: 'nav.manufacturing', icon: Factory },
+      { path: '/dispensing', labelKey: 'nav.dispensing', icon: Syringe },
+    ],
+  },
+  {
+    id: 'quality',
+    label: 'Quality',
+    icon: ClipboardCheck,
+    items: [
+      { path: '/qc', labelKey: 'nav.qc', icon: ClipboardCheck },
+      { path: '/oos-investigations', labelKey: 'nav.oosInvestigations', icon: AlertTriangle },
+      { path: '/release', labelKey: 'nav.release', icon: CheckCircle },
+    ],
+  },
+  {
+    id: 'logistics',
+    label: 'Logistics',
+    icon: Truck,
+    items: [
+      { path: '/shipments', labelKey: 'nav.shipments', icon: Truck },
+    ],
+  },
+  {
+    id: 'inventory',
+    label: 'Inventory & Supply',
+    icon: Warehouse,
+    items: [
+      { path: '/products', labelKey: 'nav.products', icon: Package },
+      { path: '/materials', labelKey: 'nav.materials', icon: FlaskConical },
+      { path: '/recipes', labelKey: 'nav.recipes', icon: FileText },
+      { path: '/suppliers', labelKey: 'nav.suppliers', icon: Building2 },
+      { path: '/purchase-orders', labelKey: 'nav.purchaseOrders', icon: ShoppingCart },
+      { path: '/warehouses', labelKey: 'nav.warehouses', icon: Warehouse },
+      { path: '/grn', labelKey: 'nav.goodsReceiving', icon: PackageCheck },
+      { path: '/inventory', labelKey: 'nav.inventory', icon: Boxes },
+    ],
+  },
+  {
+    id: 'finance',
+    label: 'Finance',
+    icon: CreditCard,
+    items: [
+      { path: '/invoices', labelKey: 'nav.invoices', icon: Receipt },
+      { path: '/payments', labelKey: 'nav.payments', icon: CreditCard },
+    ],
+  },
+  {
+    id: 'admin',
+    label: 'Administration',
+    icon: Settings,
+    items: [
+      { path: '/approvals', labelKey: 'nav.approvals', icon: FileCheck },
+      { path: '/users', labelKey: 'nav.users', icon: Users },
+      { path: '/roles', labelKey: 'nav.roles', icon: Shield },
+      { path: '/enterprise-reports', labelKey: 'Enterprise Reports', icon: FileText },
+      { path: '/settings', labelKey: 'nav.settings', icon: Settings },
+      { path: '/audit', labelKey: 'nav.auditLog', icon: FileText },
+    ],
+  },
+];
+
+const allMenuItems = [
   { path: '/', labelKey: 'nav.dashboard', icon: LayoutDashboard },
-  { path: '/approvals', labelKey: 'nav.approvals', icon: FileCheck },
-  { path: '/customers', labelKey: 'nav.customers', icon: Building2 },
-  { path: '/products', labelKey: 'nav.products', icon: Package },
-  { path: '/materials', labelKey: 'nav.materials', icon: FlaskConical },
-  { path: '/recipes', labelKey: 'nav.recipes', icon: FileText },
-  { path: '/suppliers', labelKey: 'nav.suppliers', icon: Building2 },
-  { path: '/purchase-orders', labelKey: 'nav.purchaseOrders', icon: ShoppingCart },
-  { path: '/warehouses', labelKey: 'nav.warehouses', icon: Warehouse },
-  { path: '/grn', labelKey: 'nav.goodsReceiving', icon: PackageCheck },
-  { path: '/inventory', labelKey: 'nav.inventory', icon: Boxes },
-  { path: '/manufacturing', labelKey: 'nav.manufacturing', icon: Factory },
-  { path: '/orders', labelKey: 'nav.orders', icon: ShoppingCart },
-  { path: '/availability', labelKey: 'nav.availability', icon: CalendarClock },
-  { path: '/reservations', labelKey: 'nav.reservations', icon: CalendarCheck },
-  { path: '/planner', labelKey: 'nav.planner', icon: Calendar },
-  { path: '/batches', labelKey: 'nav.batches', icon: FlaskConical },
-  { path: '/qc', labelKey: 'nav.qc', icon: ClipboardCheck },
-  { path: '/oos-investigations', labelKey: 'nav.oosInvestigations', icon: AlertTriangle },
-  { path: '/release', labelKey: 'nav.release', icon: CheckCircle },
-  { path: '/dispensing', labelKey: 'nav.dispensing', icon: Syringe },
-  { path: '/shipments', labelKey: 'nav.shipments', icon: Truck },
-  { path: '/contracts', labelKey: 'nav.contracts', icon: FileSignature },
-  { path: '/invoices', labelKey: 'nav.invoices', icon: Receipt },
-  { path: '/payments', labelKey: 'nav.payments', icon: CreditCard },
-  { path: '/enterprise-reports', labelKey: 'Enterprise Reports', icon: FileText },
-  { path: '/users', labelKey: 'nav.users', icon: Users },
-  { path: '/roles', labelKey: 'nav.roles', icon: Shield },
-  { path: '/settings', labelKey: 'nav.settings', icon: Settings },
-  { path: '/audit', labelKey: 'nav.auditLog', icon: FileText },
+  ...menuSections.flatMap(s => s.items),
 ];
 
 interface SystemSettings {
@@ -129,9 +202,23 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const getInitialExpandedSections = (): string[] => {
+    const stored = localStorage.getItem('radiopharma-expanded-sections');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return ['orders', 'production'];
+      }
+    }
+    return ['orders', 'production'];
+  };
+  
+  const [expandedSections, setExpandedSections] = useState<string[]>(getInitialExpandedSections);
   const notificationRef = useRef<HTMLDivElement>(null);
   const languageRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const { favorites, toggleFavorite } = useFavoritesStore();
 
   useEffect(() => {
     const handleResize = () => {
@@ -231,6 +318,29 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     navigate('/login');
   };
 
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections(prev => {
+      const newState = prev.includes(sectionId)
+        ? prev.filter(id => id !== sectionId)
+        : [...prev, sectionId];
+      localStorage.setItem('radiopharma-expanded-sections', JSON.stringify(newState));
+      return newState;
+    });
+  };
+
+  useEffect(() => {
+    const activeSection = menuSections.find(section =>
+      section.items.some(item => location.pathname === item.path || location.pathname.startsWith(item.path + '/'))
+    );
+    if (activeSection && !expandedSections.includes(activeSection.id)) {
+      setExpandedSections(prev => {
+        const newState = [...prev, activeSection.id];
+        localStorage.setItem('radiopharma-expanded-sections', JSON.stringify(newState));
+        return newState;
+      });
+    }
+  }, [location.pathname]);
+
   const unreadCount = notificationData?.unreadCount || 0;
   const notifications = notificationData?.notifications || [];
 
@@ -306,30 +416,163 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav style={{ flex: 1, padding: '0.5rem', overflowY: 'auto' }}>
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+          <Link
+            to="/"
+            onClick={() => isMobile && setMobileMenuOpen(false)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '0.75rem',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              color: location.pathname === '/' ? 'white' : 'rgba(255,255,255,0.7)',
+              background: location.pathname === '/' ? 'rgba(255,255,255,0.1)' : 'transparent',
+              marginBottom: '0.25rem',
+            }}
+          >
+            <LayoutDashboard size={20} />
+            {(isMobile || sidebarOpen) && <span style={{ fontSize: '0.875rem' }}>{t('nav.dashboard')}</span>}
+          </Link>
+
+          {favorites.length > 0 && (isMobile || sidebarOpen) && (
+            <div style={{ marginBottom: '0.5rem' }}>
+              <div style={{
+                fontSize: '0.6875rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: 'rgba(255,255,255,0.5)',
+                padding: '0.5rem 0.75rem 0.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+              }}>
+                <Star size={12} />
+                Favorites
+              </div>
+              {favorites.map((favPath) => {
+                const item = allMenuItems.find(m => m.path === favPath);
+                if (!item) return null;
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={`fav-${item.path}`}
+                    to={item.path}
+                    onClick={() => isMobile && setMobileMenuOpen(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: '8px',
+                      textDecoration: 'none',
+                      color: isActive ? 'white' : 'rgba(255,255,255,0.7)',
+                      background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+                      marginBottom: '0.125rem',
+                      fontSize: '0.8125rem',
+                    }}
+                  >
+                    <Icon size={16} />
+                    <span>{t(item.labelKey)}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {menuSections.map((section) => {
+            const SectionIcon = section.icon;
+            const isExpanded = expandedSections.includes(section.id);
+            const hasActiveItem = section.items.some(item => location.pathname === item.path || location.pathname.startsWith(item.path + '/'));
+
             return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => isMobile && setMobileMenuOpen(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.75rem',
-                  borderRadius: '8px',
-                  textDecoration: 'none',
-                  color: isActive ? 'white' : 'rgba(255,255,255,0.7)',
-                  background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
-                  marginBottom: '0.25rem',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <Icon size={20} />
-                {(isMobile || sidebarOpen) && <span style={{ fontSize: '0.875rem' }}>{t(item.labelKey)}</span>}
-              </Link>
+              <div key={section.id} style={{ marginBottom: '0.25rem' }}>
+                <button
+                  onClick={() => toggleSection(section.id)}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    background: hasActiveItem && !isExpanded ? 'rgba(255,255,255,0.05)' : 'transparent',
+                    border: 'none',
+                    color: hasActiveItem ? 'white' : 'rgba(255,255,255,0.7)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <SectionIcon size={20} />
+                  {(isMobile || sidebarOpen) && (
+                    <>
+                      <span style={{ flex: 1, fontSize: '0.875rem', fontWeight: hasActiveItem ? 500 : 400 }}>
+                        {section.label}
+                      </span>
+                      {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    </>
+                  )}
+                </button>
+
+                {isExpanded && (isMobile || sidebarOpen) && (
+                  <div style={{ paddingLeft: '1rem', marginTop: '0.125rem' }}>
+                    {section.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                      const isFav = favorites.includes(item.path);
+                      return (
+                        <div
+                          key={item.path}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                          }}
+                        >
+                          <Link
+                            to={item.path}
+                            onClick={() => isMobile && setMobileMenuOpen(false)}
+                            style={{
+                              flex: 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.625rem',
+                              padding: '0.5rem 0.75rem',
+                              borderRadius: '6px',
+                              textDecoration: 'none',
+                              color: isActive ? 'white' : 'rgba(255,255,255,0.65)',
+                              background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+                              marginBottom: '0.125rem',
+                              fontSize: '0.8125rem',
+                            }}
+                          >
+                            <Icon size={16} />
+                            <span>{t(item.labelKey)}</span>
+                          </Link>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(item.path);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: '0.375rem',
+                              cursor: 'pointer',
+                              color: isFav ? '#fbbf24' : 'rgba(255,255,255,0.3)',
+                              opacity: isFav ? 1 : 0.5,
+                            }}
+                            title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                          >
+                            {isFav ? <Star size={14} fill="#fbbf24" /> : <StarOff size={14} />}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </nav>
@@ -398,9 +641,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </button>
             )}
             <h2 style={{ fontSize: isMobile ? '1rem' : '1.125rem', fontWeight: 600, margin: 0 }}>
-              {isMobile ? 'RadioPharma' : (t(menuItems.find((m) => m.path === location.pathname)?.labelKey || 'RadioPharma OMS'))}
+              {isMobile ? 'RadioPharma' : (t(allMenuItems.find((m) => m.path === location.pathname)?.labelKey || 'RadioPharma OMS'))}
             </h2>
           </div>
+
+          {!isMobile && <GlobalSearch />}
 
           {/* Context Bar - Date, Time, Language, Currency - Hidden on mobile */}
           {!isMobile && (
@@ -745,7 +990,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         <AnnouncementBar />
 
-        <main style={{ padding: '1.5rem' }}>{children}</main>
+        <main style={{ padding: '1.5rem' }}>
+          <Breadcrumbs />
+          {children}
+        </main>
       </div>
     </div>
   );
