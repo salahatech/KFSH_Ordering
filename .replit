@@ -63,3 +63,8 @@ externalPort = 80
 [[ports]]
 localPort = 5001
 externalPort = 3002
+
+[deployment]
+deploymentTarget = "autoscale"
+build = ["bash", "-c", "cd client && npx vite build && cd ../server && npx tsc"]
+run = ["bash", "-c", "cd server && node dist/index.js"]
