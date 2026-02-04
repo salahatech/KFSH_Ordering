@@ -372,16 +372,31 @@ export default function PortalInvoices() {
             </div>
 
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-              <a 
-                href={`/api/invoice-pdf/${selectedInvoice.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button 
                 className="btn btn-outline"
                 style={{ flex: canSubmitPayment ? 1 : undefined }}
+                onClick={async () => {
+                  try {
+                    const response = await api.get(`/invoice-pdf/${selectedInvoice.id}`, {
+                      responseType: 'blob',
+                    });
+                    const blob = new Blob([response.data], { type: 'application/pdf' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Invoice-${selectedInvoice.invoiceNumber}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                  } catch (error) {
+                    toast.error('Failed to download PDF');
+                  }
+                }}
               >
                 <FileDown size={16} style={{ marginRight: '0.5rem' }} />
                 Download PDF
-              </a>
+              </button>
               {canSubmitPayment && (
                 <button 
                   className="btn btn-primary" 
