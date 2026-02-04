@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
 import { useLanguageStore } from '../store/languageStore';
 import { useFavoritesStore } from '../store/favoritesStore';
+import { useCurrencyStore } from '../store/currencyStore';
 import api from '../lib/api';
 import { useLocalization } from '../hooks/useLocalization';
 import {
@@ -204,6 +205,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
+  const [currencyMenuOpen, setCurrencyMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const getInitialExpandedSections = (): string[] => {
@@ -221,6 +223,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [expandedSections, setExpandedSections] = useState<string[]>(getInitialExpandedSections);
   const notificationRef = useRef<HTMLDivElement>(null);
   const languageRef = useRef<HTMLDivElement>(null);
+  const currencyRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const { favorites, toggleFavorite } = useFavoritesStore();
 
@@ -246,8 +249,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuthStore();
   const { t } = useTranslation();
   const { language, setLanguage } = useLanguageStore();
+  const { currency: selectedCurrency, setCurrency } = useCurrencyStore();
   const isRtl = language === 'ar';
-  const { formatTimeOnly, formatDateOnly, formatDateTime } = useLocalization();
+  const { formatTimeOnly, formatDateOnly, formatDateTime, exchangeRates } = useLocalization();
 
   const { data: systemSettings } = useQuery<SystemSettings>({
     queryKey: ['system-settings'],
@@ -312,6 +316,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       }
       if (languageRef.current && !languageRef.current.contains(event.target as Node)) {
         setLanguageMenuOpen(false);
+      }
+      if (currencyRef.current && !currencyRef.current.contains(event.target as Node)) {
+        setCurrencyMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -766,14 +773,81 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 </div>
               )}
             </div>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.375rem',
-              padding: '0.25rem 0.625rem',
-            }}>
-              <DollarSign size={14} style={{ color: 'var(--text-muted)' }} />
-              <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{currencyCode}</span>
+            <div ref={currencyRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setCurrencyMenuOpen(!currencyMenuOpen)}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.375rem',
+                  padding: '0.25rem 0.625rem',
+                  background: currencyMenuOpen ? 'var(--bg-secondary)' : 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  borderRadius: '4px',
+                }}
+              >
+                <DollarSign size={14} style={{ color: 'var(--text-muted)' }} />
+                <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{selectedCurrency}</span>
+                <ChevronDown size={12} style={{ color: 'var(--text-muted)' }} />
+              </button>
+              {currencyMenuOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '0.5rem',
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  boxShadow: 'var(--shadow-lg)',
+                  minWidth: '120px',
+                  zIndex: 1000,
+                  overflow: 'hidden',
+                  maxHeight: '240px',
+                  overflowY: 'auto',
+                }}>
+                  <button
+                    onClick={() => { setCurrency('SAR'); setCurrencyMenuOpen(false); }}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem 1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      border: 'none',
+                      background: selectedCurrency === 'SAR' ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    <span style={{ fontWeight: selectedCurrency === 'SAR' ? 600 : 400 }}>SAR</span>
+                    {selectedCurrency === 'SAR' && <Check size={14} style={{ color: 'var(--primary)' }} />}
+                  </button>
+                  {exchangeRates.filter(r => r.fromCurrency !== 'SAR').map((rate) => (
+                    <button
+                      key={rate.fromCurrency}
+                      onClick={() => { setCurrency(rate.fromCurrency); setCurrencyMenuOpen(false); }}
+                      style={{
+                        width: '100%',
+                        padding: '0.625rem 1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        border: 'none',
+                        background: selectedCurrency === rate.fromCurrency ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                      }}
+                    >
+                      <span style={{ fontWeight: selectedCurrency === rate.fromCurrency ? 600 : 400 }}>{rate.fromCurrency}</span>
+                      {selectedCurrency === rate.fromCurrency && <Check size={14} style={{ color: 'var(--primary)' }} />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           )}

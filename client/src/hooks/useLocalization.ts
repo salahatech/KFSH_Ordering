@@ -3,6 +3,7 @@ import { format as formatDate, parseISO } from 'date-fns';
 import { toZonedTime, format as formatTz } from 'date-fns-tz';
 import api from '../lib/api';
 import { useLanguageStore } from '../store/languageStore';
+import { useCurrencyStore } from '../store/currencyStore';
 
 interface LocalizationSettings {
   defaultLanguageCode: string;
@@ -31,6 +32,7 @@ interface ExchangeRate {
 
 export function useLocalization() {
   const { language, direction } = useLanguageStore();
+  const { currency: storedCurrency } = useCurrencyStore();
 
   const { data: settings } = useQuery<LocalizationSettings>({
     queryKey: ['localization-settings'],
@@ -90,9 +92,9 @@ export function useLocalization() {
     ? (userPrefs?.preferredTimezone || settings?.defaultTimezone || 'Asia/Riyadh')
     : (settings?.defaultTimezone || 'Asia/Riyadh');
 
-  const displayCurrency = settings?.enableUserCurrencyOverride
+  const displayCurrency = storedCurrency || (settings?.enableUserCurrencyOverride
     ? (userPrefs?.preferredCurrencyCode || 'SAR')
-    : 'SAR';
+    : 'SAR');
 
   const dateFormatStr = settings?.dateFormat || 'yyyy-MM-dd';
   const timeFormatStr = settings?.timeFormat || 'HH:mm';
