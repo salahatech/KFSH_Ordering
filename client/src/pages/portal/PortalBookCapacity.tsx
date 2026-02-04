@@ -466,9 +466,15 @@ export default function PortalBookCapacity() {
           </div>
 
           {selectedWindow && (
-            <div className="card" style={{ padding: '1.5rem', position: 'sticky', top: '100px', alignSelf: 'start' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>Reserve Capacity</h3>
+            <div className="card" style={{ padding: 0, position: 'sticky', top: '100px', alignSelf: 'start', width: '380px' }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                padding: '1rem 1.25rem',
+                borderBottom: '1px solid var(--border)'
+              }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>Slot Details</h3>
                 <button 
                   onClick={() => setSelectedWindow(null)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
@@ -477,126 +483,171 @@ export default function PortalBookCapacity() {
                 </button>
               </div>
 
-              <div style={{ 
-                background: 'rgba(13, 148, 136, 0.1)', 
-                padding: '1rem', 
-                borderRadius: '8px',
-                marginBottom: '1.25rem',
-                border: '1px solid rgba(13, 148, 136, 0.2)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <Calendar size={16} style={{ color: '#0d9488' }} />
-                  <strong style={{ fontSize: '0.9375rem' }}>{format(new Date(selectedWindow.date), 'EEEE, MMMM d, yyyy')}</strong>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
-                    <Clock size={16} style={{ color: '#0d9488' }} />
-                    {format(new Date(selectedWindow.startTime), 'HH:mm')} - {format(new Date(selectedWindow.endTime), 'HH:mm')}
+              <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div style={{ 
+                    width: '40px', 
+                    height: '40px', 
+                    borderRadius: '10px', 
+                    background: 'rgba(13, 148, 136, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Calendar size={20} style={{ color: '#0d9488' }} />
                   </div>
-                  <span style={{ color: getCapacityColor(selectedWindow.utilizationPercent), fontWeight: 600, fontSize: '0.875rem' }}>
-                    {selectedWindow.availableMinutes} min available
-                  </span>
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Product *</label>
-                <select 
-                  className="form-control"
-                  value={selectedProduct}
-                  onChange={e => setSelectedProduct(e.target.value)}
-                  style={{ fontSize: '0.875rem' }}
-                >
-                  <option value="">Select a product...</option>
-                  {products?.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Number of Doses *</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={numberOfDoses}
-                    onChange={e => setNumberOfDoses(Math.max(1, parseInt(e.target.value) || 1))}
-                    min={1}
-                    style={{ fontSize: '0.875rem' }}
-                  />
-                </div>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Activity (mCi) *</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={requestedActivity}
-                    onChange={e => setRequestedActivity(parseFloat(e.target.value) || 0)}
-                    step="0.1"
-                    style={{ fontSize: '0.875rem' }}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Hospital Reference</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={hospitalOrderReference}
-                  onChange={e => setHospitalOrderReference(e.target.value)}
-                  placeholder="Your internal reference"
-                  style={{ fontSize: '0.875rem' }}
-                />
-                <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                  No patient identifiers
-                </small>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Special Notes</label>
-                <textarea
-                  className="form-control"
-                  value={specialNotes}
-                  onChange={e => setSpecialNotes(e.target.value)}
-                  rows={2}
-                  placeholder="Any special requirements..."
-                  style={{ fontSize: '0.875rem' }}
-                />
-              </div>
-
-              {selectedProduct && (
-                <div style={{ 
-                  background: estimatedMinutes > selectedWindow.availableMinutes ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-secondary)', 
-                  padding: '0.875rem', 
-                  borderRadius: '8px',
-                  marginBottom: '1rem',
-                  border: estimatedMinutes > selectedWindow.availableMinutes ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--border)'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
-                    <Timer size={16} />
-                    Estimated: {estimatedMinutes} min
-                  </div>
-                  {estimatedMinutes > selectedWindow.availableMinutes && (
-                    <div style={{ color: 'var(--danger)', marginTop: '0.5rem', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                      <AlertTriangle size={14} />
-                      Not enough capacity
+                  <div>
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                      {format(new Date(selectedWindow.date), 'EEEE')}
                     </div>
-                  )}
+                    <div style={{ fontSize: '1rem', fontWeight: 600 }}>
+                      {format(new Date(selectedWindow.date), 'MMMM d, yyyy')}
+                    </div>
+                  </div>
                 </div>
-              )}
 
-              <button
-                className="btn btn-primary"
-                onClick={handleCreateReservation}
-                disabled={!selectedProduct || estimatedMinutes > selectedWindow.availableMinutes || createReservationMutation.isPending}
-                style={{ width: '100%', background: '#0d9488', borderColor: '#0d9488' }}
-              >
-                {createReservationMutation.isPending ? 'Reserving...' : 'Reserve Capacity'}
-              </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Time Slot</span>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                      {format(new Date(selectedWindow.startTime), 'HH:mm')} - {format(new Date(selectedWindow.endTime), 'HH:mm')}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Available</span>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: getCapacityColor(selectedWindow.utilizationPercent) }}>
+                      {selectedWindow.availableMinutes} min
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Total Capacity</span>
+                    <span style={{ fontSize: '0.875rem' }}>{selectedWindow.capacityMinutes} min</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Utilization</span>
+                    <span style={{ fontSize: '0.875rem' }}>{selectedWindow.utilizationPercent}%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ padding: '1.25rem' }}>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-primary)' }}>
+                  Reserve This Slot
+                </h4>
+
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Product *</label>
+                  <select 
+                    className="form-control"
+                    value={selectedProduct}
+                    onChange={e => setSelectedProduct(e.target.value)}
+                    style={{ fontSize: '0.875rem' }}
+                  >
+                    <option value="">Select a product...</option>
+                    {products?.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Doses *</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={numberOfDoses}
+                      onChange={e => setNumberOfDoses(Math.max(1, parseInt(e.target.value) || 1))}
+                      min={1}
+                      style={{ fontSize: '0.875rem' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Activity (mCi) *</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={requestedActivity}
+                      onChange={e => setRequestedActivity(parseFloat(e.target.value) || 0)}
+                      step="0.1"
+                      style={{ fontSize: '0.875rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Hospital Reference</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={hospitalOrderReference}
+                    onChange={e => setHospitalOrderReference(e.target.value)}
+                    placeholder="Your internal reference"
+                    style={{ fontSize: '0.875rem' }}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 500 }}>Special Notes</label>
+                  <textarea
+                    className="form-control"
+                    value={specialNotes}
+                    onChange={e => setSpecialNotes(e.target.value)}
+                    rows={2}
+                    placeholder="Any special requirements..."
+                    style={{ fontSize: '0.875rem' }}
+                  />
+                </div>
+
+                {selectedProduct && (
+                  <div style={{ 
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '0.75rem',
+                    background: estimatedMinutes > selectedWindow.availableMinutes ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-secondary)', 
+                    borderRadius: '8px',
+                    marginBottom: '1rem',
+                    border: estimatedMinutes > selectedWindow.availableMinutes ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--border)'
+                  }}>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Est. Time</span>
+                    <span style={{ 
+                      fontSize: '0.875rem', 
+                      fontWeight: 600,
+                      color: estimatedMinutes > selectedWindow.availableMinutes ? 'var(--danger)' : 'var(--text-primary)'
+                    }}>
+                      {estimatedMinutes} min
+                      {estimatedMinutes > selectedWindow.availableMinutes && (
+                        <AlertTriangle size={14} style={{ marginLeft: '0.375rem', verticalAlign: 'middle' }} />
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                <button
+                  className="btn"
+                  onClick={handleCreateReservation}
+                  disabled={!selectedProduct || estimatedMinutes > selectedWindow.availableMinutes || createReservationMutation.isPending}
+                  style={{ 
+                    width: '100%', 
+                    background: '#0d9488', 
+                    borderColor: '#0d9488',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    padding: '0.75rem 1rem',
+                    fontSize: '0.875rem',
+                    fontWeight: 500
+                  }}
+                >
+                  <CalendarCheck size={18} />
+                  {createReservationMutation.isPending ? 'Reserving...' : 'Reserve Capacity'}
+                </button>
+              </div>
             </div>
           )}
         </div>
