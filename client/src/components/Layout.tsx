@@ -418,7 +418,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             ) : null}
             <div>
               <h1 style={{ fontSize: '1.125rem', fontWeight: 700 }}>{siteName}</h1>
-              <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>OMS</span>
+              <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>OMS v1.0.0</span>
             </div>
           </div>
           {isMobile ? (
