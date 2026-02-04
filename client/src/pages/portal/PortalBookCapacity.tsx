@@ -466,7 +466,7 @@ export default function PortalBookCapacity() {
           </div>
 
           {selectedWindow && (
-            <div className="card" style={{ padding: 0, position: 'sticky', top: '100px', alignSelf: 'start', width: '380px' }}>
+            <div className="card" style={{ padding: 0, position: 'sticky', top: '100px', alignSelf: 'start', width: '340px', minWidth: '340px', maxWidth: '340px', overflow: 'hidden' }}>
               <div style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
@@ -483,71 +483,71 @@ export default function PortalBookCapacity() {
                 </button>
               </div>
 
-              <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '1rem' }}>
                   <div style={{ 
-                    width: '44px', 
-                    height: '44px', 
-                    borderRadius: '12px', 
+                    width: '40px', 
+                    height: '40px', 
+                    borderRadius: '10px', 
                     background: 'rgba(13, 148, 136, 0.1)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}>
-                    <Calendar size={22} style={{ color: '#0d9488' }} />
+                    <Calendar size={20} style={{ color: '#0d9488' }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       {format(new Date(selectedWindow.date), 'EEEE')}
                     </div>
-                    <div style={{ fontSize: '1.125rem', fontWeight: 600 }}>
+                    <div style={{ fontSize: '1rem', fontWeight: 600 }}>
                       {format(new Date(selectedWindow.date), 'MMMM d, yyyy')}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Clock size={14} style={{ color: 'var(--text-muted)' }} />
-                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Time Slot</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.375rem 0', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <Clock size={12} style={{ color: 'var(--text-muted)' }} />
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Time Slot</span>
                     </div>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
                       {format(new Date(selectedWindow.startTime), 'HH:mm')} - {format(new Date(selectedWindow.endTime), 'HH:mm')}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Zap size={14} style={{ color: '#0d9488' }} />
-                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Available</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.375rem 0', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <Zap size={12} style={{ color: '#0d9488' }} />
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Available</span>
                     </div>
-                    <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: getCapacityColor(selectedWindow.utilizationPercent) }}>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 700, color: getCapacityColor(selectedWindow.utilizationPercent) }}>
                       {selectedWindow.availableMinutes} min
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Timer size={14} style={{ color: 'var(--text-muted)' }} />
-                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Total Capacity</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.375rem 0', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <Timer size={12} style={{ color: 'var(--text-muted)' }} />
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Capacity</span>
                     </div>
-                    <span style={{ fontSize: '0.875rem' }}>{selectedWindow.capacityMinutes} min</span>
+                    <span style={{ fontSize: '0.8125rem' }}>{selectedWindow.capacityMinutes} min</span>
                   </div>
-                  <div style={{ padding: '0.625rem 0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
-                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Utilization</span>
-                      <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{selectedWindow.utilizationPercent}%</span>
+                  <div style={{ padding: '0.375rem 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Utilization</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{selectedWindow.utilizationPercent}%</span>
                     </div>
                     <div style={{ 
-                      height: '6px', 
+                      height: '4px', 
                       background: 'var(--bg-secondary)', 
-                      borderRadius: '3px', 
+                      borderRadius: '2px', 
                       overflow: 'hidden' 
                     }}>
                       <div style={{ 
                         width: `${Math.min(selectedWindow.utilizationPercent, 100)}%`, 
                         height: '100%', 
                         background: getCapacityColor(selectedWindow.utilizationPercent),
-                        borderRadius: '3px',
+                        borderRadius: '2px',
                         transition: 'width 0.3s ease'
                       }} />
                     </div>
@@ -555,11 +555,11 @@ export default function PortalBookCapacity() {
                 </div>
               </div>
 
-              <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)' }}>
                 <h4 style={{ 
-                  fontSize: '0.75rem', 
+                  fontSize: '0.6875rem', 
                   fontWeight: 600, 
-                  marginBottom: '1rem', 
+                  marginBottom: '0.75rem', 
                   color: 'var(--text-muted)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px'
@@ -567,8 +567,8 @@ export default function PortalBookCapacity() {
                   Reserve This Slot
                 </h4>
 
-                <div style={{ marginBottom: '0.875rem' }}>
-                  <label style={{ fontSize: '0.8125rem', fontWeight: 500, display: 'block', marginBottom: '0.375rem' }}>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>
                     Product <span style={{ color: 'var(--danger)' }}>*</span>
                   </label>
                   <select 
@@ -576,8 +576,10 @@ export default function PortalBookCapacity() {
                     value={selectedProduct}
                     onChange={e => setSelectedProduct(e.target.value)}
                     style={{ 
-                      fontSize: '0.875rem', 
-                      padding: '0.5rem 0.75rem',
+                      fontSize: '0.8125rem', 
+                      padding: '0.4rem 0.5rem',
+                      width: '100%',
+                      boxSizing: 'border-box',
                       borderColor: selectedProduct ? '#0d9488' : 'var(--border)',
                       borderWidth: selectedProduct ? '2px' : '1px'
                     }}
@@ -591,9 +593,9 @@ export default function PortalBookCapacity() {
                   </select>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.875rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
                   <div>
-                    <label style={{ fontSize: '0.8125rem', fontWeight: 500, display: 'block', marginBottom: '0.375rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>
                       Doses <span style={{ color: 'var(--danger)' }}>*</span>
                     </label>
                     <input
@@ -602,11 +604,11 @@ export default function PortalBookCapacity() {
                       value={numberOfDoses}
                       onChange={e => setNumberOfDoses(Math.max(1, parseInt(e.target.value) || 1))}
                       min={1}
-                      style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
+                      style={{ fontSize: '0.8125rem', padding: '0.4rem 0.5rem', width: '100%', boxSizing: 'border-box' }}
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.8125rem', fontWeight: 500, display: 'block', marginBottom: '0.375rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>
                       Activity (mCi) <span style={{ color: 'var(--danger)' }}>*</span>
                     </label>
                     <input
@@ -615,13 +617,13 @@ export default function PortalBookCapacity() {
                       value={requestedActivity}
                       onChange={e => setRequestedActivity(parseFloat(e.target.value) || 0)}
                       step="0.1"
-                      style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
+                      style={{ fontSize: '0.8125rem', padding: '0.4rem 0.5rem', width: '100%', boxSizing: 'border-box' }}
                     />
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '0.875rem' }}>
-                  <label style={{ fontSize: '0.8125rem', fontWeight: 500, display: 'block', marginBottom: '0.375rem' }}>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>
                     Hospital Reference
                   </label>
                   <input
@@ -630,12 +632,12 @@ export default function PortalBookCapacity() {
                     value={hospitalOrderReference}
                     onChange={e => setHospitalOrderReference(e.target.value)}
                     placeholder="Your internal reference"
-                    style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
+                    style={{ fontSize: '0.8125rem', padding: '0.4rem 0.5rem', width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.8125rem', fontWeight: 500, display: 'block', marginBottom: '0.375rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 500, display: 'block', marginBottom: '0.25rem' }}>
                     Special Notes
                   </label>
                   <textarea
@@ -644,35 +646,35 @@ export default function PortalBookCapacity() {
                     onChange={e => setSpecialNotes(e.target.value)}
                     rows={2}
                     placeholder="Any special requirements..."
-                    style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem', resize: 'none' }}
+                    style={{ fontSize: '0.8125rem', padding: '0.4rem 0.5rem', resize: 'none', width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
 
-              <div style={{ padding: '1.25rem' }}>
+              <div style={{ padding: '1rem' }}>
                 {selectedProduct && (
                   <div style={{ 
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '0.75rem 1rem',
+                    padding: '0.5rem 0.75rem',
                     background: estimatedMinutes > selectedWindow.availableMinutes ? 'rgba(239, 68, 68, 0.08)' : 'rgba(13, 148, 136, 0.08)', 
-                    borderRadius: '8px',
-                    marginBottom: '1rem',
+                    borderRadius: '6px',
+                    marginBottom: '0.75rem',
                     border: estimatedMinutes > selectedWindow.availableMinutes ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(13, 148, 136, 0.2)'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Timer size={16} style={{ color: estimatedMinutes > selectedWindow.availableMinutes ? 'var(--danger)' : '#0d9488' }} />
-                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Est. Time Required</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <Timer size={14} style={{ color: estimatedMinutes > selectedWindow.availableMinutes ? 'var(--danger)' : '#0d9488' }} />
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Est. Time</span>
                     </div>
                     <span style={{ 
-                      fontSize: '0.9375rem', 
+                      fontSize: '0.875rem', 
                       fontWeight: 700,
                       color: estimatedMinutes > selectedWindow.availableMinutes ? 'var(--danger)' : '#0d9488'
                     }}>
                       {estimatedMinutes} min
                       {estimatedMinutes > selectedWindow.availableMinutes && (
-                        <AlertTriangle size={14} style={{ marginLeft: '0.375rem', verticalAlign: 'middle' }} />
+                        <AlertTriangle size={12} style={{ marginLeft: '0.25rem', verticalAlign: 'middle' }} />
                       )}
                     </span>
                   </div>
@@ -684,6 +686,7 @@ export default function PortalBookCapacity() {
                   disabled={!selectedProduct || estimatedMinutes > selectedWindow.availableMinutes || createReservationMutation.isPending}
                   style={{ 
                     width: '100%', 
+                    boxSizing: 'border-box',
                     background: (!selectedProduct || estimatedMinutes > selectedWindow.availableMinutes) ? 'var(--bg-secondary)' : '#0d9488', 
                     borderColor: (!selectedProduct || estimatedMinutes > selectedWindow.availableMinutes) ? 'var(--border)' : '#0d9488',
                     color: (!selectedProduct || estimatedMinutes > selectedWindow.availableMinutes) ? 'var(--text-muted)' : 'white',
@@ -691,13 +694,13 @@ export default function PortalBookCapacity() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '0.5rem',
-                    padding: '0.75rem 1rem',
-                    fontSize: '0.9375rem',
+                    padding: '0.625rem 1rem',
+                    fontSize: '0.875rem',
                     fontWeight: 600,
                     cursor: (!selectedProduct || estimatedMinutes > selectedWindow.availableMinutes) ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  <CalendarCheck size={18} />
+                  <CalendarCheck size={16} />
                   {createReservationMutation.isPending ? 'Reserving...' : 'Reserve Capacity'}
                 </button>
               </div>
