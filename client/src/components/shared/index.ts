@@ -24,3 +24,4 @@ export { DataTable } from './DataTable';
 export type { Column } from './DataTable';
 export { Pagination } from './Pagination';
 export { FormattedDate, FormattedMoney, FormattedNumber, FormattedPercent } from './FormattedDate';
+export { default as HeaderBar } from './HeaderBar';

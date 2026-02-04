@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { Home, Truck, LogOut, User } from 'lucide-react';
 import AnnouncementBar from './AnnouncementBar';
+import HeaderBar from './shared/HeaderBar';
 
 export default function DriverLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -79,6 +80,11 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
             })}
           </nav>
         </div>
+        <HeaderBar 
+          showSearch={false} 
+          notificationCenterPath="/driver/notifications"
+          accentColor="var(--primary)"
+        />
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <div style={{

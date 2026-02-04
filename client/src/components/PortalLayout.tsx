@@ -10,13 +10,13 @@ import {
   LogOut,
   Menu,
   X,
-  Bell,
   Plus,
   Building2,
   Calendar,
   Ticket,
 } from 'lucide-react';
 import AnnouncementBar from './AnnouncementBar';
+import HeaderBar from './shared/HeaderBar';
 
 const portalMenuItems = [
   { path: '/portal', label: 'Dashboard', icon: LayoutDashboard },
@@ -152,21 +152,22 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       >
         <header
           style={{
-            background: 'white',
+            background: 'var(--bg-primary)',
             borderBottom: '1px solid var(--border)',
-            padding: '1rem 1.5rem',
+            padding: '0.75rem 1.5rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             position: 'sticky',
             top: 0,
             zIndex: 30,
+            gap: '1rem',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Building2 size={20} style={{ color: 'var(--primary)' }} />
+            <Building2 size={20} style={{ color: '#0d9488' }} />
             <div>
-              <h2 style={{ fontSize: '1.125rem', fontWeight: 600 }}>
+              <h2 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>
                 {portalMenuItems.find((m) => m.path === location.pathname)?.label || 'Client Portal'}
               </h2>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -175,51 +176,44 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <button
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: '0.5rem',
-                position: 'relative',
-                cursor: 'pointer',
-              }}
-            >
-              <Bell size={20} />
-            </button>
+          <HeaderBar 
+            showSearch={true} 
+            notificationCenterPath="/portal/notifications"
+            accentColor="#0d9488"
+          />
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 1rem',
+              background: 'var(--bg-secondary)',
+              borderRadius: '9999px',
+            }}
+          >
             <div
               style={{
+                width: '2rem',
+                height: '2rem',
+                borderRadius: '50%',
+                background: '#0d9488',
+                color: 'white',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 1rem',
-                background: 'var(--bg-secondary)',
-                borderRadius: '9999px',
+                justifyContent: 'center',
+                fontWeight: 600,
+                fontSize: '0.875rem',
               }}
             >
-              <div
-                style={{
-                  width: '2rem',
-                  height: '2rem',
-                  borderRadius: '50%',
-                  background: '#0d9488',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                }}
-              >
-                {user?.firstName?.[0]}
-                {user?.lastName?.[0]}
+              {user?.firstName?.[0]}
+              {user?.lastName?.[0]}
+            </div>
+            <div>
+              <div style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                {user?.firstName} {user?.lastName}
               </div>
-              <div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-                  {user?.firstName} {user?.lastName}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Customer</div>
-              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Customer</div>
             </div>
           </div>
         </header>
