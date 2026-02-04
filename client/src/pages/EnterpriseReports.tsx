@@ -588,110 +588,233 @@ export default function EnterpriseReports() {
           </div>
 
           <div style={{ 
-            marginTop: '1.5rem',
-            padding: '1rem 1.25rem',
-            background: 'var(--bg-secondary)',
-            borderRadius: '8px',
-            marginBottom: '1rem'
+            marginTop: '2rem',
+            marginBottom: '1.25rem'
           }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <PieChartIcon size={18} style={{ color: 'var(--primary)' }} />
+            <h3 style={{ 
+              fontSize: '0.75rem', 
+              fontWeight: 600, 
+              color: 'var(--text-muted)', 
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              <PieChartIcon size={16} />
               Quick Insights
             </h3>
           </div>
 
-          <div className="grid grid-2" style={{ marginBottom: '1.5rem' }}>
-            <div className="card">
-              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-                <h3 style={{ fontWeight: 600, margin: 0, fontSize: '0.9375rem' }}>Order Status Distribution</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.25rem', marginBottom: '1.25rem' }}>
+            <div className="card" style={{ overflow: 'hidden' }}>
+              <div style={{ 
+                padding: '1rem 1.25rem', 
+                borderBottom: '1px solid var(--border)',
+                background: 'var(--bg-secondary)'
+              }}>
+                <h3 style={{ fontWeight: 600, margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                  Order Status Distribution
+                </h3>
               </div>
-              <div style={{ padding: '1.5rem', height: '280px' }}>
-                {orderStatusDist.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={orderStatusDist}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={90}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, value }: { name: string; value: number }) => `${name}: ${value}`}
-                        labelLine={false}
-                      >
-                        {orderStatusDist.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
-                    No order data for this period
-                  </div>
-                )}
+              <div style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                <div style={{ width: '180px', height: '180px', flexShrink: 0 }}>
+                  {orderStatusDist.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={orderStatusDist}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={45}
+                          outerRadius={75}
+                          paddingAngle={2}
+                          dataKey="value"
+                        >
+                          {orderStatusDist.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ 
+                            background: 'var(--bg-primary)', 
+                            border: '1px solid var(--border)',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                      No data
+                    </div>
+                  )}
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {orderStatusDist.map((item, index) => (
+                    <div key={item.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ 
+                          width: '10px', 
+                          height: '10px', 
+                          borderRadius: '2px',
+                          background: CHART_COLORS[index % CHART_COLORS.length]
+                        }} />
+                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{item.name}</span>
+                      </div>
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{item.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="card">
-              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-                <h3 style={{ fontWeight: 600, margin: 0, fontSize: '0.9375rem' }}>Batch Status Distribution</h3>
+            <div className="card" style={{ overflow: 'hidden' }}>
+              <div style={{ 
+                padding: '1rem 1.25rem', 
+                borderBottom: '1px solid var(--border)',
+                background: 'var(--bg-secondary)'
+              }}>
+                <h3 style={{ fontWeight: 600, margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                  Batch Status Distribution
+                </h3>
               </div>
-              <div style={{ padding: '1.5rem', height: '280px' }}>
-                {batchStatusDist.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={batchStatusDist}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={90}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, value }: { name: string; value: number }) => `${name}: ${value}`}
-                        labelLine={false}
-                      >
-                        {batchStatusDist.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
-                    No batch data for this period
-                  </div>
-                )}
+              <div style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                <div style={{ width: '180px', height: '180px', flexShrink: 0 }}>
+                  {batchStatusDist.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={batchStatusDist}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={45}
+                          outerRadius={75}
+                          paddingAngle={2}
+                          dataKey="value"
+                        >
+                          {batchStatusDist.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ 
+                            background: 'var(--bg-primary)', 
+                            border: '1px solid var(--border)',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                      No data
+                    </div>
+                  )}
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {batchStatusDist.map((item, index) => (
+                    <div key={item.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ 
+                          width: '10px', 
+                          height: '10px', 
+                          borderRadius: '2px',
+                          background: CHART_COLORS[index % CHART_COLORS.length]
+                        }} />
+                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{item.name}</span>
+                      </div>
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{item.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="card" style={{ marginBottom: '1.5rem' }}>
-            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-              <h3 style={{ fontWeight: 600, margin: 0, fontSize: '0.9375rem' }}>Revenue Trend</h3>
+          <div className="card" style={{ marginBottom: '1.25rem', overflow: 'hidden' }}>
+            <div style={{ 
+              padding: '1rem 1.25rem', 
+              borderBottom: '1px solid var(--border)',
+              background: 'var(--bg-secondary)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h3 style={{ fontWeight: 600, margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                Revenue Trend
+              </h3>
+              <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <div style={{ width: '12px', height: '3px', background: '#2563eb', borderRadius: '2px' }} />
+                  <span style={{ color: 'var(--text-muted)' }}>Revenue</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <div style={{ width: '12px', height: '3px', background: '#22c55e', borderRadius: '2px' }} />
+                  <span style={{ color: 'var(--text-muted)' }}>Invoices</span>
+                </div>
+              </div>
             </div>
-            <div style={{ padding: '1.5rem', height: '280px' }}>
+            <div style={{ padding: '1.25rem 1rem 1rem 0', height: '260px' }}>
               {invoiceTrend.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={invoiceTrend}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tickFormatter={(val) => format(new Date(val), 'MMM dd')} />
-                    <YAxis yAxisId="left" tickFormatter={(val) => `${(val / 1000).toFixed(0)}K`} />
-                    <YAxis yAxisId="right" orientation="right" />
+                  <LineChart data={invoiceTrend} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis 
+                      dataKey="date" 
+                      tickFormatter={(val) => format(new Date(val), 'MMM dd')} 
+                      tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                      axisLine={{ stroke: 'var(--border)' }}
+                    />
+                    <YAxis 
+                      yAxisId="left" 
+                      tickFormatter={(val) => `${(val / 1000).toFixed(0)}K`} 
+                      tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                      axisLine={{ stroke: 'var(--border)' }}
+                    />
+                    <YAxis 
+                      yAxisId="right" 
+                      orientation="right" 
+                      tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                      axisLine={{ stroke: 'var(--border)' }}
+                    />
                     <Tooltip 
+                      contentStyle={{ 
+                        background: 'var(--bg-primary)', 
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        fontSize: '0.8125rem'
+                      }}
                       formatter={(value: number, name: string) => [
                         name === 'revenue' ? `SAR ${value.toLocaleString()}` : value,
                         name === 'revenue' ? 'Revenue' : 'Invoices'
                       ]}
                       labelFormatter={(label) => format(new Date(label), 'MMM dd, yyyy')}
                     />
-                    <Legend />
-                    <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} name="Revenue" dot={false} />
-                    <Line yAxisId="right" type="monotone" dataKey="count" stroke="#22c55e" strokeWidth={2} name="Invoices" dot={false} />
+                    <Line 
+                      yAxisId="left" 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="#2563eb" 
+                      strokeWidth={2.5} 
+                      name="revenue" 
+                      dot={false}
+                      activeDot={{ r: 5, strokeWidth: 2 }}
+                    />
+                    <Line 
+                      yAxisId="right" 
+                      type="monotone" 
+                      dataKey="count" 
+                      stroke="#22c55e" 
+                      strokeWidth={2.5} 
+                      name="invoices" 
+                      dot={false}
+                      activeDot={{ r: 5, strokeWidth: 2 }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
@@ -702,20 +825,51 @@ export default function EnterpriseReports() {
             </div>
           </div>
 
-          <div className="grid grid-2">
-            <div className="card">
-              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-                <h3 style={{ fontWeight: 600, margin: 0, fontSize: '0.9375rem' }}>Top Products by Orders</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.25rem' }}>
+            <div className="card" style={{ overflow: 'hidden' }}>
+              <div style={{ 
+                padding: '1rem 1.25rem', 
+                borderBottom: '1px solid var(--border)',
+                background: 'var(--bg-secondary)'
+              }}>
+                <h3 style={{ fontWeight: 600, margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                  Top Products by Orders
+                </h3>
               </div>
-              <div style={{ padding: '1.5rem', height: '280px' }}>
+              <div style={{ padding: '1rem 1.25rem 1.25rem 0', height: '240px' }}>
                 {topProducts.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={topProducts} layout="vertical" margin={{ left: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
-                      <Tooltip />
-                      <Bar dataKey="orderCount" fill="#2563eb" name="Orders" radius={[0, 4, 4, 0]} />
+                    <BarChart data={topProducts} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={true} vertical={false} />
+                      <XAxis 
+                        type="number" 
+                        tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                        axisLine={{ stroke: 'var(--border)' }}
+                      />
+                      <YAxis 
+                        type="category" 
+                        dataKey="name" 
+                        width={120} 
+                        tick={{ fontSize: 11, fill: 'var(--text-secondary)' }}
+                        axisLine={{ stroke: 'var(--border)' }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          background: 'var(--bg-primary)', 
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          fontSize: '0.8125rem'
+                        }}
+                        formatter={(value: number) => [value, 'Orders']}
+                      />
+                      <Bar 
+                        dataKey="orderCount" 
+                        fill="#3b82f6" 
+                        name="Orders" 
+                        radius={[0, 4, 4, 0]}
+                        maxBarSize={24}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -726,19 +880,50 @@ export default function EnterpriseReports() {
               </div>
             </div>
 
-            <div className="card">
-              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-                <h3 style={{ fontWeight: 600, margin: 0, fontSize: '0.9375rem' }}>Top Customers by Orders</h3>
+            <div className="card" style={{ overflow: 'hidden' }}>
+              <div style={{ 
+                padding: '1rem 1.25rem', 
+                borderBottom: '1px solid var(--border)',
+                background: 'var(--bg-secondary)'
+              }}>
+                <h3 style={{ fontWeight: 600, margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                  Top Customers by Orders
+                </h3>
               </div>
-              <div style={{ padding: '1.5rem', height: '280px' }}>
+              <div style={{ padding: '1rem 1.25rem 1.25rem 0', height: '240px' }}>
                 {topCustomers.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={topCustomers} layout="vertical" margin={{ left: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
-                      <Tooltip />
-                      <Bar dataKey="orderCount" fill="#22c55e" name="Orders" radius={[0, 4, 4, 0]} />
+                    <BarChart data={topCustomers} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={true} vertical={false} />
+                      <XAxis 
+                        type="number" 
+                        tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                        axisLine={{ stroke: 'var(--border)' }}
+                      />
+                      <YAxis 
+                        type="category" 
+                        dataKey="name" 
+                        width={120} 
+                        tick={{ fontSize: 11, fill: 'var(--text-secondary)' }}
+                        axisLine={{ stroke: 'var(--border)' }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          background: 'var(--bg-primary)', 
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          fontSize: '0.8125rem'
+                        }}
+                        formatter={(value: number) => [value, 'Orders']}
+                      />
+                      <Bar 
+                        dataKey="orderCount" 
+                        fill="#10b981" 
+                        name="Orders" 
+                        radius={[0, 4, 4, 0]}
+                        maxBarSize={24}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
