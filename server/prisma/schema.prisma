@@ -1059,6 +1059,8 @@ model ProductQcTemplateLine {
   attachmentRequired      Boolean           @default(false)
   createdAt               DateTime          @default(now())
   updatedAt               DateTime          @updatedAt
+
+  @@unique([templateId, testDefinitionId])
 }
 
 model BatchQcSession {

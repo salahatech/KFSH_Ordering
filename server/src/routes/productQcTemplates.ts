@@ -144,6 +144,14 @@ router.post('/', authenticateToken, requireRole('Admin', 'QC Manager'), async (r
       return res.status(404).json({ error: 'Product not found' });
     }
     
+    if (lines && lines.length > 0) {
+      const testDefIds = lines.map((l: any) => l.testDefinitionId);
+      const uniqueIds = new Set(testDefIds);
+      if (uniqueIds.size !== testDefIds.length) {
+        return res.status(400).json({ error: 'Duplicate test definitions are not allowed in a template' });
+      }
+    }
+    
     const latestTemplate = await prisma.productQcTemplate.findFirst({
       where: { productId },
       orderBy: { version: 'desc' }
@@ -237,6 +245,14 @@ router.put('/:templateId', authenticateToken, requireRole('Admin', 'QC Manager')
     
     if (existing.status !== QcTemplateStatus.DRAFT) {
       return res.status(400).json({ error: 'Only DRAFT templates can be edited. Create a new version instead.' });
+    }
+    
+    if (lines && lines.length > 0) {
+      const testDefIds = lines.map((l: any) => l.testDefinitionId);
+      const uniqueIds = new Set(testDefIds);
+      if (uniqueIds.size !== testDefIds.length) {
+        return res.status(400).json({ error: 'Duplicate test definitions are not allowed in a template' });
+      }
     }
     
     if (lines) {

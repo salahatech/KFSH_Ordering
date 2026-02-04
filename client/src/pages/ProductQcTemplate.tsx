@@ -198,6 +198,11 @@ export default function ProductQcTemplate() {
   });
 
   const addTestLine = (testDef: QcTestDefinition) => {
+    const isDuplicate = draftLines.some(line => line.testDefinitionId === testDef.id);
+    if (isDuplicate) {
+      toast.error('Duplicate Test', `"${testDef.nameEn}" is already added to this template`);
+      return;
+    }
     const newLine: TemplateLine = {
       testDefinitionId: testDef.id,
       testDefinition: testDef,
