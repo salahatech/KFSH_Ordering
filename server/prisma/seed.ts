@@ -2633,6 +2633,129 @@ async function main() {
     console.log('Created 2 demo support tickets with messages, events, and tasks.');
   }
 
+  // Seed QC Test Definitions and Product QC Templates
+  console.log('Seeding QC Test Definitions and Product QC Templates...');
+  
+  // Define standard QC test definitions based on existing QCTemplate data
+  const qcTestDefinitions = [
+    { code: 'VIS-INSP', nameEn: 'Visual Inspection', nameAr: 'الفحص البصري', resultType: 'PASS_FAIL', methodEn: 'Visual examination', methodAr: 'الفحص البصري' },
+    { code: 'PH-TEST', nameEn: 'pH', nameAr: 'درجة الحموضة', resultType: 'NUMERIC', unit: '', methodEn: 'pH meter', methodAr: 'مقياس الحموضة' },
+    { code: 'RAD-PURITY', nameEn: 'Radiochemical Purity', nameAr: 'النقاء الإشعاعي الكيميائي', resultType: 'NUMERIC', unit: '%', methodEn: 'HPLC/TLC', methodAr: 'كروماتوغرافيا' },
+    { code: 'RAD-IDENTITY', nameEn: 'Radionuclidic Identity', nameAr: 'الهوية النووية', resultType: 'NUMERIC', unit: 'min', methodEn: 'Half-life measurement', methodAr: 'قياس فترة نصف العمر' },
+    { code: 'MO99-BREAK', nameEn: 'Mo-99 Breakthrough', nameAr: 'اختراق الموليبدينوم-99', resultType: 'NUMERIC', unit: 'µCi/mCi', methodEn: 'Dose calibrator', methodAr: 'معاير الجرعة' },
+    { code: 'ACT-ASSAY', nameEn: 'Activity Assay', nameAr: 'فحص النشاط الإشعاعي', resultType: 'NUMERIC', unit: '%', methodEn: 'Dose calibrator', methodAr: 'معاير الجرعة' },
+    { code: 'PEPTIDE-CONT', nameEn: 'Peptide Content', nameAr: 'محتوى الببتيد', resultType: 'NUMERIC', unit: 'µg', methodEn: 'HPLC', methodAr: 'كروماتوغرافيا سائلة عالية الأداء' },
+    { code: 'ENDOTOXIN', nameEn: 'Endotoxin', nameAr: 'الذيفان الداخلي', resultType: 'NUMERIC', unit: 'EU/mL', methodEn: 'LAL test', methodAr: 'اختبار LAL' },
+    { code: 'STERILITY', nameEn: 'Sterility', nameAr: 'العقامة', resultType: 'PASS_FAIL', methodEn: 'Membrane filtration', methodAr: 'الترشيح الغشائي' },
+  ];
+
+  const createdTestDefs: { [key: string]: any } = {};
+  for (const def of qcTestDefinitions) {
+    const testDef = await prisma.qcTestDefinition.upsert({
+      where: { code: def.code },
+      update: {},
+      create: {
+        code: def.code,
+        nameEn: def.nameEn,
+        nameAr: def.nameAr,
+        resultType: def.resultType as any,
+        unit: def.unit,
+        methodEn: def.methodEn,
+        methodAr: def.methodAr,
+        isActive: true,
+      },
+    });
+    createdTestDefs[def.code] = testDef;
+  }
+  console.log(`Created ${Object.keys(createdTestDefs).length} QC test definitions.`);
+
+  // Create ProductQcTemplates from existing QCTemplate data for each product
+  const allProducts = await prisma.product.findMany({
+    include: {
+      qcTemplates: { orderBy: { sortOrder: 'asc' } },
+    },
+  });
+
+  // Map old test names to new test definition codes
+  const testNameToCode: { [key: string]: string } = {
+    'Visual Inspection': 'VIS-INSP',
+    'pH': 'PH-TEST',
+    'Radiochemical Purity': 'RAD-PURITY',
+    'Radionuclidic Identity': 'RAD-IDENTITY',
+    'Mo-99 Breakthrough': 'MO99-BREAK',
+    'Activity Assay': 'ACT-ASSAY',
+    'Peptide Content': 'PEPTIDE-CONT',
+    'Endotoxin': 'ENDOTOXIN',
+    'Sterility': 'STERILITY',
+  };
+
+  let templatesCreated = 0;
+  for (const product of allProducts) {
+    if (product.qcTemplates.length === 0) continue;
+
+    // Check if product already has a ProductQcTemplate
+    const existingTemplate = await prisma.productQcTemplate.findFirst({
+      where: { productId: product.id },
+    });
+    if (existingTemplate) continue;
+
+    // Create new ProductQcTemplate
+    const template = await prisma.productQcTemplate.create({
+      data: {
+        productId: product.id,
+        version: 1,
+        status: 'ACTIVE',
+        effectiveFrom: new Date(),
+        notes: `Migrated from legacy QC templates for ${product.name}`,
+      },
+    });
+
+    // Create template lines from old QCTemplate entries
+    for (let i = 0; i < product.qcTemplates.length; i++) {
+      const oldTemplate = product.qcTemplates[i];
+      const testCode = testNameToCode[oldTemplate.testName];
+      const testDef = testCode ? createdTestDefs[testCode] : null;
+
+      if (!testDef) {
+        console.log(`  Skipping unknown test: ${oldTemplate.testName}`);
+        continue;
+      }
+
+      // Create spec rule if numeric criteria exist
+      let specRuleId: string | null = null;
+      if (oldTemplate.minValue !== null || oldTemplate.maxValue !== null) {
+        const specRule = await prisma.qcSpecRule.create({
+          data: {
+            ruleType: oldTemplate.minValue !== null && oldTemplate.maxValue !== null ? 'RANGE' : 
+                      oldTemplate.minValue !== null ? 'MIN' : 'MAX',
+            minValue: oldTemplate.minValue,
+            maxValue: oldTemplate.maxValue,
+            unit: oldTemplate.unit || testDef.unit,
+            textCriteriaEn: oldTemplate.acceptanceCriteria,
+          },
+        });
+        specRuleId = specRule.id;
+      }
+
+      await prisma.productQcTemplateLine.create({
+        data: {
+          templateId: template.id,
+          testDefinitionId: testDef.id,
+          displayOrder: i,
+          isRequired: oldTemplate.isRequired,
+          specRuleId,
+          criteriaTextOverrideEn: oldTemplate.acceptanceCriteria,
+          allowManualPassFail: false,
+          attachmentRequired: false,
+        },
+      });
+    }
+
+    templatesCreated++;
+    console.log(`  Created ProductQcTemplate for ${product.name} with ${product.qcTemplates.length} tests.`);
+  }
+  console.log(`Created ${templatesCreated} ProductQcTemplates.`);
+
   console.log('Seed completed successfully!');
   console.log('Admin user: admin@radiopharma.com / admin123');
   console.log(`Created: ${orders.length} orders, ${batches.length} batches, ${releasedBatches.length} releases, ${shippedOrders.length} shipments`);
