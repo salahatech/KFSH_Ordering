@@ -36,6 +36,11 @@ RadioPharma OMS is a comprehensive web application for managing radiopharmaceuti
 - **Security**: Status state machines, comprehensive audit logging, and role management with permission assignment.
 - **Reporting**: Centralized Enterprise Reporting Center with various categories, filters, and export options (Excel, PDF).
 - **Localization**: Admin-managed internationalization with language support, translation entries, exchange rate management, and user-specific language/timezone/currency overrides.
+- **Workflow Automation**: Background scheduler (node-cron) for automated tasks including:
+  - Critical event notifications (batch ready for release, QC failures, shipment delays) with multi-channel delivery based on severity
+  - Scheduled reports (daily at 6am, weekly on Mondays) with KPIs and alerts emailed to stakeholders
+  - Approval reminders (every 4 hours) for pending orders, purchase orders, and batch releases
+  - Admin API at `/api/automation` for status monitoring, config updates, and manual task execution
 
 ## E2E Testing Framework
 - **Framework**: Playwright with TypeScript
