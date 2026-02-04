@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { useToast } from '../../components/ui/Toast';
-import { PageHeader } from '../../components/shared';
-import { Plus, Edit2, Trash2, FlaskConical, Search, X } from 'lucide-react';
+import { KpiCard } from '../../components/shared';
+import { Plus, Edit2, Trash2, FlaskConical, Search, X, CheckCircle, XCircle, Filter, FileText, Beaker } from 'lucide-react';
 
 interface QcTestDefinition {
   id: string;
@@ -46,6 +46,7 @@ export default function QcTestDefinitions() {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<QcTestDefinition | null>(null);
+  const [detailItem, setDetailItem] = useState<QcTestDefinition | null>(null);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [formData, setFormData] = useState({
@@ -107,6 +108,7 @@ export default function QcTestDefinitions() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['qc-test-definitions'] });
       toast.success('Test Deleted', 'QC test definition has been removed');
+      setDetailItem(null);
     },
     onError: (error: any) => {
       toast.error('Error', error.response?.data?.error || 'Failed to delete test definition');
@@ -178,36 +180,105 @@ export default function QcTestDefinitions() {
 
   const uniqueCategories = [...new Set(definitions.map((d) => d.category).filter(Boolean))];
 
-  return (
-    <div className="p-6">
-      <PageHeader
-        title="QC Test Definitions"
-        subtitle="Manage catalog of quality control tests"
-        icon={<FlaskConical size={24} />}
-        actions={
-          <button onClick={() => openModal()} className="btn btn-primary flex items-center gap-2">
-            <Plus size={16} />
-            Add Test
-          </button>
-        }
-      />
+  const stats = {
+    total: definitions.length,
+    active: definitions.filter((d) => d.isActive).length,
+    inactive: definitions.filter((d) => !d.isActive).length,
+    numeric: definitions.filter((d) => d.resultType === 'NUMERIC').length,
+  };
 
-      <div className="card mt-6">
-        <div className="flex flex-wrap gap-4 mb-4">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-            <input
-              type="text"
-              placeholder="Search by code or name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input pl-10 w-full"
-            />
-          </div>
+  const getResultTypeColor = (type: string) => {
+    switch (type) {
+      case 'PASS_FAIL': return { bg: 'rgba(34, 197, 94, 0.1)', color: 'var(--success)' };
+      case 'NUMERIC': return { bg: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' };
+      case 'TEXT': return { bg: 'rgba(234, 179, 8, 0.1)', color: 'var(--warning)' };
+      case 'OPTION_LIST': return { bg: 'rgba(168, 85, 247, 0.1)', color: '#a855f7' };
+      default: return { bg: 'rgba(100, 116, 139, 0.1)', color: 'var(--text-muted)' };
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="loading-overlay">
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>QC Test Definitions</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+            Manage catalog of quality control tests for radiopharmaceuticals
+          </p>
+        </div>
+        <button className="btn btn-primary" onClick={() => openModal()}>
+          <Plus size={16} /> Add Test
+        </button>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <KpiCard 
+          title="Total Tests" 
+          value={stats.total} 
+          icon={<FlaskConical size={20} />}
+          color="primary"
+          onClick={() => setCategoryFilter('')}
+          active={!categoryFilter}
+        />
+        <KpiCard 
+          title="Active" 
+          value={stats.active} 
+          icon={<CheckCircle size={20} />}
+          color="success"
+        />
+        <KpiCard 
+          title="Inactive" 
+          value={stats.inactive} 
+          icon={<XCircle size={20} />}
+          color="warning"
+        />
+        <KpiCard 
+          title="Numeric Tests" 
+          value={stats.numeric} 
+          icon={<Beaker size={20} />}
+          color="info"
+        />
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+          <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input
+            type="text"
+            placeholder="Search by code or name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.625rem 0.75rem 0.625rem 2.25rem',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)',
+              background: 'var(--bg-primary)',
+              fontSize: '0.875rem'
+            }}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Filter size={16} style={{ color: 'var(--text-muted)' }} />
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="input min-w-[150px]"
+            style={{
+              padding: '0.625rem 0.75rem',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)',
+              background: 'var(--bg-primary)',
+              fontSize: '0.875rem',
+              minWidth: '150px'
+            }}
           >
             <option value="">All Categories</option>
             {uniqueCategories.map((cat) => (
@@ -217,105 +288,277 @@ export default function QcTestDefinitions() {
             ))}
           </select>
         </div>
+      </div>
 
-        {isLoading ? (
-          <div className="text-center py-8 text-muted">Loading...</div>
-        ) : filteredDefinitions.length === 0 ? (
-          <div className="text-center py-8 text-muted">
-            No test definitions found. Add your first QC test to get started.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-default">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted">Code</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted">Name</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted">Category</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted">Result Type</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted">Unit</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-muted">Status</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-muted">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredDefinitions.map((def) => (
-                  <tr key={def.id} className="border-b border-default hover:bg-hover">
-                    <td className="py-3 px-4 font-mono text-sm">{def.code}</td>
-                    <td className="py-3 px-4">{def.nameEn}</td>
-                    <td className="py-3 px-4 text-muted">{def.category || '-'}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-1 text-xs rounded-full bg-primary/10 text-primary">
-                        {RESULT_TYPES.find((t) => t.value === def.resultType)?.label}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-muted">{def.unit || '-'}</td>
-                    <td className="py-3 px-4 text-center">
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          def.isActive ? 'bg-green-500/10 text-green-500' : 'bg-gray-500/10 text-gray-500'
-                        }`}
-                      >
+      <div style={{ display: 'flex', gap: '1.5rem' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {filteredDefinitions.length === 0 ? (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '3rem', 
+              background: 'var(--bg-primary)', 
+              borderRadius: 'var(--radius)', 
+              border: '1px solid var(--border)' 
+            }}>
+              <FlaskConical size={48} style={{ color: 'var(--text-muted)', opacity: 0.3, marginBottom: '1rem' }} />
+              <p style={{ color: 'var(--text-muted)', margin: 0 }}>
+                No test definitions found. Add your first QC test to get started.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+              {filteredDefinitions.map((def) => {
+                const typeColor = getResultTypeColor(def.resultType);
+                return (
+                  <div
+                    key={def.id}
+                    onClick={() => setDetailItem(def)}
+                    style={{
+                      background: 'var(--bg-primary)',
+                      border: detailItem?.id === def.id ? '2px solid var(--primary)' : '1px solid var(--border)',
+                      borderRadius: 'var(--radius)',
+                      padding: '1rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                      <div>
+                        <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                          {def.code}
+                        </div>
+                        <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{def.nameEn}</div>
+                      </div>
+                      <span style={{
+                        padding: '0.125rem 0.5rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.6875rem',
+                        fontWeight: 500,
+                        background: def.isActive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(100, 116, 139, 0.1)',
+                        color: def.isActive ? 'var(--success)' : 'var(--text-muted)'
+                      }}>
                         {def.isActive ? 'Active' : 'Inactive'}
                       </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => openModal(def)}
-                          className="p-2 hover:bg-hover rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(def)}
-                          className="p-2 hover:bg-hover rounded-lg transition-colors text-red-500"
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span style={{
+                        padding: '0.125rem 0.5rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.6875rem',
+                        background: typeColor.bg,
+                        color: typeColor.color
+                      }}>
+                        {RESULT_TYPES.find((t) => t.value === def.resultType)?.label}
+                      </span>
+                      {def.category && (
+                        <span style={{
+                          padding: '0.125rem 0.5rem',
+                          borderRadius: '9999px',
+                          fontSize: '0.6875rem',
+                          background: 'var(--bg-secondary)',
+                          color: 'var(--text-muted)'
+                        }}>
+                          {def.category}
+                        </span>
+                      )}
+                      {def.unit && (
+                        <span style={{
+                          padding: '0.125rem 0.5rem',
+                          borderRadius: '9999px',
+                          fontSize: '0.6875rem',
+                          background: 'var(--bg-secondary)',
+                          color: 'var(--text-muted)'
+                        }}>
+                          {def.unit}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {detailItem && (
+          <div style={{ 
+            width: '320px', 
+            flexShrink: 0,
+            background: 'var(--bg-primary)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            padding: '1.25rem',
+            height: 'fit-content',
+            position: 'sticky',
+            top: '1rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+              <div>
+                <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                  {detailItem.code}
+                </div>
+                <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600 }}>{detailItem.nameEn}</h3>
+                {detailItem.nameAr && (
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', direction: 'rtl', marginTop: '0.25rem' }}>
+                    {detailItem.nameAr}
+                  </div>
+                )}
+              </div>
+              <button 
+                onClick={() => setDetailItem(null)}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  cursor: 'pointer', 
+                  padding: '0.25rem',
+                  color: 'var(--text-muted)'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
+                  Status
+                </div>
+                <span style={{
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  background: detailItem.isActive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(100, 116, 139, 0.1)',
+                  color: detailItem.isActive ? 'var(--success)' : 'var(--text-muted)'
+                }}>
+                  {detailItem.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
+                  Result Type
+                </div>
+                <span style={{
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.75rem',
+                  background: getResultTypeColor(detailItem.resultType).bg,
+                  color: getResultTypeColor(detailItem.resultType).color
+                }}>
+                  {RESULT_TYPES.find((t) => t.value === detailItem.resultType)?.label}
+                </span>
+              </div>
+
+              {detailItem.category && (
+                <div>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
+                    Category
+                  </div>
+                  <div style={{ fontSize: '0.875rem' }}>{detailItem.category}</div>
+                </div>
+              )}
+
+              {detailItem.unit && (
+                <div>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
+                    Unit
+                  </div>
+                  <div style={{ fontSize: '0.875rem' }}>{detailItem.unit}</div>
+                </div>
+              )}
+
+              {detailItem.method && (
+                <div>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
+                    Test Method
+                  </div>
+                  <div style={{ fontSize: '0.875rem' }}>{detailItem.method}</div>
+                </div>
+              )}
+
+              {detailItem.optionList && detailItem.resultType === 'OPTION_LIST' && (
+                <div>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
+                    Options
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                    {detailItem.optionList.split(',').map((opt, i) => (
+                      <span key={i} style={{
+                        padding: '0.125rem 0.5rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.6875rem',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border)'
+                      }}>
+                        {opt.trim()}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {detailItem.descriptionEn && (
+                <div>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
+                    Description
+                  </div>
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    {detailItem.descriptionEn}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                  onClick={() => openModal(detailItem)}
+                >
+                  <Edit2 size={14} /> Edit
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  style={{ color: 'var(--danger)' }}
+                  onClick={() => handleDelete(detailItem)}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
 
       {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content max-w-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">
+          <div className="modal" style={{ maxWidth: '40rem' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 600, margin: 0 }}>
                 {editingItem ? 'Edit Test Definition' : 'Add Test Definition'}
-              </h2>
-              <button onClick={closeModal} className="p-2 hover:bg-hover rounded-lg">
-                <X size={20} />
-              </button>
+              </h3>
+              <button onClick={closeModal} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 'var(--radius)', padding: '0.375rem', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>&times;</button>
             </div>
 
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Code *</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Code *</label>
                   <input
                     type="text"
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                    className="input w-full"
+                    className="form-control"
                     placeholder="e.g., STERILITY"
                     required
                   />
                 </div>
-                <div>
-                  <label className="label">Category</label>
+                <div className="form-group">
+                  <label className="form-label">Category</label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="input w-full"
+                    className="form-control"
                   >
                     <option value="">Select Category</option>
                     {CATEGORIES.map((cat) => (
@@ -325,44 +568,44 @@ export default function QcTestDefinitions() {
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="label">Name (English) *</label>
+                <div className="form-group">
+                  <label className="form-label">Name (English) *</label>
                   <input
                     type="text"
                     value={formData.nameEn}
                     onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
-                    className="input w-full"
+                    className="form-control"
                     placeholder="Sterility Test"
                     required
                   />
                 </div>
-                <div>
-                  <label className="label">Name (Arabic)</label>
+                <div className="form-group">
+                  <label className="form-label">Name (Arabic)</label>
                   <input
                     type="text"
                     value={formData.nameAr}
                     onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
-                    className="input w-full"
+                    className="form-control"
                     dir="rtl"
                     placeholder="اختبار العقم"
                   />
                 </div>
-                <div className="col-span-2">
-                  <label className="label">Description (English)</label>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="form-label">Description (English)</label>
                   <textarea
                     value={formData.descriptionEn}
                     onChange={(e) => setFormData({ ...formData, descriptionEn: e.target.value })}
-                    className="input w-full"
+                    className="form-control"
                     rows={2}
                     placeholder="Detailed test description..."
                   />
                 </div>
-                <div>
-                  <label className="label">Result Type *</label>
+                <div className="form-group">
+                  <label className="form-label">Result Type *</label>
                   <select
                     value={formData.resultType}
                     onChange={(e) => setFormData({ ...formData, resultType: e.target.value })}
-                    className="input w-full"
+                    className="form-control"
                     required
                   >
                     {RESULT_TYPES.map((type) => (
@@ -372,52 +615,51 @@ export default function QcTestDefinitions() {
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="label">Unit</label>
+                <div className="form-group">
+                  <label className="form-label">Unit</label>
                   <input
                     type="text"
                     value={formData.unit}
                     onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                    className="input w-full"
+                    className="form-control"
                     placeholder="e.g., mCi, pH, %"
                   />
                 </div>
                 {formData.resultType === 'OPTION_LIST' && (
-                  <div className="col-span-2">
-                    <label className="label">Options (comma-separated)</label>
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="form-label">Options (comma-separated)</label>
                     <input
                       type="text"
                       value={formData.optionList}
                       onChange={(e) => setFormData({ ...formData, optionList: e.target.value })}
-                      className="input w-full"
+                      className="form-control"
                       placeholder="Clear, Slightly Hazy, Hazy"
                     />
                   </div>
                 )}
-                <div className="col-span-2">
-                  <label className="label">Test Method</label>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="form-label">Test Method</label>
                   <input
                     type="text"
                     value={formData.method}
                     onChange={(e) => setFormData({ ...formData, method: e.target.value })}
-                    className="input w-full"
+                    className="form-control"
                     placeholder="USP <71> Sterility Testing"
                   />
                 </div>
-                <div className="col-span-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
                       checked={formData.isActive}
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      className="form-checkbox"
                     />
                     <span>Active</span>
                   </label>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
                 <button type="button" onClick={closeModal} className="btn btn-secondary">
                   Cancel
                 </button>
