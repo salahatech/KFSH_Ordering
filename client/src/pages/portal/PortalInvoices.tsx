@@ -70,15 +70,17 @@ export default function PortalInvoices() {
       toast.error('Please enter payment amount');
       return;
     }
+    if (!paymentForm.proofFile) {
+      toast.error('Payment proof is required');
+      return;
+    }
     const formData = new FormData();
     formData.append('invoiceId', selectedInvoice.id);
     formData.append('amount', paymentForm.amount);
     formData.append('paymentMethod', paymentForm.paymentMethod);
     formData.append('reference', paymentForm.reference);
     formData.append('notes', paymentForm.notes);
-    if (paymentForm.proofFile) {
-      formData.append('proofFile', paymentForm.proofFile);
-    }
+    formData.append('proofFile', paymentForm.proofFile);
     submitPaymentMutation.mutate(formData);
   };
 
@@ -636,7 +638,7 @@ export default function PortalInvoices() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Payment Proof (Optional)</label>
+                <label className="form-label">Payment Proof <span style={{ color: 'var(--danger)' }}>*</span></label>
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -708,7 +710,7 @@ export default function PortalInvoices() {
               <button 
                 className="btn btn-primary" 
                 onClick={handleSubmitPayment}
-                disabled={submitPaymentMutation.isPending || !paymentForm.amount}
+                disabled={submitPaymentMutation.isPending || !paymentForm.amount || !paymentForm.proofFile}
               >
                 {submitPaymentMutation.isPending ? 'Submitting...' : 'Submit Payment'}
               </button>
