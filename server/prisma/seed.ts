@@ -2502,6 +2502,137 @@ async function main() {
 
   console.log('Created 3 demo announcements.');
 
+  // Create demo support tickets
+  const customerUserForTicket = await prisma.user.findFirst({
+    where: { email: 'customer@radiopharma.com' },
+  });
+
+  if (customerUserForTicket) {
+    const ticket1 = await prisma.supportTicket.upsert({
+      where: { id: 'ticket-demo-1' },
+      update: {},
+      create: {
+        id: 'ticket-demo-1',
+        ticketNo: 'TKT-000001',
+        subject: 'Question about order delivery time',
+        description: 'I placed an order yesterday and wanted to know the expected delivery time. The order number is ORD-000001.',
+        category: 'ORDER',
+        priority: 'MEDIUM',
+        status: 'NEW',
+        requesterUserId: customerUserForTicket.id,
+        requesterRole: 'CUSTOMER',
+      },
+    });
+
+    await prisma.ticketMessage.upsert({
+      where: { id: 'msg-demo-1' },
+      update: {},
+      create: {
+        id: 'msg-demo-1',
+        ticketId: ticket1.id,
+        createdByUserId: customerUserForTicket.id,
+        messageType: 'PUBLIC_REPLY',
+        body: 'I placed an order yesterday and wanted to know the expected delivery time. The order number is ORD-000001.',
+        visibility: 'PUBLIC',
+      },
+    });
+
+    await prisma.ticketEvent.upsert({
+      where: { id: 'event-demo-1' },
+      update: {},
+      create: {
+        id: 'event-demo-1',
+        ticketId: ticket1.id,
+        actorUserId: customerUserForTicket.id,
+        eventType: 'CREATED',
+      },
+    });
+
+    const ticket2 = await prisma.supportTicket.upsert({
+      where: { id: 'ticket-demo-2' },
+      update: {},
+      create: {
+        id: 'ticket-demo-2',
+        ticketNo: 'TKT-000002',
+        subject: 'Invoice discrepancy',
+        description: 'The invoice amount does not match what was quoted. Please review.',
+        category: 'INVOICE',
+        priority: 'HIGH',
+        status: 'IN_PROGRESS',
+        requesterUserId: customerUserForTicket.id,
+        requesterRole: 'CUSTOMER',
+        assignedToUserId: adminUser.id,
+        assignedTeam: 'FINANCE',
+      },
+    });
+
+    await prisma.ticketMessage.upsert({
+      where: { id: 'msg-demo-2' },
+      update: {},
+      create: {
+        id: 'msg-demo-2',
+        ticketId: ticket2.id,
+        createdByUserId: customerUserForTicket.id,
+        messageType: 'PUBLIC_REPLY',
+        body: 'The invoice amount does not match what was quoted. Please review.',
+        visibility: 'PUBLIC',
+      },
+    });
+
+    await prisma.ticketMessage.upsert({
+      where: { id: 'msg-demo-3' },
+      update: {},
+      create: {
+        id: 'msg-demo-3',
+        ticketId: ticket2.id,
+        createdByUserId: adminUser.id,
+        messageType: 'PUBLIC_REPLY',
+        body: 'Thank you for bringing this to our attention. We are reviewing the invoice and will get back to you shortly.',
+        visibility: 'PUBLIC',
+      },
+    });
+
+    await prisma.ticketEvent.upsert({
+      where: { id: 'event-demo-2' },
+      update: {},
+      create: {
+        id: 'event-demo-2',
+        ticketId: ticket2.id,
+        actorUserId: customerUserForTicket.id,
+        eventType: 'CREATED',
+      },
+    });
+
+    await prisma.ticketEvent.upsert({
+      where: { id: 'event-demo-3' },
+      update: {},
+      create: {
+        id: 'event-demo-3',
+        ticketId: ticket2.id,
+        actorUserId: adminUser.id,
+        eventType: 'STATUS_CHANGED',
+        oldValueJson: { status: 'NEW' },
+        newValueJson: { status: 'IN_PROGRESS' },
+      },
+    });
+
+    await prisma.ticketTask.upsert({
+      where: { id: 'task-demo-1' },
+      update: {},
+      create: {
+        id: 'task-demo-1',
+        ticketId: ticket2.id,
+        title: 'Review invoice calculation',
+        description: 'Check the original quote and compare with generated invoice',
+        status: 'IN_PROGRESS',
+        priority: 'HIGH',
+        assignedToUserId: adminUser.id,
+      },
+    });
+
+    console.log('Created 2 demo support tickets with messages, events, and tasks.');
+  }
+
   console.log('Seed completed successfully!');
   console.log('Admin user: admin@radiopharma.com / admin123');
   console.log(`Created: ${orders.length} orders, ${batches.length} batches, ${releasedBatches.length} releases, ${shippedOrders.length} shipments`);
