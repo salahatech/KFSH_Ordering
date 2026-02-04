@@ -181,19 +181,19 @@ export default function ProductionSchedule() {
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Scheduled Batches</div>
           </div>
           <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#22c55e' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--success)' }}>
               {batches?.filter((b: any) => b.status === 'IN_PRODUCTION').length || 0}
             </div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>In Production</div>
           </div>
           <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#f59e0b' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--warning)' }}>
               {batches?.filter((b: any) => b.status === 'QC_PENDING').length || 0}
             </div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Awaiting QC</div>
           </div>
           <div className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#8b5cf6' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--info)' }}>
               {batches?.filter((b: any) => b.status === 'RELEASED').length || 0}
             </div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Released</div>
