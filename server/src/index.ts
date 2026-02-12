@@ -140,7 +140,7 @@ const clientDistPath = path.join(process.cwd(), '..', 'client', 'dist');
 app.use(express.static(clientDistPath));
 
 // SPA fallback - serve index.html for all non-API routes
-app.get('*', (req, res, next) => {
+app.get('/{*splat}', (req, res, next) => {
   if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
     return next();
   }
